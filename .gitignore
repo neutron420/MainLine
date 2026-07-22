@@ -1,0 +1,48 @@
+# ── SchemaHub .gitignore ──
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build
+.next/
+dist/
+out/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+backend/vendor/
+backend/server
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test
+coverage/
+coverage.out
+*.test
+
+# Misc
+*.pem
+*.key
+tmp/
