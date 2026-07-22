@@ -7,43 +7,99 @@
 ## Table of Contents
 
 - [Feature List](#feature-list)
-- [1. Project Management](#1-project-management)
-- [2. Database Connection Management](#2-database-connection-management)
-- [3. Schema Exploration](#3-schema-exploration)
-- [4. Schema Versioning](#4-schema-versioning)
-- [5. Schema Diff](#5-schema-diff)
-- [6. Migration Creation](#6-migration-creation)
-- [7. Migration Execution](#7-migration-execution)
-- [8. Migration Rollback](#8-migration-rollback)
-- [9. Migration History](#9-migration-history)
-- [10. Real-Time Events](#10-real-time-events)
-- [11. Visual Schema Diagram](#11-visual-schema-diagram)
-- [12. Audit Logging](#12-audit-logging)
-- [13. Drift Detection](#13-drift-detection)
+- [1. Authentication & OAuth Login](#1-authentication--oauth-login)
+- [2. Project Management](#2-project-management)
+- [3. Database Connection Management](#3-database-connection-management)
+- [4. Schema Exploration](#4-schema-exploration)
+- [5. Schema Versioning](#5-schema-versioning)
+- [6. Schema Diff](#6-schema-diff)
+- [7. Migration Creation](#7-migration-creation)
+- [8. Migration Execution](#8-migration-execution)
+- [9. Migration Rollback](#9-migration-rollback)
+- [10. Migration History](#10-migration-history)
+- [11. Real-Time Events](#11-real-time-events)
+- [12. Visual Schema Diagram](#12-visual-schema-diagram)
+- [13. Audit Logging](#13-audit-logging)
+- [14. Drift Detection](#14-drift-detection)
 
 ---
 
 ## Feature List
 
 | # | Feature | Phase | Priority |
-|---|---|---|---|
-| 1 | Project Management | 3 | P0 |
-| 2 | Database Connection Management | 3 | P0 |
-| 3 | Schema Exploration | 3 | P0 |
-| 4 | Schema Versioning | 3 | P0 |
-| 5 | Schema Diff | 5 | P1 |
-| 6 | Migration Creation | 4 | P0 |
-| 7 | Migration Execution | 4 | P0 |
-| 8 | Migration Rollback | 4 | P0 |
-| 9 | Migration History | 5 | P1 |
-| 10 | Real-Time Events | 6 | P1 |
-| 11 | Visual Schema Diagram | 7 | P1 |
-| 12 | Audit Logging | 5 | P1 |
-| 13 | Drift Detection | 9 | P2 |
+|---|---|---|---|---|
+| 1 | Authentication & OAuth Login | 2 | P0 |
+| 2 | Project Management | 3 | P0 |
+| 3 | Database Connection Management | 3 | P0 |
+| 4 | Schema Exploration | 3 | P0 |
+| 5 | Schema Versioning | 3 | P0 |
+| 6 | Schema Diff | 5 | P1 |
+| 7 | Migration Creation | 4 | P0 |
+| 8 | Migration Execution | 4 | P0 |
+| 9 | Migration Rollback | 4 | P0 |
+| 10 | Migration History | 5 | P1 |
+| 11 | Real-Time Events | 6 | P1 |
+| 12 | Visual Schema Diagram | 7 | P1 |
+| 13 | Audit Logging | 5 | P1 |
+| 14 | Drift Detection | 9 | P2 |
 
 ---
 
-## 1. Project Management
+## 1. Authentication & OAuth Login
+
+### Problem
+
+Users need to sign up and log in to SchemaHub. Requiring email/password creates friction and password management burden. Engineers prefer using existing identities (Google, GitHub, Slack) for one-click authentication.
+
+### Solution
+
+Dual authentication model: traditional email/password + OAuth 2.0 social login via Google, GitHub, and Slack. Users can authenticate with any linked provider and manage connections in account settings.
+
+### Workflow
+
+#### Email/Password
+```
+User → Login form → Enter email + password
+   → Backend validates credentials → Issues JWT
+   → User redirected to dashboard
+```
+
+#### OAuth (Google / GitHub / Slack)
+```
+User → Click "Sign in with {Provider}" → Redirected to provider → Authorize
+   → Provider redirects back to SchemaHub → Backend exchanges code for identity
+   → New user: account auto-created with verified email
+   → Existing user (same email): link accounts after password confirmation
+   → JWT issued → Redirected to dashboard
+```
+
+### Backend Behavior
+
+- Email/password: bcrypt verification, rate-limited (5 attempts/min/IP)
+- OAuth: Authorization code flow with PKCE + state parameter (signed JWT)
+- Provider tokens (access + refresh) stored encrypted for session refresh
+- `oauth_identities` table links provider + provider_user_id → internal user
+- Account linking requires password confirmation for existing accounts
+- Unlinking allowed if user has at least one authentication method remaining
+
+### Frontend Behavior
+
+- Login page: email/password form + OAuth provider buttons (Google, GitHub, Slack)
+- Registration page: email/password + OAuth options
+- Account settings: "Connected Accounts" section with link/unlink controls
+- Callback handler route: `/auth/callback` processes OAuth redirect
+- Linking dialog: password prompt when OAuth email matches existing account
+
+### Future Improvements
+
+- Apple ID, Microsoft, GitLab OAuth providers
+- SAML/SSO for enterprise
+- Passkeys / WebAuthn support
+- MFA / TOTP two-factor authentication
+
+---
+
+## 2. Project Management
 
 ### Problem
 
@@ -83,7 +139,7 @@ User → "Create Project" → Enter: name, description, visibility
 
 ---
 
-## 2. Database Connection Management
+## 3. Database Connection Management
 
 ### Problem
 
@@ -124,7 +180,7 @@ User → "Add Connection" → Enter: name, host, port, database, username, passw
 
 ---
 
-## 3. Schema Exploration
+## 4. Schema Exploration
 
 ### Problem
 
@@ -168,7 +224,7 @@ User → Selects connection → Selects schema (e.g., "public")
 
 ---
 
-## 4. Schema Versioning
+## 5. Schema Versioning
 
 ### Problem
 
@@ -208,7 +264,7 @@ User → Introspects schema → Backend creates SchemaVersion
 
 ---
 
-## 5. Schema Diff
+## 6. Schema Diff
 
 ### Problem
 
@@ -251,7 +307,7 @@ User → Selects two versions (A and B)
 
 ---
 
-## 6. Migration Creation
+## 7. Migration Creation
 
 ### Problem
 
@@ -293,7 +349,7 @@ User → "New Migration" → Enters: title, version, up SQL, down SQL
 
 ---
 
-## 7. Migration Execution
+## 8. Migration Execution
 
 ### Problem
 
@@ -338,7 +394,7 @@ User → Selects migration → Selects target connection → "Execute"
 
 ---
 
-## 8. Migration Rollback
+## 9. Migration Rollback
 
 ### Problem
 
@@ -378,7 +434,7 @@ User → Selects completed migration → "Rollback"
 
 ---
 
-## 9. Migration History
+## 10. Migration History
 
 ### Problem
 
@@ -418,7 +474,7 @@ User → Migration History tab → Filtered list of runs
 
 ---
 
-## 10. Real-Time Events
+## 11. Real-Time Events
 
 ### Problem
 
@@ -460,7 +516,7 @@ User → Opens project page → Frontend subscribes to events
 
 ---
 
-## 11. Visual Schema Diagram
+## 12. Visual Schema Diagram
 
 ### Problem
 
@@ -504,7 +560,7 @@ User → "Diagram" tab for a schema version
 
 ---
 
-## 12. Audit Logging
+## 13. Audit Logging
 
 ### Problem
 
@@ -544,7 +600,7 @@ All mutation operations → Audit entry created → Stored in partitioned table
 
 ---
 
-## 13. Drift Detection
+## 14. Drift Detection
 
 ### Problem
 

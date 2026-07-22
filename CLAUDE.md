@@ -132,6 +132,7 @@ schemahub/
 | `docs/CODING_GUIDELINES.md` | Before writing any code |
 | `docs/TESTING_STRATEGY.md` | Before writing tests |
 | `docs/SECURITY.md` | When handling auth or sensitive data |
+| `docs/OAUTH_INTEGRATION.md` | When implementing OAuth social login (Google, GitHub, Slack) |
 | `docs/DEPLOYMENT.md` | When setting up infrastructure |
 
 ---

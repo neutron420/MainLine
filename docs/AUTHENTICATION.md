@@ -7,6 +7,7 @@
 ## Table of Contents
 
 - [Authentication Overview](#authentication-overview)
+- [Authentication Methods](#authentication-methods)
 - [JWT Design](#jwt-design)
 - [Refresh Token Design](#refresh-token-design)
 - [Token Lifecycle](#token-lifecycle)
@@ -15,16 +16,17 @@
 - [Permission Matrix](#permission-matrix)
 - [API Security](#api-security)
 - [Security Considerations](#security-considerations)
+- [OAuth / Social Login](#oauth--social-login)
 
 ---
 
 ## Authentication Overview
 
-SchemaHub uses a **JWT-based authentication system** with short-lived access tokens and long-lived refresh tokens. The design prioritizes:
+SchemaHub uses a **JWT-based authentication system** with short-lived access tokens and long-lived refresh tokens, supporting multiple authentication methods including email/password and OAuth social login. The design prioritizes:
 
 1. **Stateless verification** — Access tokens can be verified without database lookups
 2. **Security** — Short token lifetimes limit exposure from token theft
-3. **User experience** — Automatic token refresh eliminates frequent re-login
+3. **User experience** — Automatic token refresh eliminates frequent re-login, one-click OAuth login
 4. **gRPC compatibility** — Tokens are passed via gRPC metadata headers
 
 ```
@@ -399,6 +401,8 @@ The gRPC gateway (Envoy) enforces CORS policies:
 |---|---|
 | Login success | ✅ |
 | Login failure | ✅ (without password) |
+| OAuth login success | ✅ |
+| OAuth login failure | ✅ |
 | Token refresh | ✅ |
 | Token revocation | ✅ |
 | Password change | ✅ |
@@ -407,3 +411,17 @@ The gRPC gateway (Envoy) enforces CORS policies:
 | Account deletion | ✅ |
 | Role change | ✅ |
 | Force logout | ✅ |
+
+---
+
+## OAuth / Social Login
+
+SchemaHub supports OAuth 2.0 social login via Google, GitHub, and Slack. See [OAuth Integration](OAUTH_INTEGRATION.md) for the complete design covering:
+
+- OAuth 2.0 authorization code flow for all three providers
+- Account linking (OAuth ↔ existing email/password account)
+- Automatic account creation on first OAuth login
+- Provider-specific configuration (client IDs, secrets, scopes, callbacks)
+- State parameter with PKCE for CSRF protection
+- Token refresh and session management for OAuth-originated sessions
+- Security considerations per provider (verified email enforcement, scope minimization)

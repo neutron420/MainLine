@@ -8,6 +8,7 @@
 
 - [Flow Documentation Format](#flow-documentation-format)
 - [Authentication Flows](#authentication-flows)
+- [OAuth Login Flows](#oauth-login-flows)
 - [Project Management Flows](#project-management-flows)
 - [Connection Management Flows](#connection-management-flows)
 - [Schema Exploration Flows](#schema-exploration-flows)
@@ -169,6 +170,114 @@ Failure Cases:
 - Name too long → InvalidArgument
 - Database constraint violation → Internal
 ```
+
+---
+
+## OAuth Login Flows
+
+### OAuth Login (Google / GitHub / Slack)
+
+**Trigger:** User clicks "Sign in with {Provider}" button
+**Auth Required:** No
+
+**Sequence:**
+
+```
+1. User clicks OAuth provider button (Google, GitHub, or Slack)
+2. Frontend calls AuthService.GetOAuthURL({ provider, redirect_to, linking })
+3. Backend generates:
+   a. State JWT: signed { provider, nonce, redirect_to, linking, code_challenge, exp }
+   b. PKCE code_verifier (random 32 bytes)
+   c. code_challenge = base64url(sha256(code_verifier))
+   d. Constructs provider authorization URL with state + code_challenge + scopes
+4. Response: { auth_url, state_token }
+5. Frontend stores state_token and code_verifier in sessionStorage
+6. Frontend redirects browser to provider's OAuth authorization page
+7. User authenticates with provider and authorizes SchemaHub
+8. Provider redirects to: /auth/callback?code=xxx&state=yyy
+9. Frontend callback handler:
+   a. Retrieves state_token and code_verifier from sessionStorage
+   b. Validates state_token matches returned state
+   c. Calls AuthService.HandleOAuthCallback({ provider, code, state, code_verifier })
+10. Backend:
+   a. Validates state JWT signature and expiry
+   b. Exchanges authorization code for provider tokens (POST to provider)
+   c. Fetches userinfo (OpenID Connect / API call)
+   d. Extracts email, verified status, provider_user_id
+   e. Rejects if email is not verified by provider
+   f. Looks up existing user by provider + provider_user_id
+   g. If found: issue JWT, redirect to dashboard
+   h. If not found: look up by email
+      - No existing user: create user + link identity → issue JWT
+      - Existing user: return needs_linking=true
+   i. If linking=true: link provider identity to current authenticated user
+11. Frontend:
+   a. Success: store tokens, redirect to dashboard
+   b. Needs linking: show password dialog for existing account
+   c. User enters password → Backend verifies → Links identity → Issues JWT
+
+Validation Rules:
+- State parameter must match signed JWT (CSRF protection)
+- Authorization code must be exchanged within 10 minutes
+- Provider must return verified email
+- PKCE code_verifier must match code_challenge
+
+Success Response:
+- { access_token, refresh_token, expires_in, user, is_new_user, needs_linking }
+
+Failure Cases:
+- State mismatch → Security event logged, "Login failed. Try again."
+- Code expired → "Login timed out. Please try again."
+- Email not verified → "Please use an account with a verified email."
+- Provider unavailable → "{Provider} is temporarily unavailable."
+```
+
+### OAuth Account Linking
+
+**Trigger:** User links OAuth from Settings page
+**Auth Required:** Yes
+
+**Sequence:**
+
+```
+1. User goes to Settings → Connected Accounts
+2. User clicks "Connect Google" (or GitHub/Slack)
+3. Frontend calls AuthService.GetOAuthURL({ provider, linking: true })
+4. OAuth flow proceeds (same as login)
+5. Backend detects linking=true in state JWT
+6. On callback: links provider identity to currently authenticated user
+7. Response: success, linked provider shown in settings
+
+Failure Cases:
+- Provider already linked to another account → "This {Provider} account is already linked."
+- User has no other auth method → unlinking blocked with error message
+```
+
+### OAuth Account Unlinking
+
+**Trigger:** User removes linked OAuth from Settings
+**Auth Required:** Yes
+
+**Sequence:**
+
+```
+1. User clicks "Disconnect" for a linked provider
+2. Frontend calls AuthService.UnlinkOAuthIdentity({ provider })
+3. Backend validates:
+   - User has at least one remaining auth method (password or other provider)
+   - Provider identity exists for this user
+4. Backend removes oauth_identity record
+5. Response: success
+
+Failure Cases:
+- Last auth method → "Cannot disconnect. Add another sign-in method first."
+```
+
+### Token Refresh
+
+**Flow is identical to email/password token refresh.** OAuth-originated sessions use the same SchemaHub JWT access + refresh tokens. Provider tokens (stored encrypted) are only used internally for provider session management.
+
+---
 
 ### List Projects
 

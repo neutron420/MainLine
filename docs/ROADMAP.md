@@ -82,7 +82,7 @@ gantt
 ## Phase 2: Authentication
 
 **Duration:** 3 weeks
-**Objective:** Implement user registration, login, JWT management, and RBAC.
+**Objective:** Implement user registration, login, JWT management, RBAC, and OAuth social login.
 
 ### Deliverables
 
@@ -93,7 +93,8 @@ gantt
 | **RBAC system** | Global roles, project roles, permission checks |
 | **User management** | Profile CRUD, password change, email verification |
 | **Auth interceptors** | Token validation, permission checking |
-| **Frontend auth** | Login/register pages, auth provider, token management |
+| **OAuth integration** | Google, GitHub, Slack login with account linking |
+| **Frontend auth** | Login/register pages, OAuth buttons, auth provider, token management |
 
 ### Dependencies
 
