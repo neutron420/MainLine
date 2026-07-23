@@ -1,0 +1,141 @@
+syntax = "proto3";
+package schemahub.auth.v1;
+option go_package = "github.com/schemahub/backend/proto/auth/v1;authv1";
+
+import "common/v1/common.proto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+
+  // OAuth
+  rpc GetOAuthURL(GetOAuthURLRequest) returns (GetOAuthURLResponse);
+  rpc HandleOAuthCallback(HandleOAuthCallbackRequest) returns (HandleOAuthCallbackResponse);
+  rpc LinkOAuthIdentity(LinkOAuthIdentityRequest) returns (LinkOAuthIdentityResponse);
+  rpc UnlinkOAuthIdentity(UnlinkOAuthIdentityRequest) returns (UnlinkOAuthIdentityResponse);
+  rpc ListLinkedIdentities(ListLinkedIdentitiesRequest) returns (ListLinkedIdentitiesResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string display_name = 3;
+}
+
+message RegisterResponse {
+  schemahub.common.v1.User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  int32 expires_in = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  schemahub.common.v1.User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  int32 expires_in = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int32 expires_in = 3;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {}
+
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {
+  schemahub.common.v1.User user = 1;
+}
+
+message UpdateUserRequest {
+  string display_name = 1;
+  string avatar_url = 2;
+}
+
+message UpdateUserResponse {
+  schemahub.common.v1.User user = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {}
+
+message OAuthIdentity {
+  string id = 1;
+  string provider = 2;
+  string provider_email = 3;
+  string created_at = 4;
+  string last_used_at = 5;
+}
+
+message GetOAuthURLRequest {
+  string provider = 1;
+  string redirect_to = 2;
+  bool linking = 3;
+}
+
+message GetOAuthURLResponse {
+  string auth_url = 1;
+  string state_token = 2;
+}
+
+message HandleOAuthCallbackRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+  string code_verifier = 4;
+}
+
+message HandleOAuthCallbackResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int32 expires_in = 3;
+  schemahub.common.v1.User user = 4;
+  bool is_new_user = 5;
+  bool needs_linking = 6;
+}
+
+message LinkOAuthIdentityRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+}
+
+message LinkOAuthIdentityResponse {}
+
+message UnlinkOAuthIdentityRequest {
+  string provider = 1;
+}
+
+message UnlinkOAuthIdentityResponse {}
+
+message ListLinkedIdentitiesRequest {}
+
+message ListLinkedIdentitiesResponse {
+  repeated OAuthIdentity identities = 1;
+}
