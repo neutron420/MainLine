@@ -23,6 +23,9 @@ out/
 # Go
 backend/vendor/
 backend/server
+go.work
+go.work.sum
+backend/tmp/  # air hot-reload binary
 
 # IDE
 .idea/
@@ -41,6 +44,16 @@ logs/
 coverage/
 coverage.out
 *.test
+*.test.exe
+
+# Python (for scripts)
+__pycache__/
+*.pyc
+
+# Terraform / Infra
+infra/terraform/.terraform/
+infra/terraform/terraform.tfstate*
+infra/terraform/*.tfplan
 
 # Misc
 *.pem
