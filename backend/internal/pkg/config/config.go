@@ -25,6 +25,7 @@ type Config struct {
 	GitHubCallbackURL  string
 
 	GoogleClientID      string
+	GoogleCallbackURL   string
 	FirebaseProjectID   string
 	FirebasePrivateKey  string
 	FirebaseClientEmail string
@@ -63,6 +64,7 @@ func Load() (*Config, error) {
 		GitHubCallbackURL:  getEnv("GITHUB_CALLBACK_URL", ""),
 
 		GoogleClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleCallbackURL:   getEnv("GOOGLE_CALLBACK_URL", ""),
 		FirebaseProjectID:   getEnv("FIREBASE_PROJECT_ID", ""),
 		FirebasePrivateKey:  getEnv("FIREBASE_PRIVATE_KEY", ""),
 		FirebaseClientEmail: getEnv("FIREBASE_CLIENT_EMAIL", ""),

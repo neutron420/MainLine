@@ -17,6 +17,7 @@ type AuthService struct {
 	tokenRepo   RefreshTokenRepository
 	oauthRepo   OAuthIdentityRepository
 	jwtManager  *jwt.Manager
+	oauthConfigs *OAuthProviderConfig
 }
 
 func NewAuthService(
@@ -24,12 +25,14 @@ func NewAuthService(
 	tokenRepo RefreshTokenRepository,
 	oauthRepo OAuthIdentityRepository,
 	jwtManager *jwt.Manager,
+	oauthConfigs *OAuthProviderConfig,
 ) *AuthService {
 	return &AuthService{
-		userRepo:   userRepo,
-		tokenRepo:  tokenRepo,
-		oauthRepo:  oauthRepo,
-		jwtManager: jwtManager,
+		userRepo:     userRepo,
+		tokenRepo:    tokenRepo,
+		oauthRepo:    oauthRepo,
+		jwtManager:   jwtManager,
+		oauthConfigs: oauthConfigs,
 	}
 }
 
@@ -226,25 +229,5 @@ func (s *AuthService) generateRefreshToken(ctx context.Context, userID, family s
 	return rawToken, nil
 }
 
-// ── OAuth ──
 
-func (s *AuthService) GetOAuthURL(provider, redirectTo string, linking bool) (string, string, error) {
-	return "", "", fmt.Errorf("not implemented")
-}
-
-func (s *AuthService) HandleOAuthCallback(ctx context.Context, provider, code, state, codeVerifier string) (*User, string, string, bool, bool, error) {
-	return nil, "", "", false, false, fmt.Errorf("not implemented")
-}
-
-func (s *AuthService) LinkOAuthIdentity(ctx context.Context, userID, provider, code, state string) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (s *AuthService) UnlinkOAuthIdentity(ctx context.Context, userID, provider string) error {
-	return fmt.Errorf("not implemented")
-}
-
-func (s *AuthService) ListLinkedIdentities(ctx context.Context, userID string) ([]*OAuthIdentity, error) {
-	return nil, fmt.Errorf("not implemented")
-}
 

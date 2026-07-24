@@ -50,6 +50,27 @@ func (m *Manager) GenerateRefreshToken() (string, error) {
 	return fmt.Sprintf("rt_%x", b), nil
 }
 
+func (m *Manager) SignClaims(claims jwt.Claims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	return token.SignedString(m.privateKey)
+}
+
+func (m *Manager) ValidateClaims(tokenString string, claims jwt.Claims) error {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return m.publicKey, nil
+	})
+	if err != nil {
+		return fmt.Errorf("validating claims: %w", err)
+	}
+	if !token.Valid {
+		return fmt.Errorf("invalid token")
+	}
+	return nil
+}
+
 func (m *Manager) VerifyAccessToken(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {

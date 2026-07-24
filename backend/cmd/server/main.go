@@ -22,13 +22,20 @@ import (
 	"github.com/schemahub/backend/internal/pkg/jwt"
 	"github.com/schemahub/backend/internal/pkg/logger"
 	"github.com/schemahub/backend/internal/pkg/redis"
+	auditDomain "github.com/schemahub/backend/internal/audit/domain"
+	auditHandler "github.com/schemahub/backend/internal/audit/handler"
+	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
+	eventDomain "github.com/schemahub/backend/internal/event/domain"
+	eventHandler "github.com/schemahub/backend/internal/event/handler"
 	migrationDomain "github.com/schemahub/backend/internal/migration/domain"
 	migrationHandler "github.com/schemahub/backend/internal/migration/handler"
 	migrationRepo "github.com/schemahub/backend/internal/migration/repository/postgres"
 	schemaDomain "github.com/schemahub/backend/internal/schema/domain"
 	schemaHandler "github.com/schemahub/backend/internal/schema/handler"
 	schemaRepo "github.com/schemahub/backend/internal/schema/repository/postgres"
+	auditv1 "github.com/schemahub/backend/proto/audit/v1"
 	authv1 "github.com/schemahub/backend/proto/auth/v1"
+	eventv1 "github.com/schemahub/backend/proto/event/v1"
 	migrationv1 "github.com/schemahub/backend/proto/migration/v1"
 	projectv1 "github.com/schemahub/backend/proto/project/v1"
 	schemav1 "github.com/schemahub/backend/proto/schema/v1"
@@ -83,7 +90,33 @@ func main() {
 	userRepo := authRepo.NewUserRepository(db)
 	tokenRepo := authRepo.NewRefreshTokenRepository(db)
 	oauthRepo := authRepo.NewOAuthIdentityRepository(db)
-	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, jwtManager)
+	oauthCfg := &authDomain.OAuthProviderConfig{
+		Google: authDomain.OAuthConfig{
+			ClientID:     cfg.GoogleClientID,
+			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL:     "https://oauth2.googleapis.com/token",
+			CallbackURL:  cfg.GoogleCallbackURL,
+			Scopes:       "openid profile email",
+		},
+		GitHub: authDomain.OAuthConfig{
+			ClientID:     cfg.GitHubClientID,
+			ClientSecret: cfg.GitHubClientSecret,
+			CallbackURL:  cfg.GitHubCallbackURL,
+			AuthURL:      "https://github.com/login/oauth/authorize",
+			TokenURL:     "https://github.com/login/oauth/access_token",
+			Scopes:       "read:user user:email",
+		},
+		Slack: authDomain.OAuthConfig{
+			ClientID:     cfg.SlackClientID,
+			ClientSecret: cfg.SlackClientSecret,
+			CallbackURL:  cfg.SlackCallbackURL,
+			AuthURL:      "https://slack.com/openid/connect/authorize",
+			TokenURL:     "https://slack.com/api/openid.connect.token",
+			Scopes:       "openid profile email",
+		},
+		StateSigningKey: []byte(cfg.EncryptionKey[:32]),
+	}
+	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, jwtManager, oauthCfg)
 	authH := authHandler.NewAuthHandler(authSvc)
 
 	// ── Project + Connection Service ──
@@ -116,6 +149,15 @@ func main() {
 	migSvc := migrationDomain.NewMigrationService(migRepo, connStringResolver)
 	migH := migrationHandler.NewMigrationHandler(migSvc)
 
+	// ── Audit Service ──
+	auditRepoInstance := auditRepo.NewAuditRepository(db)
+	auditSvc := auditDomain.NewAuditService(auditRepoInstance)
+	auditH := auditHandler.NewAuditHandler(auditSvc)
+
+	// ── Event Service ──
+	eventSvc := eventDomain.NewEventService(rdb, auditRepoInstance)
+	eventH := eventHandler.NewEventHandler(eventSvc)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		log.Error("failed to listen", "error", err)
@@ -136,6 +178,8 @@ func main() {
 	projectv1.RegisterProjectServiceServer(srv, projH)
 	schemav1.RegisterSchemaServiceServer(srv, schemaH)
 	migrationv1.RegisterMigrationServiceServer(srv, migH)
+	eventv1.RegisterEventServiceServer(srv, eventH)
+	auditv1.RegisterAuditServiceServer(srv, auditH)
 	reflection.Register(srv)
 
 	go func() {
