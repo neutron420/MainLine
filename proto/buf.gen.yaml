@@ -2,9 +2,9 @@ version: v1
 managed:
   enabled: false
 plugins:
-  - plugin: go
+  - plugin: buf.build/protocolbuffers/go:v1.34.2
     out: ../backend/proto
     opt: paths=source_relative
-  - plugin: go-grpc
+  - plugin: buf.build/grpc/go:v1.3.0
     out: ../backend/proto
     opt: paths=source_relative
