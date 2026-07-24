@@ -1,6 +1,7 @@
-version: "2"
+run:
+  timeout: 5m
+  tests: true
 linters:
-  default: none
   enable:
     - gofmt
     - govet
@@ -9,14 +10,12 @@ linters:
     - gosimple
     - ineffassign
     - unused
-  settings:
-    staticcheck:
-      checks: ["all"]
-  exclusions:
-    generated: strict
-    paths:
-      - proto/
-      - third_party/
-formatters:
-  enable:
-    - gofmt
+linters-settings:
+  staticcheck:
+    checks: ["all"]
+issues:
+  exclude-dirs:
+    - proto
+    - third_party
+  exclude-files:
+    - ".*\\.pb\\.go$"

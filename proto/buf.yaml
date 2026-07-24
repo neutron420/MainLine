@@ -4,7 +4,7 @@ lint:
   use:
     - DEFAULT
   except:
-    - PACKAGE_DIR_MATCH
+    - DIR_PACKAGE_MATCH
     - RPC_RESPONSE_STANDARD_NAME
     - RPC_REQUEST_RESPONSE_UNIQUE
   ignore:
