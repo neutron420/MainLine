@@ -1,0 +1,22 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+  settings:
+    staticcheck:
+      checks: ["all"]
+  exclusions:
+    generated: strict
+    paths:
+      - proto/
+      - third_party/
+formatters:
+  enable:
+    - gofmt

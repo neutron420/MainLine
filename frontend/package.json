@@ -1,0 +1,13 @@
+{
+  "name": "schemahub-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Frontend not yet built'",
+    "build": "echo 'Frontend not yet built'",
+    "start": "echo 'Frontend not yet built'",
+    "lint": "echo 'No frontend code yet'",
+    "typecheck": "echo 'No frontend code yet'",
+    "test": "echo 'No frontend code yet'"
+  }
+}
