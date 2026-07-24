@@ -10,9 +10,9 @@ services:
     environment:
       - DATABASE_URL=postgres://schemahub:schemahub@postgres:5432/schemahub?sslmode=disable
       - REDIS_URL=redis://redis:6379/0
-      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:?error}
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?error}
-      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:?error}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:-}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-}
       - PORT=50051
       - LOG_LEVEL=info
       - LOG_FORMAT=json

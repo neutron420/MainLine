@@ -14,7 +14,9 @@ concurrency:
 
 env:
   GO_VERSION: "1.26"
+  NODE_VERSION: "24"
   TRIVY_VERSION: "0.52.0"
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
 
 jobs:
   gosec:
@@ -33,13 +35,25 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Run gosec
+        id: run-gosec
         uses: securego/gosec@master
         with:
           args: "-no-fail -fmt sarif -out results.sarif ./..."
           workdir: backend
 
+      - name: Check SARIF exists
+        id: check-sarif
+        run: |
+          if [ -f results.sarif ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: backend
+
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v3
+        if: steps.check-sarif.outputs.exists == 'true'
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: backend/results.sarif
           category: gosec
@@ -66,7 +80,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.check-frontend.outputs.exists == 'true'
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -111,7 +125,7 @@ jobs:
           exit-code: 1
 
       - name: Upload Trivy SARIF results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend
@@ -130,7 +144,7 @@ jobs:
       - name: Ensure buf.lock is up to date
         run: |
           if [ -f proto/buf.lock ]; then
-            buf mod update proto/
+            buf dep update proto/
           else
             echo "::notice::No buf.lock found — skipping buf mod update"
           fi
