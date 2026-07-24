@@ -8,17 +8,26 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"github.com/schemahub/backend/internal/auth/domain"
+	authDomain "github.com/schemahub/backend/internal/auth/domain"
 	authHandler "github.com/schemahub/backend/internal/auth/handler"
-	"github.com/schemahub/backend/internal/auth/repository/postgres"
+	authRepo "github.com/schemahub/backend/internal/auth/repository/postgres"
+	projectDomain "github.com/schemahub/backend/internal/project/domain"
+	projectHandler "github.com/schemahub/backend/internal/project/handler"
+	projectRepo "github.com/schemahub/backend/internal/project/repository/postgres"
 	"github.com/schemahub/backend/internal/pkg/config"
 	"github.com/schemahub/backend/internal/pkg/database"
 	"github.com/schemahub/backend/internal/pkg/interceptor"
 	"github.com/schemahub/backend/internal/pkg/jwt"
 	"github.com/schemahub/backend/internal/pkg/logger"
 	"github.com/schemahub/backend/internal/pkg/redis"
+	schemaDomain "github.com/schemahub/backend/internal/schema/domain"
+	schemaHandler "github.com/schemahub/backend/internal/schema/handler"
+	schemaRepo "github.com/schemahub/backend/internal/schema/repository/postgres"
 	authv1 "github.com/schemahub/backend/proto/auth/v1"
+	projectv1 "github.com/schemahub/backend/proto/project/v1"
+	schemav1 "github.com/schemahub/backend/proto/schema/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -67,11 +76,36 @@ func main() {
 	}
 
 	// ── Auth Service ──
-	userRepo := postgres.NewUserRepository(db)
-	tokenRepo := postgres.NewRefreshTokenRepository(db)
-	oauthRepo := postgres.NewOAuthIdentityRepository(db)
-	authSvc := domain.NewAuthService(userRepo, tokenRepo, oauthRepo, jwtManager)
-	authHandler := authHandler.NewAuthHandler(authSvc)
+	userRepo := authRepo.NewUserRepository(db)
+	tokenRepo := authRepo.NewRefreshTokenRepository(db)
+	oauthRepo := authRepo.NewOAuthIdentityRepository(db)
+	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, jwtManager)
+	authH := authHandler.NewAuthHandler(authSvc)
+
+	// ── Project + Connection Service ──
+	projRepo := projectRepo.NewProjectRepository(db)
+	connRepo := projectRepo.NewConnectionRepository(db)
+	projSvc := projectDomain.NewProjectService(projRepo)
+	connSvc := projectDomain.NewConnectionService(connRepo, []byte(cfg.EncryptionKey))
+	projH := projectHandler.NewProjectHandler(projSvc, connSvc)
+
+	// ── Schema Service ──
+	schemaRepoInstance := schemaRepo.NewSchemaRepository(db)
+	schemaSvc := schemaDomain.NewSchemaService(schemaRepoInstance)
+
+	schemaDomain.SetConnector(func(ctx context.Context, connStr string) (schemaDomain.DBPool, error) {
+		pool, err := pgxpool.New(ctx, connStr)
+		if err != nil {
+			return nil, fmt.Errorf("connecting to target database: %w", err)
+		}
+		return &pgxPoolWrapper{pool: pool}, nil
+	})
+
+	connStringResolver := func(ctx context.Context, connID string) (string, error) {
+		return connSvc.GetConnectionString(ctx, connID)
+	}
+
+	schemaH := schemaHandler.NewSchemaHandler(schemaSvc, connStringResolver)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
@@ -84,10 +118,14 @@ func main() {
 			interceptor.RecoveryInterceptor(log),
 			interceptor.LoggingInterceptor(log),
 			interceptor.AuthInterceptor(jwtManager),
+			interceptor.RateLimitInterceptor(rdb, cfg.RateLimit),
+			interceptor.ValidationInterceptor(),
 		),
 	)
 
-	authv1.RegisterAuthServiceServer(srv, authHandler)
+	authv1.RegisterAuthServiceServer(srv, authH)
+	projectv1.RegisterProjectServiceServer(srv, projH)
+	schemav1.RegisterSchemaServiceServer(srv, schemaH)
 	reflection.Register(srv)
 
 	go func() {
@@ -106,3 +144,18 @@ func main() {
 	srv.GracefulStop()
 	log.Info("server stopped")
 }
+
+// pgxPoolWrapper adapts *pgxpool.Pool to schemaDomain.DBPool interface.
+type pgxPoolWrapper struct {
+	pool *pgxpool.Pool
+}
+
+func (w *pgxPoolWrapper) Query(ctx context.Context, sql string, args ...any) (schemaDomain.Rows, error) {
+	return w.pool.Query(ctx, sql, args...)
+}
+
+func (w *pgxPoolWrapper) Close() {
+	w.pool.Close()
+}
+
+var _ schemaDomain.DBPool = (*pgxPoolWrapper)(nil)
