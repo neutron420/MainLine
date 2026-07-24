@@ -2,7 +2,6 @@ syntax = "proto3";
 package schemahub.audit.v1;
 option go_package = "github.com/schemahub/backend/proto/audit/v1;auditv1";
 
-import "google/protobuf/timestamp.proto";
 
 message AuditEntry {
   string id = 1;

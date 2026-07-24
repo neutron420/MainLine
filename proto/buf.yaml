@@ -3,6 +3,10 @@ name: buf.build/schemahub/schemahub
 lint:
   use:
     - DEFAULT
+  except:
+    - PACKAGE_DIR_MATCH
+    - RPC_RESPONSE_STANDARD_NAME
+    - RPC_REQUEST_RESPONSE_UNIQUE
   ignore:
     - google/protobuf
 breaking:

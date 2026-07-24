@@ -2,7 +2,6 @@ syntax = "proto3";
 package schemahub.project.v1;
 option go_package = "github.com/schemahub/backend/proto/project/v1;projectv1";
 
-import "google/protobuf/timestamp.proto";
 
 message Project {
   string id = 1;

@@ -2,7 +2,6 @@ syntax = "proto3";
 package schemahub.drift.v1;
 option go_package = "github.com/schemahub/backend/proto/drift/v1;driftv1";
 
-import "google/protobuf/timestamp.proto";
 
 message DriftEvent {
   string id = 1;

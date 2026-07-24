@@ -2,7 +2,6 @@ syntax = "proto3";
 package schemahub.migration.v1;
 option go_package = "github.com/schemahub/backend/proto/migration/v1;migrationv1";
 
-import "google/protobuf/timestamp.proto";
 
 message Migration {
   string id = 1;

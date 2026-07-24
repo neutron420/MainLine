@@ -2,7 +2,6 @@ syntax = "proto3";
 package schemahub.event.v1;
 option go_package = "github.com/schemahub/backend/proto/event/v1;eventv1";
 
-import "google/protobuf/timestamp.proto";
 
 message EventActor {
   string id = 1;
