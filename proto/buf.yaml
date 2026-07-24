@@ -4,8 +4,8 @@ lint:
   use:
     - DEFAULT
   except:
-    - DIR_PACKAGE_MATCH
-    - RPC_RESPONSE_STANDARD_NAME
+    - PACKAGE_DIRECTORY_MATCH
+    - RPC_PASCAL_CASE
     - RPC_REQUEST_RESPONSE_UNIQUE
   ignore:
     - google/protobuf

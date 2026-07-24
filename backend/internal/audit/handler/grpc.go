@@ -22,9 +22,9 @@ func NewAuditHandler(svc *domain.AuditService) *AuditHandler {
 func (h *AuditHandler) ListAuditEntries(ctx context.Context, req *auditv1.ListAuditEntriesRequest) (*auditv1.ListAuditEntriesResponse, error) {
 	filter := &domain.AuditFilter{
 		EventType:    req.EventType,
-		ActorID:      req.ActorID,
+		ActorID:      req.ActorId,
 		ResourceType: req.ResourceType,
-		ResourceID:   req.ResourceID,
+		ResourceID:   req.ResourceId,
 		DateFrom:     req.DateFrom,
 		DateTo:       req.DateTo,
 	}
@@ -42,7 +42,7 @@ func (h *AuditHandler) ListAuditEntries(ctx context.Context, req *auditv1.ListAu
 }
 
 func (h *AuditHandler) GetAuditEntry(ctx context.Context, req *auditv1.GetAuditEntryRequest) (*auditv1.GetAuditEntryResponse, error) {
-	entry, err := h.svc.GetByID(ctx, req.ID)
+	entry, err := h.svc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -56,8 +56,8 @@ func (h *AuditHandler) TailAuditEntries(req *auditv1.TailAuditEntriesRequest, st
 		var entries []*domain.AuditEntry
 		var err error
 
-		if req.SinceEventID != "" {
-			entries, err = h.svc.ListAfterID(ctx, req.SinceEventID, req.EventType, 100)
+		if req.SinceEventId != "" {
+			entries, err = h.svc.ListAfterID(ctx, req.SinceEventId, req.EventType, 100)
 			if err != nil {
 				return errors.ToGRPC(err)
 			}
@@ -68,7 +68,7 @@ func (h *AuditHandler) TailAuditEntries(req *auditv1.TailAuditEntriesRequest, st
 				if err := stream.Send(toProtoEntry(e)); err != nil {
 					return err
 				}
-				req.SinceEventID = e.ID
+				req.SinceEventId = e.ID
 			}
 		}
 
@@ -101,20 +101,21 @@ func toProtoEntry(e *domain.AuditEntry) *auditv1.AuditEntry {
 		return nil
 	}
 	return &auditv1.AuditEntry{
-		ID:              e.ID,
+		Id:              e.ID,
 		EventType:       e.EventType,
-		ActorID:         e.ActorID,
+		ActorId:         e.ActorID,
 		ActorEmail:      e.ActorEmail,
 		Action:          e.Action,
 		ResourceType:    e.ResourceType,
-		ResourceID:      e.ResourceID,
+		ResourceId:      e.ResourceID,
 		ResourceChanges: e.ResourceChanges,
 		Metadata:        e.Metadata,
-		IPAddress:       e.IPAddress,
+		IpAddress:       e.IPAddress,
 		UserAgent:       e.UserAgent,
-		TraceID:         e.TraceID,
+		TraceId:         e.TraceID,
 		CreatedAt:       e.CreatedAt.Format(time.RFC3339),
 	}
 }
 
 var _ = fmt.Sprintf
+

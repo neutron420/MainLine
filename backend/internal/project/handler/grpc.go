@@ -39,7 +39,7 @@ func (h *ProjectHandler) CreateProject(ctx context.Context, req *projectv1.Creat
 }
 
 func (h *ProjectHandler) GetProject(ctx context.Context, req *projectv1.GetProjectRequest) (*projectv1.GetProjectResponse, error) {
-	p, err := h.svc.GetByID(ctx, req.ID)
+	p, err := h.svc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, mapProjectError(err)
 	}
@@ -69,7 +69,7 @@ func (h *ProjectHandler) ListProjects(ctx context.Context, req *projectv1.ListPr
 func (h *ProjectHandler) UpdateProject(ctx context.Context, req *projectv1.UpdateProjectRequest) (*projectv1.UpdateProjectResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	p, err := h.svc.Update(ctx, req.ID, req.Name, req.Description, req.Visibility, userID)
+	p, err := h.svc.Update(ctx, req.Id, req.Name, req.Description, req.Visibility, userID)
 	if err != nil {
 		return nil, mapProjectError(err)
 	}
@@ -80,7 +80,7 @@ func (h *ProjectHandler) UpdateProject(ctx context.Context, req *projectv1.Updat
 func (h *ProjectHandler) DeleteProject(ctx context.Context, req *projectv1.DeleteProjectRequest) (*projectv1.DeleteProjectResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	if err := h.svc.Delete(ctx, req.ID, userID); err != nil {
+	if err := h.svc.Delete(ctx, req.Id, userID); err != nil {
 		return nil, mapProjectError(err)
 	}
 
@@ -90,7 +90,7 @@ func (h *ProjectHandler) DeleteProject(ctx context.Context, req *projectv1.Delet
 func (h *ProjectHandler) AddMember(ctx context.Context, req *projectv1.AddMemberRequest) (*projectv1.AddMemberResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	if err := h.svc.AddMember(ctx, req.ProjectID, req.UserID, req.Role, userID); err != nil {
+	if err := h.svc.AddMember(ctx, req.ProjectId, req.UserId, req.Role, userID); err != nil {
 		return nil, mapProjectError(err)
 	}
 
@@ -100,7 +100,7 @@ func (h *ProjectHandler) AddMember(ctx context.Context, req *projectv1.AddMember
 func (h *ProjectHandler) RemoveMember(ctx context.Context, req *projectv1.RemoveMemberRequest) (*projectv1.RemoveMemberResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	if err := h.svc.RemoveMember(ctx, req.ProjectID, req.UserID, userID); err != nil {
+	if err := h.svc.RemoveMember(ctx, req.ProjectId, req.UserId, userID); err != nil {
 		return nil, mapProjectError(err)
 	}
 
@@ -110,7 +110,7 @@ func (h *ProjectHandler) RemoveMember(ctx context.Context, req *projectv1.Remove
 func (h *ProjectHandler) UpdateMemberRole(ctx context.Context, req *projectv1.UpdateMemberRoleRequest) (*projectv1.UpdateMemberRoleResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	if err := h.svc.UpdateMemberRole(ctx, req.ProjectID, req.UserID, req.Role, userID); err != nil {
+	if err := h.svc.UpdateMemberRole(ctx, req.ProjectId, req.UserId, req.Role, userID); err != nil {
 		return nil, mapProjectError(err)
 	}
 
@@ -120,7 +120,7 @@ func (h *ProjectHandler) UpdateMemberRole(ctx context.Context, req *projectv1.Up
 func (h *ProjectHandler) ListMembers(ctx context.Context, req *projectv1.ListMembersRequest) (*projectv1.ListMembersResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	members, nextCursor, total, err := h.svc.ListMembers(ctx, req.ProjectID, req.Cursor, req.PageSize, userID)
+	members, nextCursor, total, err := h.svc.ListMembers(ctx, req.ProjectId, req.Cursor, req.PageSize, userID)
 	if err != nil {
 		return nil, mapProjectError(err)
 	}
@@ -139,7 +139,7 @@ func (h *ProjectHandler) ListMembers(ctx context.Context, req *projectv1.ListMem
 
 func toProtoProject(p *domain.Project) *projectv1.Project {
 	return &projectv1.Project{
-		ID:          p.ID,
+		Id:          p.ID,
 		Name:        p.Name,
 		Slug:        p.Slug,
 		Description: p.Description,
@@ -152,7 +152,7 @@ func toProtoProject(p *domain.Project) *projectv1.Project {
 
 func toProtoMember(m *domain.ProjectMember) *projectv1.ProjectMember {
 	return &projectv1.ProjectMember{
-		UserID:   m.UserID,
+		UserId:   m.UserID,
 		Role:     string(m.Role),
 		JoinedAt: optionalTime(m.JoinedAt),
 	}
@@ -184,18 +184,18 @@ func mapProjectError(err error) error {
 	return errors.ToGRPC(err)
 }
 
-// ── Connection Handlers ──
+// â”€â”€ Connection Handlers â”€â”€
 
 func toProtoConn(c *domain.Connection) *projectv1.Connection {
 	return &projectv1.Connection{
-		ID:               c.ID,
-		ProjectID:        c.ProjectID,
+		Id:               c.ID,
+		ProjectId:        c.ProjectID,
 		Name:             c.Name,
 		Host:             c.Host,
 		Port:             int32(c.Port),
 		DatabaseName:     c.DatabaseName,
 		Username:         c.Username,
-		SSLMode:          string(c.SSLMode),
+		SslMode:          string(c.SSLMode),
 		ConnectionStatus: string(c.ConnectionStatus),
 		LastConnectedAt:  optionalTime(c.LastConnectedAt),
 		CreatedBy:        c.CreatedBy,
@@ -208,13 +208,13 @@ func (h *ProjectHandler) CreateConnection(ctx context.Context, req *projectv1.Cr
 	userID := userIDFromContext(ctx)
 
 	c := &domain.Connection{
-		ProjectID:    req.ProjectID,
+		ProjectID:    req.ProjectId,
 		Name:         req.Name,
 		Host:         req.Host,
 		Port:         int(req.Port),
 		DatabaseName: req.DatabaseName,
 		Username:     req.Username,
-		SSLMode:      domain.SSLMode(req.SSLMode),
+		SSLMode:      domain.SSLMode(req.SslMode),
 		CreatedBy:    userID,
 	}
 
@@ -226,7 +226,7 @@ func (h *ProjectHandler) CreateConnection(ctx context.Context, req *projectv1.Cr
 }
 
 func (h *ProjectHandler) GetConnection(ctx context.Context, req *projectv1.GetConnectionRequest) (*projectv1.GetConnectionResponse, error) {
-	c, err := h.connSvc.GetByID(ctx, req.ID)
+	c, err := h.connSvc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, mapConnectionError(err)
 	}
@@ -234,7 +234,7 @@ func (h *ProjectHandler) GetConnection(ctx context.Context, req *projectv1.GetCo
 }
 
 func (h *ProjectHandler) ListConnections(ctx context.Context, req *projectv1.ListConnectionsRequest) (*projectv1.ListConnectionsResponse, error) {
-	conns, nextCursor, total, err := h.connSvc.List(ctx, req.ProjectID, req.Cursor, req.PageSize)
+	conns, nextCursor, total, err := h.connSvc.List(ctx, req.ProjectId, req.Cursor, req.PageSize)
 	if err != nil {
 		return nil, mapConnectionError(err)
 	}
@@ -247,7 +247,7 @@ func (h *ProjectHandler) ListConnections(ctx context.Context, req *projectv1.Lis
 }
 
 func (h *ProjectHandler) UpdateConnection(ctx context.Context, req *projectv1.UpdateConnectionRequest) (*projectv1.UpdateConnectionResponse, error) {
-	c, err := h.connSvc.Update(ctx, req.ID, req.Name, req.Host, req.Port, req.DatabaseName, req.Username, req.Password, req.SSLMode)
+	c, err := h.connSvc.Update(ctx, req.Id, req.Name, req.Host, req.Port, req.DatabaseName, req.Username, req.Password, req.SslMode)
 	if err != nil {
 		return nil, mapConnectionError(err)
 	}
@@ -255,14 +255,14 @@ func (h *ProjectHandler) UpdateConnection(ctx context.Context, req *projectv1.Up
 }
 
 func (h *ProjectHandler) DeleteConnection(ctx context.Context, req *projectv1.DeleteConnectionRequest) (*projectv1.DeleteConnectionResponse, error) {
-	if err := h.connSvc.Delete(ctx, req.ID); err != nil {
+	if err := h.connSvc.Delete(ctx, req.Id); err != nil {
 		return nil, mapConnectionError(err)
 	}
 	return &projectv1.DeleteConnectionResponse{}, nil
 }
 
 func (h *ProjectHandler) TestConnection(ctx context.Context, req *projectv1.TestConnectionRequest) (*projectv1.TestConnectionResponse, error) {
-	success, latency, version, dbName, err := h.connSvc.Test(ctx, req.ConnectionID)
+	success, latency, version, dbName, err := h.connSvc.Test(ctx, req.ConnectionId)
 	if err != nil {
 		return &projectv1.TestConnectionResponse{
 			Success:   success,

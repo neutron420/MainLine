@@ -22,12 +22,12 @@ func NewDriftHandler(svc *domain.DriftService, connString func(ctx context.Conte
 }
 
 func (h *DriftHandler) CheckDrift(ctx context.Context, req *driftv1.CheckDriftRequest) (*driftv1.CheckDriftResponse, error) {
-	connStr, err := h.connString(ctx, req.ConnectionID)
+	connStr, err := h.connString(ctx, req.ConnectionId)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
 
-	events, err := h.svc.CheckDrift(ctx, connStr, req.ConnectionID, req.SchemaNames)
+	events, err := h.svc.CheckDrift(ctx, connStr, req.ConnectionId, req.SchemaNames)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -45,7 +45,7 @@ func (h *DriftHandler) CheckDrift(ctx context.Context, req *driftv1.CheckDriftRe
 
 func (h *DriftHandler) ListDriftEvents(ctx context.Context, req *driftv1.ListDriftEventsRequest) (*driftv1.ListDriftEventsResponse, error) {
 	filter := &domain.DriftFilter{
-		ConnectionID: req.ConnectionID,
+		ConnectionID: req.ConnectionId,
 		Status:       req.Status,
 		Severity:     req.Severity,
 		DriftType:    req.DriftType,
@@ -64,7 +64,7 @@ func (h *DriftHandler) ListDriftEvents(ctx context.Context, req *driftv1.ListDri
 }
 
 func (h *DriftHandler) GetDriftEvent(ctx context.Context, req *driftv1.GetDriftEventRequest) (*driftv1.GetDriftEventResponse, error) {
-	event, err := h.svc.GetByID(ctx, req.ID)
+	event, err := h.svc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -74,7 +74,7 @@ func (h *DriftHandler) GetDriftEvent(ctx context.Context, req *driftv1.GetDriftE
 func (h *DriftHandler) ResolveDriftEvent(ctx context.Context, req *driftv1.ResolveDriftEventRequest) (*driftv1.ResolveDriftEventResponse, error) {
 	userID, _ := interceptor.UserIDFromContext(ctx)
 
-	event, err := h.svc.Resolve(ctx, req.ID, req.Status, userID)
+	event, err := h.svc.Resolve(ctx, req.Id, req.Status, userID)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -82,7 +82,7 @@ func (h *DriftHandler) ResolveDriftEvent(ctx context.Context, req *driftv1.Resol
 }
 
 func (h *DriftHandler) GetDriftStats(ctx context.Context, req *driftv1.GetDriftStatsRequest) (*driftv1.GetDriftStatsResponse, error) {
-	stats, err := h.svc.GetStats(ctx, req.ConnectionID)
+	stats, err := h.svc.GetStats(ctx, req.ConnectionId)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -101,10 +101,10 @@ func toProtoEvent(e *domain.DriftEvent) *driftv1.DriftEvent {
 		return nil
 	}
 	pe := &driftv1.DriftEvent{
-		ID:                 e.ID,
-		ConnectionID:       e.ConnectionID,
-		SchemaID:           e.SchemaID,
-		ExpectedVersionID:  e.ExpectedVersionID,
+		Id:                 e.ID,
+		ConnectionId:       e.ConnectionID,
+		SchemaId:           e.SchemaID,
+		ExpectedVersionId:  e.ExpectedVersionID,
 		DriftType:          string(e.DriftType),
 		ObjectType:         e.ObjectType,
 		ObjectName:         e.ObjectName,

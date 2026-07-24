@@ -34,13 +34,13 @@ func (h *EventHandler) Subscribe(req *eventv1.SubscribeRequest, stream eventv1.E
 	sub := &domain.Subscriber{
 		ID:         uuid.NewString(),
 		UserID:     userID,
-		ProjectIDs: req.ProjectIDs,
+		ProjectIDs: req.ProjectIds,
 		EventTypes: eventTypes,
 		Buffer:     make(chan *domain.SchemaEvent, 100),
 		Done:       make(chan struct{}),
 	}
 
-	eventCh, err := h.svc.Subscribe(stream.Context(), sub, req.LastEventID)
+	eventCh, err := h.svc.Subscribe(stream.Context(), sub, req.LastEventId)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (h *EventHandler) Heartbeat(ctx context.Context, req *eventv1.HeartbeatRequ
 		return nil, err
 	}
 
-	if err := h.svc.SendHeartbeat(ctx, userID, req.ProjectIDs); err != nil {
+	if err := h.svc.SendHeartbeat(ctx, userID, req.ProjectIds); err != nil {
 		return nil, err
 	}
 
@@ -84,21 +84,22 @@ func toProtoEvent(e *domain.SchemaEvent) *eventv1.SchemaEvent {
 		return nil
 	}
 	pe := &eventv1.SchemaEvent{
-		ID:        e.ID,
+		Id:        e.ID,
 		Type:      string(e.Type),
 		Version:   e.Version,
 		Timestamp: e.Timestamp.Format(time.RFC3339Nano),
-		ProjectID: e.ProjectID,
+		ProjectId: e.ProjectID,
 		Payload:   e.Payload,
 		Metadata:  e.Metadata,
 	}
 	if e.Actor != nil {
-		pe.Actor = &eventv1.EventActor{ID: e.Actor.ID, Email: e.Actor.Email}
+		pe.Actor = &eventv1.EventActor{Id: e.Actor.ID, Email: e.Actor.Email}
 	}
 	if e.Resource != nil {
-		pe.Resource = &eventv1.EventResource{Type: e.Resource.Type, ID: e.Resource.ID}
+		pe.Resource = &eventv1.EventResource{Type: e.Resource.Type, Id: e.Resource.ID}
 	}
 	return pe
 }
 
 var _ = fmt.Sprintf
+

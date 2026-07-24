@@ -24,11 +24,11 @@ func (h *MigrationHandler) CreateMigration(ctx context.Context, req *migrationv1
 	userID, _ := interceptor.UserIDFromContext(ctx)
 
 	m := &domain.Migration{
-		ProjectID:   req.ProjectID,
+		ProjectID:   req.ProjectId,
 		Title:       req.Title,
 		Version:     req.Version,
-		UpSQL:       req.UpSQL,
-		DownSQL:     req.DownSQL,
+		UpSQL:       req.UpSql,
+		DownSQL:     req.DownSql,
 		Description: req.Description,
 		CreatedBy:   userID,
 	}
@@ -42,7 +42,7 @@ func (h *MigrationHandler) CreateMigration(ctx context.Context, req *migrationv1
 }
 
 func (h *MigrationHandler) GetMigration(ctx context.Context, req *migrationv1.GetMigrationRequest) (*migrationv1.GetMigrationResponse, error) {
-	m, err := h.svc.GetByID(ctx, req.ID)
+	m, err := h.svc.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -50,7 +50,7 @@ func (h *MigrationHandler) GetMigration(ctx context.Context, req *migrationv1.Ge
 }
 
 func (h *MigrationHandler) ListMigrations(ctx context.Context, req *migrationv1.ListMigrationsRequest) (*migrationv1.ListMigrationsResponse, error) {
-	migrations, next, total, err := h.svc.ListByProject(ctx, req.ProjectID, req.Cursor, req.PageSize)
+	migrations, next, total, err := h.svc.ListByProject(ctx, req.ProjectId, req.Cursor, req.PageSize)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -63,18 +63,18 @@ func (h *MigrationHandler) ListMigrations(ctx context.Context, req *migrationv1.
 }
 
 func (h *MigrationHandler) UpdateMigration(ctx context.Context, req *migrationv1.UpdateMigrationRequest) (*migrationv1.UpdateMigrationResponse, error) {
-	dm := &domain.Migration{ID: req.ID}
+	dm := &domain.Migration{ID: req.Id}
 	if req.Title != nil {
 		dm.Title = *req.Title
 	}
 	if req.Description != nil {
 		dm.Description = *req.Description
 	}
-	if req.UpSQL != nil {
-		dm.UpSQL = *req.UpSQL
+	if req.UpSql != nil {
+		dm.UpSQL = *req.UpSql
 	}
-	if req.DownSQL != nil {
-		dm.DownSQL = *req.DownSQL
+	if req.DownSql != nil {
+		dm.DownSQL = *req.DownSql
 	}
 	if req.Status != nil {
 		dm.Status = domain.MigrationStatus(*req.Status)
@@ -88,7 +88,7 @@ func (h *MigrationHandler) UpdateMigration(ctx context.Context, req *migrationv1
 }
 
 func (h *MigrationHandler) DeleteMigration(ctx context.Context, req *migrationv1.DeleteMigrationRequest) (*migrationv1.DeleteMigrationResponse, error) {
-	if err := h.svc.Delete(ctx, req.ID); err != nil {
+	if err := h.svc.Delete(ctx, req.Id); err != nil {
 		return nil, errors.ToGRPC(err)
 	}
 	return &migrationv1.DeleteMigrationResponse{}, nil
@@ -97,7 +97,7 @@ func (h *MigrationHandler) DeleteMigration(ctx context.Context, req *migrationv1
 func (h *MigrationHandler) ExecuteMigration(ctx context.Context, req *migrationv1.ExecuteMigrationRequest) (*migrationv1.ExecuteMigrationResponse, error) {
 	userID, _ := interceptor.UserIDFromContext(ctx)
 
-	run, err := h.svc.Execute(ctx, req.MigrationID, req.ConnectionID, userID)
+	run, err := h.svc.Execute(ctx, req.MigrationId, req.ConnectionId, userID)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -105,8 +105,8 @@ func (h *MigrationHandler) ExecuteMigration(ctx context.Context, req *migrationv
 }
 
 func (h *MigrationHandler) WatchMigration(req *migrationv1.WatchMigrationRequest, stream migrationv1.MigrationService_WatchMigrationServer) error {
-	ch := h.svc.Subscribe(req.RunID)
-	defer h.svc.Unsubscribe(req.RunID, ch)
+	ch := h.svc.Subscribe(req.RunId)
+	defer h.svc.Unsubscribe(req.RunId, ch)
 
 	for msg := range ch {
 		if err := stream.Send(toProtoStatus(msg)); err != nil {
@@ -122,7 +122,7 @@ func (h *MigrationHandler) WatchMigration(req *migrationv1.WatchMigrationRequest
 func (h *MigrationHandler) RollbackMigration(ctx context.Context, req *migrationv1.RollbackMigrationRequest) (*migrationv1.RollbackMigrationResponse, error) {
 	userID, _ := interceptor.UserIDFromContext(ctx)
 
-	run, err := h.svc.Rollback(ctx, req.RunID, userID)
+	run, err := h.svc.Rollback(ctx, req.RunId, userID)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -130,8 +130,8 @@ func (h *MigrationHandler) RollbackMigration(ctx context.Context, req *migration
 }
 
 func (h *MigrationHandler) WatchRollback(req *migrationv1.WatchRollbackRequest, stream migrationv1.MigrationService_WatchRollbackServer) error {
-	ch := h.svc.Subscribe(req.RunID)
-	defer h.svc.Unsubscribe(req.RunID, ch)
+	ch := h.svc.Subscribe(req.RunId)
+	defer h.svc.Unsubscribe(req.RunId, ch)
 
 	for msg := range ch {
 		if err := stream.Send(toProtoStatus(msg)); err != nil {
@@ -145,17 +145,17 @@ func (h *MigrationHandler) WatchRollback(req *migrationv1.WatchRollbackRequest, 
 }
 
 func (h *MigrationHandler) ValidateMigration(ctx context.Context, req *migrationv1.ValidateMigrationRequest) (*migrationv1.ValidateMigrationResponse, error) {
-	valid, errs := h.svc.Validate(ctx, req.UpSQL, req.DownSQL)
+	valid, errs := h.svc.Validate(ctx, req.UpSql, req.DownSql)
 	return &migrationv1.ValidateMigrationResponse{Valid: valid, Errors: errs}, nil
 }
 
 func (h *MigrationHandler) DryRunMigration(ctx context.Context, req *migrationv1.DryRunMigrationRequest) (*migrationv1.DryRunMigrationResponse, error) {
-	valid, errs, warnings := h.svc.DryRun(ctx, req.MigrationID, req.ConnectionID)
+	valid, errs, warnings := h.svc.DryRun(ctx, req.MigrationId, req.ConnectionId)
 	return &migrationv1.DryRunMigrationResponse{Valid: valid, Errors: errs, Warnings: warnings}, nil
 }
 
 func (h *MigrationHandler) GetMigrationRun(ctx context.Context, req *migrationv1.GetMigrationRunRequest) (*migrationv1.GetMigrationRunResponse, error) {
-	run, err := h.svc.GetRunByID(ctx, req.ID)
+	run, err := h.svc.GetRunByID(ctx, req.Id)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -163,7 +163,7 @@ func (h *MigrationHandler) GetMigrationRun(ctx context.Context, req *migrationv1
 }
 
 func (h *MigrationHandler) ListMigrationRuns(ctx context.Context, req *migrationv1.ListMigrationRunsRequest) (*migrationv1.ListMigrationRunsResponse, error) {
-	runs, next, total, err := h.svc.ListRuns(ctx, req.MigrationID, req.Cursor, req.PageSize)
+	runs, next, total, err := h.svc.ListRuns(ctx, req.MigrationId, req.Cursor, req.PageSize)
 	if err != nil {
 		return nil, errors.ToGRPC(err)
 	}
@@ -176,7 +176,7 @@ func (h *MigrationHandler) ListMigrationRuns(ctx context.Context, req *migration
 }
 
 func (h *MigrationHandler) GetMigrationLogs(req *migrationv1.GetMigrationLogsRequest, stream migrationv1.MigrationService_GetMigrationLogsServer) error {
-	entries, err := h.svc.GetLogs(stream.Context(), req.RunID)
+	entries, err := h.svc.GetLogs(stream.Context(), req.RunId)
 	if err != nil {
 		return errors.ToGRPC(err)
 	}
@@ -189,20 +189,20 @@ func (h *MigrationHandler) GetMigrationLogs(req *migrationv1.GetMigrationLogsReq
 	return nil
 }
 
-// ── Converters ──
+// â”€â”€ Converters â”€â”€
 
 func toProtoMigration(m *domain.Migration) *migrationv1.Migration {
 	if m == nil {
 		return nil
 	}
 	pm := &migrationv1.Migration{
-		ID:          m.ID,
-		ProjectID:   m.ProjectID,
+		Id:          m.ID,
+		ProjectId:   m.ProjectID,
 		Title:       m.Title,
 		Description: m.Description,
 		Version:     m.Version,
-		UpSQL:       m.UpSQL,
-		DownSQL:     m.DownSQL,
+		UpSql:       m.UpSQL,
+		DownSql:     m.DownSQL,
 		Checksum:    m.Checksum,
 		Status:      string(m.Status),
 		CreatedBy:   m.CreatedBy,
@@ -217,9 +217,9 @@ func toProtoRun(r *domain.MigrationRun) *migrationv1.MigrationRun {
 		return nil
 	}
 	pr := &migrationv1.MigrationRun{
-		ID:           r.ID,
-		MigrationID:  r.MigrationID,
-		ConnectionID: r.ConnectionID,
+		Id:           r.ID,
+		MigrationId:  r.MigrationID,
+		ConnectionId: r.ConnectionID,
 		Direction:    string(r.Direction),
 		Status:       string(r.Status),
 		DurationMs:   r.DurationMs,
@@ -241,7 +241,7 @@ func toProtoStatus(msg *domain.MigrationStatusMessage) *migrationv1.MigrationSta
 		return nil
 	}
 	ps := &migrationv1.MigrationStatusMessage{
-		RunID:               msg.RunID,
+		RunId:               msg.RunID,
 		State:               string(msg.State),
 		TotalStatements:     int32(msg.TotalStatements),
 		CompletedStatements: int32(msg.CompletedStatements),
@@ -262,7 +262,7 @@ func toProtoLogEntry(e *domain.MigrationLogEntry) *migrationv1.MigrationLogEntry
 	}
 	pe := &migrationv1.MigrationLogEntry{
 		Sequence:     int32(e.Sequence),
-		SQL:          e.SQL,
+		Sql:          e.SQL,
 		ErrorMessage: e.ErrorMessage,
 		CreatedAt:    e.CreatedAt.Format(time.RFC3339),
 	}
@@ -276,3 +276,5 @@ func toProtoLogEntry(e *domain.MigrationLogEntry) *migrationv1.MigrationLogEntry
 }
 
 var _ = fmt.Sprintf
+
+

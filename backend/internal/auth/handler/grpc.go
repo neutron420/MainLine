@@ -79,7 +79,7 @@ func (h *AuthHandler) GetCurrentUser(ctx context.Context, req *authv1.GetCurrent
 }
 
 func (h *AuthHandler) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.UpdateUserResponse, error) {
-	user, err := h.svc.UpdateUser(ctx, userIDFromContext(ctx), req.DisplayName, req.AvatarURL)
+	user, err := h.svc.UpdateUser(ctx, userIDFromContext(ctx), req.DisplayName, req.AvatarUrl)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -94,11 +94,11 @@ func (h *AuthHandler) ChangePassword(ctx context.Context, req *authv1.ChangePass
 }
 
 func (h *AuthHandler) GetOAuthURL(ctx context.Context, req *authv1.GetOAuthURLRequest) (*authv1.GetOAuthURLResponse, error) {
-	authURL, stateToken, err := h.svc.GetOAuthURL(req.Provider, req.RedirectTo, req.Linking)
+	AuthUrl, stateToken, err := h.svc.GetOAuthURL(req.Provider, req.RedirectTo, req.Linking)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &authv1.GetOAuthURLResponse{AuthURL: authURL, StateToken: stateToken}, nil
+	return &authv1.GetOAuthURLResponse{AuthUrl: AuthUrl, StateToken: stateToken}, nil
 }
 
 func (h *AuthHandler) HandleOAuthCallback(ctx context.Context, req *authv1.HandleOAuthCallbackRequest) (*authv1.HandleOAuthCallbackResponse, error) {
@@ -138,7 +138,7 @@ func (h *AuthHandler) ListLinkedIdentities(ctx context.Context, req *authv1.List
 	var protoIdentities []*authv1.OAuthIdentity
 	for _, id := range identities {
 		protoIdentities = append(protoIdentities, &authv1.OAuthIdentity{
-			ID:            id.ID,
+			Id:            id.ID,
 			Provider:      id.Provider,
 			ProviderEmail: id.ProviderEmail,
 			CreatedAt:     id.CreatedAt.Format(time.RFC3339),
@@ -188,10 +188,10 @@ func toProtoUser(u *domain.User) *commonv1.User {
 		return nil
 	}
 	return &commonv1.User{
-		ID:          u.ID,
+		Id:          u.ID,
 		Email:       u.Email,
 		DisplayName: u.DisplayName,
-		AvatarURL:   u.AvatarURL,
+		AvatarUrl:   u.AvatarURL,
 		Role:        u.Role,
 		IsActive:    u.IsActive,
 		CreatedAt:   u.CreatedAt.Format(time.RFC3339),
@@ -216,7 +216,7 @@ func mapError(err error) error {
 	case errors.Is(err, domain.ErrInvalidRefreshToken):
 		return grpcUnauthenticated("invalid or expired refresh token")
 	case errors.Is(err, domain.ErrTokenRevoked):
-		return grpcUnauthenticated("token revoked — all sessions invalidated")
+		return grpcUnauthenticated("token revoked â€” all sessions invalidated")
 	case errors.Is(err, domain.ErrPasswordMismatch):
 		return grpcInvalidArgument("current password is incorrect")
 	case errors.Is(err, domain.ErrWeakPassword):
@@ -225,3 +225,4 @@ func mapError(err error) error {
 		return grpcInternal("internal server error")
 	}
 }
+
