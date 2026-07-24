@@ -1,0 +1,14 @@
+syntax = "proto3";
+package schemahub.common.v1;
+option go_package = "github.com/schemahub/backend/proto/common/v1;commonv1";
+
+message PaginationRequest {
+  string cursor = 1;
+  int32 page_size = 2;
+}
+
+message PaginationResponse {
+  string next_cursor = 1;
+  string previous_cursor = 2;
+  int32 total_count = 3;
+}

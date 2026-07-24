@@ -1,0 +1,65 @@
+syntax = "proto3";
+package schemahub.audit.v1;
+option go_package = "github.com/schemahub/backend/proto/audit/v1;auditv1";
+
+import "google/protobuf/timestamp.proto";
+
+message AuditEntry {
+  string id = 1;
+  string event_type = 2;
+  string actor_id = 3;
+  string actor_email = 4;
+  string action = 5;
+  string resource_type = 6;
+  string resource_id = 7;
+  string resource_changes = 8;
+  map<string, string> metadata = 9;
+  string ip_address = 10;
+  string user_agent = 11;
+  string trace_id = 12;
+  string created_at = 13;
+}
+
+message ListAuditEntriesRequest {
+  string event_type = 1;
+  string actor_id = 2;
+  string resource_type = 3;
+  string resource_id = 4;
+  string date_from = 5;
+  string date_to = 6;
+  string cursor = 7;
+  int32 page_size = 8;
+}
+
+message ListAuditEntriesResponse {
+  repeated AuditEntry entries = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message GetAuditEntryRequest {
+  string id = 1;
+}
+
+message GetAuditEntryResponse {
+  AuditEntry entry = 1;
+}
+
+message TailAuditEntriesRequest {
+  string event_type = 1;
+  string since_event_id = 2;
+}
+
+message GetAuditStatsRequest {
+  string date_from = 1;
+  string date_to = 2;
+}
+
+message GetAuditStatsResponse {
+  int32 total_entries = 1;
+  map<string, int32> by_event_type = 2;
+  map<string, int32> by_action = 3;
+  int32 unique_actors = 4;
+  string date_from = 5;
+  string date_to = 6;
+}

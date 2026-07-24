@@ -1,0 +1,177 @@
+syntax = "proto3";
+package schemahub.migration.v1;
+option go_package = "github.com/schemahub/backend/proto/migration/v1;migrationv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Migration {
+  string id = 1;
+  string project_id = 2;
+  string title = 3;
+  string description = 4;
+  string version = 5;
+  string up_sql = 6;
+  string down_sql = 7;
+  string checksum = 8;
+  string status = 9;
+  string created_by = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message MigrationRun {
+  string id = 1;
+  string migration_id = 2;
+  string connection_id = 3;
+  string direction = 4;
+  string status = 5;
+  string started_at = 6;
+  string completed_at = 7;
+  int32 duration_ms = 8;
+  string error_message = 9;
+  string executed_by = 10;
+  string created_at = 11;
+}
+
+message MigrationLogEntry {
+  int32 sequence = 1;
+  string sql = 2;
+  int32 duration_ms = 3;
+  int32 rows_affected = 4;
+  string error_message = 5;
+  string created_at = 6;
+}
+
+message MigrationStatusMessage {
+  string run_id = 1;
+  string state = 2;
+  int32 total_statements = 3;
+  int32 completed_statements = 4;
+  string current_statement = 5;
+  string started_at = 6;
+  int64 elapsed_ms = 7;
+  string error_message = 8;
+  MigrationLogEntry last_log = 9;
+}
+
+message CreateMigrationRequest {
+  string project_id = 1;
+  string title = 2;
+  string version = 3;
+  string up_sql = 4;
+  string down_sql = 5;
+  string description = 6;
+}
+
+message CreateMigrationResponse {
+  Migration migration = 1;
+}
+
+message GetMigrationRequest {
+  string id = 1;
+}
+
+message GetMigrationResponse {
+  Migration migration = 1;
+}
+
+message ListMigrationsRequest {
+  string project_id = 1;
+  string cursor = 2;
+  int32 page_size = 3;
+}
+
+message ListMigrationsResponse {
+  repeated Migration migrations = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message UpdateMigrationRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string up_sql = 4;
+  optional string down_sql = 5;
+  optional string status = 6;
+}
+
+message UpdateMigrationResponse {
+  Migration migration = 1;
+}
+
+message DeleteMigrationRequest {
+  string id = 1;
+}
+
+message DeleteMigrationResponse {}
+
+message ExecuteMigrationRequest {
+  string migration_id = 1;
+  string connection_id = 2;
+}
+
+message ExecuteMigrationResponse {
+  MigrationRun run = 1;
+}
+
+message WatchMigrationRequest {
+  string run_id = 1;
+}
+
+message RollbackMigrationRequest {
+  string run_id = 1;
+}
+
+message RollbackMigrationResponse {
+  MigrationRun run = 1;
+}
+
+message WatchRollbackRequest {
+  string run_id = 1;
+}
+
+message ValidateMigrationRequest {
+  string up_sql = 1;
+  string down_sql = 2;
+}
+
+message ValidateMigrationResponse {
+  bool valid = 1;
+  repeated string errors = 2;
+}
+
+message DryRunMigrationRequest {
+  string migration_id = 1;
+  string connection_id = 2;
+}
+
+message DryRunMigrationResponse {
+  bool valid = 1;
+  repeated string errors = 2;
+  repeated string warnings = 3;
+}
+
+message GetMigrationRunRequest {
+  string id = 1;
+}
+
+message GetMigrationRunResponse {
+  MigrationRun run = 1;
+}
+
+message ListMigrationRunsRequest {
+  string migration_id = 1;
+  string cursor = 2;
+  int32 page_size = 3;
+}
+
+message ListMigrationRunsResponse {
+  repeated MigrationRun runs = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message GetMigrationLogsRequest {
+  string run_id = 1;
+}

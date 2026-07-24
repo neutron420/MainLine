@@ -1,0 +1,49 @@
+syntax = "proto3";
+package schemahub.event.v1;
+option go_package = "github.com/schemahub/backend/proto/event/v1;eventv1";
+
+import "google/protobuf/timestamp.proto";
+
+message EventActor {
+  string id = 1;
+  string email = 2;
+}
+
+message EventResource {
+  string type = 1;
+  string id = 2;
+}
+
+message SchemaEvent {
+  string id = 1;
+  string type = 2;
+  int32 version = 3;
+  string timestamp = 4;
+  string project_id = 5;
+  EventActor actor = 6;
+  EventResource resource = 7;
+  string payload = 8;
+  map<string, string> metadata = 9;
+}
+
+message SubscribeRequest {
+  repeated string project_ids = 1;
+  repeated string event_types = 2;
+  string last_event_id = 3;
+}
+
+message SubscribeResponse {
+  SchemaEvent event = 1;
+}
+
+message AcknowledgeEventRequest {
+  string event_id = 1;
+}
+
+message AcknowledgeEventResponse {}
+
+message HeartbeatRequest {
+  repeated string project_ids = 1;
+}
+
+message HeartbeatResponse {}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+package schemahub.schema.v1;
+option go_package = "github.com/schemahub/backend/proto/schema/v1;schemav1";
+
+import "schema/v1/schema_messages.proto";
+
+service SchemaService {
+  rpc IntrospectSchema(IntrospectSchemaRequest) returns (IntrospectSchemaResponse);
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+  rpc ListSchemas(ListSchemasRequest) returns (ListSchemasResponse);
+
+  rpc ListSchemaVersions(ListSchemaVersionsRequest) returns (ListSchemaVersionsResponse);
+  rpc GetSchemaVersion(GetSchemaVersionRequest) returns (GetSchemaVersionResponse);
+  rpc CompareSchemaVersions(CompareSchemaVersionsRequest) returns (CompareSchemaVersionsResponse);
+
+  rpc ListSchemaObjects(ListSchemaObjectsRequest) returns (ListSchemaObjectsResponse);
+
+  rpc GetSchemaDiagram(GetSchemaDiagramRequest) returns (GetSchemaDiagramResponse);
+}

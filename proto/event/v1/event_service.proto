@@ -1,0 +1,11 @@
+syntax = "proto3";
+package schemahub.event.v1;
+option go_package = "github.com/schemahub/backend/proto/event/v1;eventv1";
+
+import "event/v1/event_messages.proto";
+
+service EventService {
+  rpc Subscribe(SubscribeRequest) returns (stream SchemaEvent);
+  rpc AcknowledgeEvent(AcknowledgeEventRequest) returns (AcknowledgeEventResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}

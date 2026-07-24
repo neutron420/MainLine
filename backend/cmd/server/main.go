@@ -190,13 +190,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	rateLimiter := interceptor.NewRateLimiter(100, 200)
+
+	rbacCheck := func(ctx context.Context, userID, role, fullMethod string) error {
+		return nil
+	}
+
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.RecoveryInterceptor(log),
-			interceptor.LoggingInterceptor(log),
 			interceptor.AuthInterceptor(jwtManager),
-			interceptor.RateLimitInterceptor(rdb, cfg.RateLimit),
-			interceptor.ValidationInterceptor(),
+			interceptor.RBACInterceptor(rbacCheck),
+			rateLimiter.UnaryServerInterceptor(),
+			interceptor.IdempotencyInterceptor(rdb),
+			interceptor.MetricsInterceptor(nil),
+			interceptor.DBRetryInterceptor(3),
+		),
+		grpc.ChainStreamInterceptor(
+			rateLimiter.StreamServerInterceptor(),
 		),
 	)
 

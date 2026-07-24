@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile.dev
+    ports:
+      - "50051:50051"
+      - "2345:2345" # Delve debugger
+    environment:
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=text
+    volumes:
+      - ../backend:/app
+      - gomod:/go/pkg/mod
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - SCHEMAHUB_ENV=development
+      - NODE_ENV=development
+    volumes:
+      - ../frontend:/app
+      - node_modules:/app/node_modules
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  envoy:
+    ports:
+      - "9901:9901"
+      - "8080:8080"
+      - "8443:8443"
+
+volumes:
+  gomod:
+  node_modules:

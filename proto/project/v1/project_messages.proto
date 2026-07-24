@@ -1,0 +1,190 @@
+syntax = "proto3";
+package schemahub.project.v1;
+option go_package = "github.com/schemahub/backend/proto/project/v1;projectv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Project {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  string visibility = 5;
+  int32 member_count = 6;
+  string created_by = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ProjectMember {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
+  string role = 4;
+  string joined_at = 5;
+}
+
+message CreateProjectRequest {
+  string name = 1;
+  string description = 2;
+  string visibility = 3;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+message GetProjectRequest {
+  string id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message ListProjectsRequest {
+  string cursor = 1;
+  int32 page_size = 2;
+}
+
+message ListProjectsResponse {
+  repeated Project projects = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message UpdateProjectRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string visibility = 4;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message DeleteProjectRequest {
+  string id = 1;
+}
+
+message DeleteProjectResponse {}
+
+message AddMemberRequest {
+  string project_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddMemberResponse {}
+
+message RemoveMemberRequest {
+  string project_id = 1;
+  string user_id = 2;
+}
+
+message RemoveMemberResponse {}
+
+message UpdateMemberRoleRequest {
+  string project_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message UpdateMemberRoleResponse {}
+
+message ListMembersRequest {
+  string project_id = 1;
+  string cursor = 2;
+  int32 page_size = 3;
+}
+
+message ListMembersResponse {
+  repeated ProjectMember members = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message Connection {
+  string id = 1;
+  string project_id = 2;
+  string name = 3;
+  string host = 4;
+  int32 port = 5;
+  string database_name = 6;
+  string username = 7;
+  string ssl_mode = 8;
+  string connection_status = 9;
+  string last_connected_at = 10;
+  string created_by = 11;
+  string created_at = 12;
+  string updated_at = 13;
+}
+
+message CreateConnectionRequest {
+  string project_id = 1;
+  string name = 2;
+  string host = 3;
+  int32 port = 4;
+  string database_name = 5;
+  string username = 6;
+  string password = 7;
+  string ssl_mode = 8;
+}
+
+message CreateConnectionResponse {
+  Connection connection = 1;
+}
+
+message GetConnectionRequest {
+  string id = 1;
+}
+
+message GetConnectionResponse {
+  Connection connection = 1;
+}
+
+message ListConnectionsRequest {
+  string project_id = 1;
+  string cursor = 2;
+  int32 page_size = 3;
+}
+
+message ListConnectionsResponse {
+  repeated Connection connections = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message UpdateConnectionRequest {
+  string id = 1;
+  string name = 2;
+  string host = 3;
+  int32 port = 4;
+  string database_name = 5;
+  string username = 6;
+  string password = 7;
+  string ssl_mode = 8;
+}
+
+message UpdateConnectionResponse {
+  Connection connection = 1;
+}
+
+message DeleteConnectionRequest {
+  string id = 1;
+}
+
+message DeleteConnectionResponse {}
+
+message TestConnectionRequest {
+  string connection_id = 1;
+}
+
+message TestConnectionResponse {
+  bool success = 1;
+  int32 latency_ms = 2;
+  string server_version = 3;
+  string database_name = 4;
+  string error = 5;
+}

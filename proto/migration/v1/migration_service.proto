@@ -1,0 +1,25 @@
+syntax = "proto3";
+package schemahub.migration.v1;
+option go_package = "github.com/schemahub/backend/proto/migration/v1;migrationv1";
+
+import "migration/v1/migration_messages.proto";
+
+service MigrationService {
+  rpc CreateMigration(CreateMigrationRequest) returns (CreateMigrationResponse);
+  rpc GetMigration(GetMigrationRequest) returns (GetMigrationResponse);
+  rpc ListMigrations(ListMigrationsRequest) returns (ListMigrationsResponse);
+  rpc UpdateMigration(UpdateMigrationRequest) returns (UpdateMigrationResponse);
+  rpc DeleteMigration(DeleteMigrationRequest) returns (DeleteMigrationResponse);
+
+  rpc ExecuteMigration(ExecuteMigrationRequest) returns (ExecuteMigrationResponse);
+  rpc WatchMigration(WatchMigrationRequest) returns (stream MigrationStatusMessage);
+  rpc RollbackMigration(RollbackMigrationRequest) returns (RollbackMigrationResponse);
+  rpc WatchRollback(WatchRollbackRequest) returns (stream MigrationStatusMessage);
+
+  rpc ValidateMigration(ValidateMigrationRequest) returns (ValidateMigrationResponse);
+  rpc DryRunMigration(DryRunMigrationRequest) returns (DryRunMigrationResponse);
+
+  rpc GetMigrationRun(GetMigrationRunRequest) returns (GetMigrationRunResponse);
+  rpc ListMigrationRuns(ListMigrationRunsRequest) returns (ListMigrationRunsResponse);
+  rpc GetMigrationLogs(GetMigrationLogsRequest) returns (stream MigrationLogEntry);
+}

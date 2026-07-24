@@ -1,0 +1,79 @@
+syntax = "proto3";
+package schemahub.drift.v1;
+option go_package = "github.com/schemahub/backend/proto/drift/v1;driftv1";
+
+import "google/protobuf/timestamp.proto";
+
+message DriftEvent {
+  string id = 1;
+  string connection_id = 2;
+  string schema_id = 3;
+  string expected_version_id = 4;
+  string drift_type = 5;
+  string object_type = 6;
+  string object_name = 7;
+  string expected_definition = 8;
+  string actual_definition = 9;
+  string diff_summary = 10;
+  string severity = 11;
+  string status = 12;
+  string detected_at = 13;
+  string resolved_at = 14;
+  string resolved_by = 15;
+}
+
+message CheckDriftRequest {
+  string connection_id = 1;
+  repeated string schema_names = 2;
+}
+
+message CheckDriftResponse {
+  repeated DriftEvent events = 1;
+  bool has_drift = 2;
+  int32 total_drifts = 3;
+}
+
+message ListDriftEventsRequest {
+  string connection_id = 1;
+  string status = 2;
+  string severity = 3;
+  string drift_type = 4;
+  string cursor = 5;
+  int32 page_size = 6;
+}
+
+message ListDriftEventsResponse {
+  repeated DriftEvent events = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+message GetDriftEventRequest {
+  string id = 1;
+}
+
+message GetDriftEventResponse {
+  DriftEvent event = 1;
+}
+
+message ResolveDriftEventRequest {
+  string id = 1;
+  string status = 2;
+}
+
+message ResolveDriftEventResponse {
+  DriftEvent event = 1;
+}
+
+message GetDriftStatsRequest {
+  string connection_id = 1;
+}
+
+message GetDriftStatsResponse {
+  int32 total_open = 1;
+  int32 total_resolved = 2;
+  int32 total_acknowledged = 3;
+  int32 total_false_positive = 4;
+  map<string, int32> by_severity = 5;
+  map<string, int32> by_drift_type = 6;
+}

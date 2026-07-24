@@ -1,0 +1,11 @@
+version: v1
+name: buf.build/schemahub/schemahub
+deps:
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - DEFAULT
+    - PACKAGE_SUFFIX_NO_PKEY
+breaking:
+  use:
+    - FILE

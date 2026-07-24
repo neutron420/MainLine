@@ -59,6 +59,4 @@ func RateLimitInterceptor(rdb *redis.Client, defaultLimit int) grpc.UnaryServerI
 	}
 }
 
-func extractIP(ctx context.Context) string {
-	return ""
-}
+

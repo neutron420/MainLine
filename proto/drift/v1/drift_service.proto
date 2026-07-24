@@ -1,0 +1,13 @@
+syntax = "proto3";
+package schemahub.drift.v1;
+option go_package = "github.com/schemahub/backend/proto/drift/v1;driftv1";
+
+import "drift/v1/drift_messages.proto";
+
+service DriftService {
+  rpc CheckDrift(CheckDriftRequest) returns (CheckDriftResponse);
+  rpc ListDriftEvents(ListDriftEventsRequest) returns (ListDriftEventsResponse);
+  rpc GetDriftEvent(GetDriftEventRequest) returns (GetDriftEventResponse);
+  rpc ResolveDriftEvent(ResolveDriftEventRequest) returns (ResolveDriftEventResponse);
+  rpc GetDriftStats(GetDriftStatsRequest) returns (GetDriftStatsResponse);
+}

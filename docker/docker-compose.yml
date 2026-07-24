@@ -1,0 +1,101 @@
+name: schemahub
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - DATABASE_URL=postgres://schemahub:schemahub@postgres:5432/schemahub?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:?error}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?error}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:?error}
+      - PORT=50051
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8080
+      - API_INTERNAL_URL=http://backend:50051
+      - SCHEMAHUB_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: schemahub
+      POSTGRES_PASSWORD: schemahub
+      POSTGRES_DB: schemahub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schemahub -d schemahub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    ports:
+      - "9901:9901"
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      - backend
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+networks:
+  schemahub-net:
+    driver: bridge
+
+volumes:
+  pgdata:
