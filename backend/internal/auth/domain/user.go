@@ -18,6 +18,7 @@ var (
 	ErrLastAuthMethod        = errors.New("cannot remove last authentication method")
 	ErrOAuthStateMismatch    = errors.New("OAuth state mismatch — possible CSRF")
 	ErrEmailVerificationRequired = errors.New("email verification required")
+	ErrPermissionDenied         = errors.New("permission denied")
 )
 
 type User struct {

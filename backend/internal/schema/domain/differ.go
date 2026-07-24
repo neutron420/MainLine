@@ -204,3 +204,147 @@ func (d *Differ) diffIndexes(a, b []IndexInfo) []FieldChange {
 
 	return changes
 }
+
+// BreakingChange represents a detected breaking or cautionary schema change.
+type BreakingChange struct {
+	ObjectType  string `json:"object_type"`
+	ObjectName  string `json:"object_name"`
+	Change      string `json:"change"`
+	Severity    string `json:"severity"`
+	Description string `json:"description"`
+}
+
+// ImpactedObject represents a database object impacted by a breaking change.
+type ImpactedObject struct {
+	ObjectType string `json:"object_type"`
+	ObjectName string `json:"object_name"`
+	Dependency string `json:"dependency"`
+	Impact     string `json:"impact"`
+}
+
+type viewInfo struct {
+	Name       string `json:"name"`
+	Schema     string `json:"schema"`
+	Definition string `json:"definition"`
+}
+
+type impactMetadata struct {
+	Tables []TableInfo `json:"tables"`
+	Views  []viewInfo  `json:"views,omitempty"`
+}
+
+// DetectBreakingChanges analyzes a DiffResult and returns any breaking or cautionary changes found.
+func (d *Differ) DetectBreakingChanges(diff *DiffResult) []BreakingChange {
+	var changes []BreakingChange
+
+	for _, obj := range diff.RemovedObjects {
+		if obj.Type == "table" {
+			changes = append(changes, BreakingChange{
+				ObjectType:  "table",
+				ObjectName:  obj.Name,
+				Change:      "removed",
+				Severity:    "breaking",
+				Description: fmt.Sprintf("Table %s has been removed", obj.Name),
+			})
+		}
+	}
+
+	for _, obj := range diff.ModifiedObjects {
+		for _, ch := range obj.Changes {
+			parts := strings.SplitN(ch.Field, ".", 3)
+			if len(parts) != 3 {
+				continue
+			}
+			colName := parts[1]
+			action := parts[2]
+			fullColName := obj.Name + "." + colName
+
+			switch action {
+			case "removed":
+				changes = append(changes, BreakingChange{
+					ObjectType:  "column",
+					ObjectName:  fullColName,
+					Change:      "removed",
+					Severity:    "breaking",
+					Description: fmt.Sprintf("Column %s has been removed", fullColName),
+				})
+			case "type":
+				changes = append(changes, BreakingChange{
+					ObjectType:  "column",
+					ObjectName:  fullColName,
+					Change:      "type_changed",
+					Severity:    "breaking",
+					Description: fmt.Sprintf("Column %s type changed from %v to %v", fullColName, ch.Before, ch.After),
+				})
+			case "nullable":
+				before, beforeOk := ch.Before.(bool)
+				after, afterOk := ch.After.(bool)
+				if beforeOk && afterOk {
+					severity := "breaking"
+					if !before && after {
+						severity = "caution"
+					}
+					changes = append(changes, BreakingChange{
+						ObjectType:  "column",
+						ObjectName:  fullColName,
+						Change:      "nullable_changed",
+						Severity:    severity,
+						Description: fmt.Sprintf("Column %s nullable changed from %v to %v", fullColName, before, after),
+					})
+				}
+			}
+		}
+	}
+
+	return changes
+}
+
+// AnalyzeImpact takes the version metadata and a list of breaking changes, and returns all
+// database objects impacted by those changes (e.g. foreign keys referencing changed tables, views depending on them).
+func (d *Differ) AnalyzeImpact(meta []byte, breakingChanges []BreakingChange) []ImpactedObject {
+	var m impactMetadata
+	if err := json.Unmarshal(meta, &m); err != nil {
+		return nil
+	}
+
+	var impacted []ImpactedObject
+
+	changedTables := make(map[string]bool)
+	for _, bc := range breakingChanges {
+		if bc.ObjectType == "table" {
+			changedTables[bc.ObjectName] = true
+		}
+	}
+
+	for _, table := range m.Tables {
+		fullName := table.Schema + "." + table.Name
+		for _, fk := range table.Constr.ForeignKeys {
+			refFull := table.Schema + "." + fk.RefTable
+			if changedTables[refFull] {
+				impacted = append(impacted, ImpactedObject{
+					ObjectType: "table",
+					ObjectName: fullName,
+					Dependency: fmt.Sprintf("foreign_key:%s", fk.Name),
+					Impact:     fmt.Sprintf("Table %s has a foreign key %s referencing %s", fullName, fk.Name, refFull),
+				})
+			}
+		}
+	}
+
+	for _, view := range m.Views {
+		fullName := view.Schema + "." + view.Name
+		for tbl := range changedTables {
+			if strings.Contains(view.Definition, tbl) {
+				impacted = append(impacted, ImpactedObject{
+					ObjectType: "view",
+					ObjectName: fullName,
+					Dependency: fmt.Sprintf("view_definition:%s", tbl),
+					Impact:     fmt.Sprintf("View %s references table %s", fullName, tbl),
+				})
+				break
+			}
+		}
+	}
+
+	return impacted
+}

@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
@@ -32,4 +35,6 @@ type OAuthIdentityRepository interface {
 	GetByUserID(ctx context.Context, userID string) ([]*OAuthIdentity, error)
 	Delete(ctx context.Context, id string) error
 	UpdateLastUsed(ctx context.Context, id string) error
+	GetExpiringSoon(ctx context.Context, within time.Duration) ([]*OAuthIdentity, error)
+	UpdateTokens(ctx context.Context, id, accessTokenEncrypted, refreshTokenEncrypted string, expiresAt *time.Time) error
 }

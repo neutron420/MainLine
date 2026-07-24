@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -76,3 +77,36 @@ func (r *oauthIdentityRepo) UpdateLastUsed(ctx context.Context, id string) error
 		`UPDATE oauth_identities SET last_used_at=now() WHERE id=$1`, id)
 	return err
 }
+
+func (r *oauthIdentityRepo) GetExpiringSoon(ctx context.Context, within time.Duration) ([]*domain.OAuthIdentity, error) {
+	cutoff := time.Now().Add(within)
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, provider, provider_user_id, provider_email,
+		        access_token_encrypted, refresh_token_encrypted, expires_at, created_at, last_used_at
+		 FROM oauth_identities WHERE expires_at IS NOT NULL AND expires_at <= $1 AND refresh_token_encrypted IS NOT NULL AND refresh_token_encrypted != ''`,
+		cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var identities []*domain.OAuthIdentity
+	for rows.Next() {
+		o := &domain.OAuthIdentity{}
+		if err := rows.Scan(&o.ID, &o.UserID, &o.Provider, &o.ProviderUserID, &o.ProviderEmail,
+			&o.AccessTokenEncrypted, &o.RefreshTokenEncrypted, &o.ExpiresAt, &o.CreatedAt, &o.LastUsedAt); err != nil {
+			return nil, err
+		}
+		identities = append(identities, o)
+	}
+	return identities, nil
+}
+
+func (r *oauthIdentityRepo) UpdateTokens(ctx context.Context, id, accessTokenEncrypted, refreshTokenEncrypted string, expiresAt *time.Time) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE oauth_identities SET access_token_encrypted=$1, refresh_token_encrypted=$2, expires_at=$3 WHERE id=$4`,
+		accessTokenEncrypted, refreshTokenEncrypted, expiresAt, id)
+	return err
+}
+
+

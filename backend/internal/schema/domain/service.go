@@ -16,6 +16,7 @@ type SchemaService struct {
 	repo       SchemaRepository
 	introspect *IntrospectionService
 	differ     *Differ
+	cache      *SchemaCache
 }
 
 func NewSchemaService(repo SchemaRepository) *SchemaService {
@@ -24,6 +25,11 @@ func NewSchemaService(repo SchemaRepository) *SchemaService {
 		introspect: NewIntrospectionService(),
 		differ:     NewDiffer(),
 	}
+}
+
+func (s *SchemaService) WithCache(cache *SchemaCache) *SchemaService {
+	s.cache = cache
+	return s
 }
 
 func (s *SchemaService) Introspect(ctx context.Context, connStr, connID string, schemaNames []string, userID string) (*Schema, *SchemaVersion, error) {
@@ -131,7 +137,20 @@ func (s *SchemaService) Introspect(ctx context.Context, connStr, connID string, 
 }
 
 func (s *SchemaService) GetSchemaByID(ctx context.Context, id string) (*Schema, error) {
-	return s.repo.GetByID(ctx, id)
+	if s.cache != nil {
+		cached, err := s.cache.GetSchema(ctx, id)
+		if err == nil && cached != nil {
+			return cached, nil
+		}
+	}
+	schema, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if s.cache != nil {
+		_ = s.cache.SetSchema(ctx, schema)
+	}
+	return schema, nil
 }
 
 func (s *SchemaService) ListSchemas(ctx context.Context, projectID, cursor string, pageSize int32) ([]*Schema, string, int32, error) {
@@ -149,7 +168,20 @@ func (s *SchemaService) ListVersions(ctx context.Context, schemaID, cursor strin
 }
 
 func (s *SchemaService) GetVersionByID(ctx context.Context, id string) (*SchemaVersion, error) {
-	return s.repo.GetVersionByID(ctx, id)
+	if s.cache != nil {
+		cached, err := s.cache.GetVersion(ctx, id)
+		if err == nil && cached != nil {
+			return cached, nil
+		}
+	}
+	v, err := s.repo.GetVersionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if s.cache != nil {
+		_ = s.cache.SetVersion(ctx, v)
+	}
+	return v, nil
 }
 
 func (s *SchemaService) CompareVersions(ctx context.Context, versionAID, versionBID string) (*DiffResult, error) {
@@ -205,6 +237,13 @@ type DiagramEdge struct {
 }
 
 func (s *SchemaService) GetDiagram(ctx context.Context, versionID string, includeDetails bool) (*DiagramData, error) {
+	if s.cache != nil && !includeDetails {
+		cached, err := s.cache.GetDiagram(ctx, versionID)
+		if err == nil && cached != nil {
+			return cached, nil
+		}
+	}
+
 	v, err := s.repo.GetVersionByID(ctx, versionID)
 	if err != nil {
 		return nil, fmt.Errorf("version not found: %w", err)
@@ -270,6 +309,10 @@ func (s *SchemaService) GetDiagram(ctx context.Context, versionID string, includ
 				Label:  fk.Name,
 			})
 		}
+	}
+
+	if s.cache != nil && !includeDetails {
+		_ = s.cache.SetDiagram(ctx, versionID, diagram)
 	}
 
 	return diagram, nil

@@ -117,6 +117,27 @@ func (r *ConnectionRepository) SoftDelete(ctx context.Context, id string) error 
 	return nil
 }
 
+func (r *ConnectionRepository) ListAll(ctx context.Context) ([]*domain.Connection, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT id, project_id, name, host, port, database_name, username, password_encrypted, ssl_mode, connection_status, last_connected_at, created_by, created_at, updated_at, deleted_at
+		 FROM connections WHERE deleted_at IS NULL ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("querying all connections: %w", err)
+	}
+	defer rows.Close()
+
+	var conns []*domain.Connection
+	for rows.Next() {
+		c := &domain.Connection{}
+		var deletedAt *time.Time
+		if err := rows.Scan(&c.ID, &c.ProjectID, &c.Name, &c.Host, &c.Port, &c.DatabaseName, &c.Username, &c.PasswordEncrypted, &c.SSLMode, &c.ConnectionStatus, &c.LastConnectedAt, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt, &deletedAt); err != nil {
+			return nil, fmt.Errorf("scanning connection: %w", err)
+		}
+		conns = append(conns, c)
+	}
+	return conns, nil
+}
+
 func (r *ConnectionRepository) UpdateStatus(ctx context.Context, id string, status domain.ConnectionStatus, lastConnectedAt *time.Time) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE connections SET connection_status = $1, last_connected_at = $2, updated_at = NOW() WHERE id = $3`,

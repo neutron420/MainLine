@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -12,10 +13,23 @@ var disallowedStatements = []string{
 	"DROP EXTENSION",
 }
 
+type ValidationResult struct {
+	Valid    bool     `json:"valid"`
+	Errors   []string `json:"errors,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
+}
+
 type SQLValidator struct{}
 
 func NewSQLValidator() *SQLValidator {
 	return &SQLValidator{}
+}
+
+type statementInfo struct {
+	raw    string
+	verb   string
+	object string
+	name   string
 }
 
 func (v *SQLValidator) Validate(upSQL, downSQL string) (bool, []string) {
@@ -36,8 +50,36 @@ func (v *SQLValidator) Validate(upSQL, downSQL string) (bool, []string) {
 	return len(errors) == 0, errors
 }
 
+func (v *SQLValidator) ValidateWithWarnings(upSQL, downSQL string) *ValidationResult {
+	result := &ValidationResult{}
+
+	if upSQL == "" {
+		result.Errors = append(result.Errors, "up_sql is required")
+	}
+
+	errs, warns := v.validateSQLWithWarnings(upSQL, "up")
+	result.Errors = append(result.Errors, errs...)
+	result.Warnings = append(result.Warnings, warns...)
+
+	if downSQL != "" {
+		errs, warns = v.validateSQLWithWarnings(downSQL, "down")
+		result.Errors = append(result.Errors, errs...)
+		result.Warnings = append(result.Warnings, warns...)
+	}
+
+	result.Valid = len(result.Errors) == 0
+	return result
+}
+
 func (v *SQLValidator) validateSQL(sql string, label string) []string {
+	errs, _ := v.validateSQLWithWarnings(sql, label)
+	return errs
+}
+
+func (v *SQLValidator) validateSQLWithWarnings(sql string, label string) ([]string, []string) {
 	var errors []string
+	var warnings []string
+
 	upper := strings.ToUpper(strings.TrimSpace(sql))
 
 	for _, banned := range disallowedStatements {
@@ -52,40 +94,107 @@ func (v *SQLValidator) validateSQL(sql string, label string) []string {
 		if trimmed == "" {
 			continue
 		}
-		if err := v.basicParse(trimmed); err != nil {
-			errors = append(errors, fmt.Sprintf("%s statement %d: %v", label, i+1, err))
+
+		info := parseStatement(trimmed)
+		if err := v.validateStatement(info, i+1, label); err != "" {
+			errors = append(errors, err)
+		}
+		if warn := v.warnStatement(info, i+1, label); warn != "" {
+			warnings = append(warnings, warn)
 		}
 	}
 
-	return errors
+	return errors, warnings
 }
 
-func (v *SQLValidator) basicParse(sql string) error {
-	upper := strings.ToUpper(sql)
+var ddlVerbs = []string{"CREATE", "ALTER", "DROP", "TRUNCATE", "RENAME", "COMMENT"}
+var dmlVerbs = []string{"SELECT", "INSERT", "UPDATE", "DELETE"}
+var txnVerbs = []string{"BEGIN", "COMMIT", "ROLLBACK"}
+var otherVerbs = []string{"GRANT", "REVOKE", "SET", "ANALYZE", "VACUUM", "REINDEX"}
 
-	knownCommands := []string{
-		"SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP",
-		"TRUNCATE", "GRANT", "REVOKE", "BEGIN", "COMMIT", "ROLLBACK",
-		"SET", "COMMENT", "RENAME", "ANALYZE", "VACUUM", "REINDEX",
+func parseStatement(sql string) statementInfo {
+	upper := strings.TrimSpace(strings.ToUpper(sql))
+	parts := strings.Fields(upper)
+
+	info := statementInfo{raw: sql}
+
+	if len(parts) == 0 {
+		return info
 	}
 
-	hasKnown := false
-	for _, cmd := range knownCommands {
-		if strings.HasPrefix(upper, cmd) {
-			hasKnown = true
+	info.verb = parts[0]
+
+	if len(parts) >= 3 && (parts[0] == "CREATE" || parts[0] == "DROP" || parts[0] == "ALTER") {
+		info.object = parts[1]
+		info.name = parts[2]
+		if info.object == "TABLE" || info.object == "INDEX" || info.object == "VIEW" ||
+			info.object == "SEQUENCE" || info.object == "FUNCTION" || info.object == "TRIGGER" ||
+			info.object == "TYPE" || info.object == "SCHEMA" || info.object == "EXTENSION" ||
+			info.object == "COLUMN" || info.object == "CONSTRAINT" {
+			if info.object == "COLUMN" && len(parts) >= 4 {
+				info.name = parts[2] + " " + parts[3]
+			}
+		} else if strings.Contains(upper, "IF NOT EXISTS") {
+			for i, p := range parts {
+				if p == "TABLE" || p == "INDEX" || p == "VIEW" || p == "SCHEMA" || p == "SEQUENCE" {
+					info.object = p
+					if i+1 < len(parts) {
+						info.name = parts[i+1]
+					}
+					break
+				}
+			}
+		}
+	}
+
+	return info
+}
+
+func (v *SQLValidator) validateStatement(info statementInfo, stmtNum int, label string) string {
+	if info.verb == "" {
+		return ""
+	}
+
+	allVerbs := append(append(append(ddlVerbs, dmlVerbs...), txnVerbs...), otherVerbs...)
+	recognized := false
+	for _, v := range allVerbs {
+		if info.verb == v {
+			recognized = true
 			break
 		}
 	}
 
-	if !hasKnown {
-		return fmt.Errorf("unrecognized SQL command")
+	if !recognized {
+		return fmt.Sprintf("%s statement %d: unrecognized SQL command %q", label, stmtNum, info.verb)
 	}
 
-	if !strings.HasSuffix(strings.TrimRight(sql, " \n\r\t"), ";") {
-		return fmt.Errorf("statement must end with semicolon")
+	if info.verb == "DROP" && info.object == "TABLE" && !strings.Contains(strings.ToUpper(info.raw), "IF EXISTS") {
+		return fmt.Sprintf("%s statement %d: DROP TABLE without IF EXISTS is dangerous", label, stmtNum)
 	}
 
-	return nil
+	if !strings.HasSuffix(strings.TrimRight(info.raw, " \n\r\t"), ";") {
+		return fmt.Sprintf("%s statement %d: must end with semicolon", label, stmtNum)
+	}
+
+	return ""
+}
+
+var dropTableWarning = regexp.MustCompile(`(?i)\bDROP\s+TABLE\b`)
+
+func (v *SQLValidator) warnStatement(info statementInfo, stmtNum int, label string) string {
+	if info.verb == "ALTER" {
+		if strings.Contains(strings.ToUpper(info.raw), "DROP") &&
+			(strings.Contains(strings.ToUpper(info.raw), "COLUMN") ||
+				strings.Contains(strings.ToUpper(info.raw), "CONSTRAINT")) {
+			return fmt.Sprintf("%s statement %d: ALTER DROP is destructive — verify downstream impact", label, stmtNum)
+		}
+	}
+
+	if info.verb == "DROP" && info.object != "TABLE" && info.object != "" {
+		return fmt.Sprintf("%s statement %d: DROP %s is potentially destructive", label, stmtNum, info.object)
+	}
+
+	return ""
 }
 
 func splitStatements(sql string) []string {

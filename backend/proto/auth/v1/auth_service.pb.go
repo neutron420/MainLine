@@ -139,6 +139,19 @@ type DeleteAccountRequest struct {
 
 type DeleteAccountResponse struct{}
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email"`
+}
+
+type ForgotPasswordResponse struct{}
+
+type ResetPasswordRequest struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
+
+type ResetPasswordResponse struct{}
+
 type ListLinkedIdentitiesRequest struct{}
 
 type ListLinkedIdentitiesResponse struct {

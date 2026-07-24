@@ -169,6 +169,20 @@ func (h *AuthHandler) DeleteAccount(ctx context.Context, req *authv1.DeleteAccou
 	return &authv1.DeleteAccountResponse{}, nil
 }
 
+func (h *AuthHandler) ForgotPassword(ctx context.Context, req *authv1.ForgotPasswordRequest) (*authv1.ForgotPasswordResponse, error) {
+	if err := h.svc.ForgotPassword(ctx, req.Email); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.ForgotPasswordResponse{}, nil
+}
+
+func (h *AuthHandler) ResetPassword(ctx context.Context, req *authv1.ResetPasswordRequest) (*authv1.ResetPasswordResponse, error) {
+	if err := h.svc.ResetPassword(ctx, req.Token, req.Password); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.ResetPasswordResponse{}, nil
+}
+
 func toProtoUser(u *domain.User) *commonv1.User {
 	if u == nil {
 		return nil

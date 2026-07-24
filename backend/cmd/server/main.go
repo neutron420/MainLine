@@ -23,6 +23,7 @@ import (
 	"github.com/schemahub/backend/internal/pkg/jwt"
 	"github.com/schemahub/backend/internal/pkg/logger"
 	"github.com/schemahub/backend/internal/pkg/redis"
+	"github.com/schemahub/backend/internal/pkg/worker"
 	auditDomain "github.com/schemahub/backend/internal/audit/domain"
 	auditHandler "github.com/schemahub/backend/internal/audit/handler"
 	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
@@ -134,7 +135,8 @@ func main() {
 
 	// ── Schema Service ──
 	schemaRepoInstance := schemaRepo.NewSchemaRepository(db)
-	schemaSvc := schemaDomain.NewSchemaService(schemaRepoInstance)
+	schemaCache := schemaDomain.NewSchemaCache(rdb)
+	schemaSvc := schemaDomain.NewSchemaService(schemaRepoInstance).WithCache(schemaCache)
 
 	schemaDomain.SetConnector(func(ctx context.Context, connStr string) (schemaDomain.DBPool, error) {
 		pool, err := pgxpool.New(ctx, connStr)
@@ -172,6 +174,15 @@ func main() {
 	}
 	driftSvc := driftDomain.NewDriftService(driftRepoInstance, driftComparator)
 	driftH := driftHandler.NewDriftHandler(driftSvc, connStringResolver)
+
+	// ── Workers ──
+	workerRunner := worker.NewRunner(log)
+	workerRunner.Add(worker.NewConnectionHealthWorker(connRepo, []byte(cfg.EncryptionKey)))
+	workerRunner.Add(worker.NewAuditPartitionWorker(db))
+	workerRunner.Add(worker.NewHardDeleteWorker(db))
+	workerRunner.Add(worker.NewOAuthRefreshWorker(oauthRepo, userRepo, []byte(cfg.EncryptionKey)))
+	workerRunner.Add(worker.NewDriftAlertWorker(driftRepoInstance, eventSvc, rdb))
+	workerRunner.Start(ctx)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {

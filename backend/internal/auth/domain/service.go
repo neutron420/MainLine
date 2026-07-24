@@ -288,6 +288,84 @@ func (s *AuthService) DeleteAccount(ctx context.Context, userID, password string
 	return s.userRepo.SoftDelete(ctx, userID)
 }
 
+func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil
+	}
+
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("generating reset token: %w", err)
+	}
+	rawToken := fmt.Sprintf("reset_%x", b)
+	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(rawToken)))
+
+	t := &VerificationToken{
+		UserID:    user.ID,
+		Email:     user.Email,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(1 * time.Hour),
+	}
+
+	if err := s.verifyRepo.Create(ctx, t); err != nil {
+		return fmt.Errorf("storing reset token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
+	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(token)))
+	vt, err := s.verifyRepo.GetByHash(ctx, tokenHash)
+	if err != nil {
+		return ErrInvalidCredentials
+	}
+
+	if vt.ConsumedAt != nil {
+		return ErrInvalidCredentials
+	}
+
+	if time.Now().After(vt.ExpiresAt) {
+		return ErrInvalidCredentials
+	}
+
+	now := time.Now()
+	vt.ConsumedAt = &now
+	if err := s.verifyRepo.Consume(ctx, vt.ID); err != nil {
+		return fmt.Errorf("consuming reset token: %w", err)
+	}
+
+	user, err := s.userRepo.GetByID(ctx, vt.UserID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	if err := ValidatePassword(newPassword); err != nil {
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hashing password: %w", err)
+	}
+
+	if err := s.userRepo.UpdatePassword(ctx, user.ID, string(hash)); err != nil {
+		return fmt.Errorf("updating password: %w", err)
+	}
+
+	activeTokens, err := s.tokenRepo.GetActiveByUserID(ctx, user.ID)
+	if err == nil {
+		for _, t := range activeTokens {
+			if err := s.tokenRepo.Revoke(ctx, t.ID); err != nil {
+				return fmt.Errorf("revoking token %s: %w", t.ID, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *AuthService) generateRefreshToken(ctx context.Context, userID, family string) (string, error) {
 	if family == "" {
 		b := make([]byte, 16)

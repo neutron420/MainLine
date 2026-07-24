@@ -23,6 +23,8 @@ type AuthServiceServer interface {
 	SendVerificationEmail(ctx context.Context, req *SendVerificationEmailRequest) (*SendVerificationEmailResponse, error)
 	VerifyEmail(ctx context.Context, req *VerifyEmailRequest) (*VerifyEmailResponse, error)
 	DeleteAccount(ctx context.Context, req *DeleteAccountRequest) (*DeleteAccountResponse, error)
+	ForgotPassword(ctx context.Context, req *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
+	ResetPassword(ctx context.Context, req *ResetPasswordRequest) (*ResetPasswordResponse, error)
 }
 
 func RegisterAuthServiceServer(s *grpc.Server, srv AuthServiceServer) {
@@ -47,6 +49,8 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{MethodName: "SendVerificationEmail", Handler: _AuthService_SendVerificationEmail_Handler},
 		{MethodName: "VerifyEmail", Handler: _AuthService_VerifyEmail_Handler},
 		{MethodName: "DeleteAccount", Handler: _AuthService_DeleteAccount_Handler},
+		{MethodName: "ForgotPassword", Handler: _AuthService_ForgotPassword_Handler},
+		{MethodName: "ResetPassword", Handler: _AuthService_ResetPassword_Handler},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "auth/v1/auth_service.proto",
@@ -172,6 +176,22 @@ func _AuthService_DeleteAccount_Handler(srv interface{}, ctx context.Context, de
 	return srv.(AuthServiceServer).DeleteAccount(ctx, req)
 }
 
+func _AuthService_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, _ grpc.UnaryServerInterceptor) (interface{}, error) {
+	req := &ForgotPasswordRequest{}
+	if err := dec(req); err != nil {
+		return nil, err
+	}
+	return srv.(AuthServiceServer).ForgotPassword(ctx, req)
+}
+
+func _AuthService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, _ grpc.UnaryServerInterceptor) (interface{}, error) {
+	req := &ResetPasswordRequest{}
+	if err := dec(req); err != nil {
+		return nil, err
+	}
+	return srv.(AuthServiceServer).ResetPassword(ctx, req)
+}
+
 // UnimplementedAuthServiceServer provides default implementations.
 type UnimplementedAuthServiceServer struct{}
 
@@ -218,5 +238,11 @@ func (UnimplementedAuthServiceServer) VerifyEmail(_ context.Context, _ *VerifyEm
 	return nil, nil
 }
 func (UnimplementedAuthServiceServer) DeleteAccount(_ context.Context, _ *DeleteAccountRequest) (*DeleteAccountResponse, error) {
+	return nil, nil
+}
+func (UnimplementedAuthServiceServer) ForgotPassword(_ context.Context, _ *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
+	return nil, nil
+}
+func (UnimplementedAuthServiceServer) ResetPassword(_ context.Context, _ *ResetPasswordRequest) (*ResetPasswordResponse, error) {
 	return nil, nil
 }

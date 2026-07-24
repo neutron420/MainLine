@@ -47,6 +47,7 @@ type ConnectionRepository interface {
 	Create(ctx context.Context, c *Connection) error
 	GetByID(ctx context.Context, id string) (*Connection, error)
 	ListByProjectID(ctx context.Context, projectID, cursor string, limit int32) ([]*Connection, string, int32, error)
+	ListAll(ctx context.Context) ([]*Connection, error)
 	Update(ctx context.Context, c *Connection) error
 	SoftDelete(ctx context.Context, id string) error
 	UpdateStatus(ctx context.Context, id string, status ConnectionStatus, lastConnectedAt *time.Time) error
