@@ -52,7 +52,7 @@ jobs:
         working-directory: backend
 
       - name: Upload SARIF results
-        if: steps.check-sarif.outputs.exists == 'true'
+        if: steps.check-sarif.outputs.exists == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: backend/results.sarif
@@ -128,6 +128,7 @@ jobs:
           scanners: vuln
 
       - name: Upload Trivy SARIF results
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-backend.sarif

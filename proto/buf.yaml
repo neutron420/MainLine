@@ -5,7 +5,7 @@ lint:
     - DEFAULT
   except:
     - PACKAGE_DIRECTORY_MATCH
-    - RPC_PASCAL_CASE
+    - RPC_RESPONSE_STANDARD_NAME
     - RPC_REQUEST_RESPONSE_UNIQUE
   ignore:
     - google/protobuf
