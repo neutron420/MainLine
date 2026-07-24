@@ -16,6 +16,7 @@ type AuthService struct {
 	userRepo    UserRepository
 	tokenRepo   RefreshTokenRepository
 	oauthRepo   OAuthIdentityRepository
+	verifyRepo  VerificationTokenRepository
 	jwtManager  *jwt.Manager
 	oauthConfigs *OAuthProviderConfig
 }
@@ -24,6 +25,7 @@ func NewAuthService(
 	userRepo UserRepository,
 	tokenRepo RefreshTokenRepository,
 	oauthRepo OAuthIdentityRepository,
+	verifyRepo VerificationTokenRepository,
 	jwtManager *jwt.Manager,
 	oauthConfigs *OAuthProviderConfig,
 ) *AuthService {
@@ -31,6 +33,7 @@ func NewAuthService(
 		userRepo:     userRepo,
 		tokenRepo:    tokenRepo,
 		oauthRepo:    oauthRepo,
+		verifyRepo:   verifyRepo,
 		jwtManager:   jwtManager,
 		oauthConfigs: oauthConfigs,
 	}
@@ -197,6 +200,92 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPasswor
 	}
 
 	return s.userRepo.UpdatePassword(ctx, userID, string(hash))
+}
+
+func (s *AuthService) SendVerificationEmail(ctx context.Context, email string) error {
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return ErrUserNotFound
+	}
+	if user.EmailVerifiedAt != nil {
+		return nil
+	}
+
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Errorf("generating verification token: %w", err)
+	}
+	rawToken := fmt.Sprintf("verify_%x", b)
+	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(rawToken)))
+
+	t := &VerificationToken{
+		UserID:    user.ID,
+		Email:     user.Email,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := s.verifyRepo.Create(ctx, t); err != nil {
+		return fmt.Errorf("storing verification token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthService) VerifyEmail(ctx context.Context, rawToken string) error {
+	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(rawToken)))
+	vt, err := s.verifyRepo.GetByHash(ctx, tokenHash)
+	if err != nil {
+		return ErrInvalidCredentials
+	}
+
+	if vt.ConsumedAt != nil {
+		return ErrInvalidCredentials
+	}
+
+	if time.Now().After(vt.ExpiresAt) {
+		return ErrInvalidCredentials
+	}
+
+	now := time.Now()
+	vt.ConsumedAt = &now
+	if err := s.verifyRepo.Consume(ctx, vt.ID); err != nil {
+		return fmt.Errorf("consuming verification token: %w", err)
+	}
+
+	user, err := s.userRepo.GetByID(ctx, vt.UserID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	user.EmailVerifiedAt = &now
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return fmt.Errorf("updating user verification: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthService) DeleteAccount(ctx context.Context, userID, password string) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return ErrUserNotFound
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return ErrPasswordMismatch
+	}
+
+	activeTokens, err := s.tokenRepo.GetActiveByUserID(ctx, userID)
+	if err == nil {
+		for _, t := range activeTokens {
+			if err := s.tokenRepo.Revoke(ctx, t.ID); err != nil {
+				return fmt.Errorf("revoking token %s: %w", t.ID, err)
+			}
+		}
+	}
+
+	return s.userRepo.SoftDelete(ctx, userID)
 }
 
 func (s *AuthService) generateRefreshToken(ctx context.Context, userID, family string) (string, error) {

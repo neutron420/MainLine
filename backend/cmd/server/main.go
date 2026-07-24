@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -27,6 +28,9 @@ import (
 	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
 	eventDomain "github.com/schemahub/backend/internal/event/domain"
 	eventHandler "github.com/schemahub/backend/internal/event/handler"
+	driftDomain "github.com/schemahub/backend/internal/drift/domain"
+	driftHandler "github.com/schemahub/backend/internal/drift/handler"
+	driftRepo "github.com/schemahub/backend/internal/drift/repository/postgres"
 	migrationDomain "github.com/schemahub/backend/internal/migration/domain"
 	migrationHandler "github.com/schemahub/backend/internal/migration/handler"
 	migrationRepo "github.com/schemahub/backend/internal/migration/repository/postgres"
@@ -35,6 +39,7 @@ import (
 	schemaRepo "github.com/schemahub/backend/internal/schema/repository/postgres"
 	auditv1 "github.com/schemahub/backend/proto/audit/v1"
 	authv1 "github.com/schemahub/backend/proto/auth/v1"
+	driftv1 "github.com/schemahub/backend/proto/drift/v1"
 	eventv1 "github.com/schemahub/backend/proto/event/v1"
 	migrationv1 "github.com/schemahub/backend/proto/migration/v1"
 	projectv1 "github.com/schemahub/backend/proto/project/v1"
@@ -116,7 +121,8 @@ func main() {
 		},
 		StateSigningKey: []byte(cfg.EncryptionKey[:32]),
 	}
-	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, jwtManager, oauthCfg)
+	verifyRepo := authRepo.NewVerificationTokenRepo(db)
+	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, verifyRepo, jwtManager, oauthCfg)
 	authH := authHandler.NewAuthHandler(authSvc)
 
 	// ── Project + Connection Service ──
@@ -158,6 +164,15 @@ func main() {
 	eventSvc := eventDomain.NewEventService(rdb, auditRepoInstance)
 	eventH := eventHandler.NewEventHandler(eventSvc)
 
+	// ── Drift Service ──
+	driftRepoInstance := driftRepo.NewDriftRepository(db)
+	driftComparator := &schemaDriftComparator{
+		svc:  schemaSvc,
+		connString: connStringResolver,
+	}
+	driftSvc := driftDomain.NewDriftService(driftRepoInstance, driftComparator)
+	driftH := driftHandler.NewDriftHandler(driftSvc, connStringResolver)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		log.Error("failed to listen", "error", err)
@@ -180,6 +195,7 @@ func main() {
 	migrationv1.RegisterMigrationServiceServer(srv, migH)
 	eventv1.RegisterEventServiceServer(srv, eventH)
 	auditv1.RegisterAuditServiceServer(srv, auditH)
+	driftv1.RegisterDriftServiceServer(srv, driftH)
 	reflection.Register(srv)
 
 	go func() {
@@ -197,6 +213,100 @@ func main() {
 	log.Info("shutting down server...")
 	srv.GracefulStop()
 	log.Info("server stopped")
+}
+
+// schemaDriftComparator implements driftDomain.SchemaComparator using schema service.
+type schemaDriftComparator struct {
+	svc        *schemaDomain.SchemaService
+	connString func(ctx context.Context, connID string) (string, error)
+}
+
+func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, connStr, schemaVersionID string, schemaNames []string) ([]*driftDomain.DriftEvent, error) {
+	// Re-introspect live DB
+	schema, version, err := c.svc.Introspect(ctx, connStr, "", schemaNames, "")
+	if err != nil {
+		return nil, fmt.Errorf("introspecting live schema: %w", err)
+	}
+
+	if version == nil {
+		return nil, nil
+	}
+
+	// Compare with current version (diff engine)
+	diff, err := c.svc.CompareVersions(ctx, schemaVersionID, version.ID)
+	if err != nil {
+		return nil, fmt.Errorf("comparing versions: %w", err)
+	}
+
+	var events []*driftDomain.DriftEvent
+	defToString := func(def json.RawMessage) string {
+		if def == nil {
+			return ""
+		}
+		return string(def)
+	}
+
+	for _, o := range diff.AddedObjects {
+		events = append(events, &driftDomain.DriftEvent{
+			SchemaID:           schema.ID,
+			ExpectedVersionID:  schemaVersionID,
+			DriftType:          driftDomain.DriftTypeMissingObject,
+			ObjectType:         o.Type,
+			ObjectName:         o.Name,
+			ExpectedDefinition: defToString(o.Definition),
+			Severity:           classifySeverity(o.Type),
+			Status:             driftDomain.DriftStatusOpen,
+		})
+	}
+	for _, o := range diff.RemovedObjects {
+		events = append(events, &driftDomain.DriftEvent{
+			SchemaID:           schema.ID,
+			ExpectedVersionID:  schemaVersionID,
+			DriftType:          driftDomain.DriftTypeExtraObject,
+			ObjectType:         o.Type,
+			ObjectName:         o.Name,
+			ActualDefinition:   defToString(o.Definition),
+			Severity:           classifySeverity(o.Type),
+			Status:             driftDomain.DriftStatusOpen,
+		})
+	}
+	for _, o := range diff.ModifiedObjects {
+		events = append(events, &driftDomain.DriftEvent{
+			SchemaID:           schema.ID,
+			ExpectedVersionID:  schemaVersionID,
+			DriftType:          driftDomain.DriftTypeModifiedObject,
+			ObjectType:         o.Type,
+			ObjectName:         o.Name,
+			ExpectedDefinition: defToString(o.Definition),
+			DiffSummary:        summarizeChanges(o.Changes),
+			Severity:           classifySeverity(o.Type),
+			Status:             driftDomain.DriftStatusOpen,
+		})
+	}
+
+	return events, nil
+}
+
+func classifySeverity(objType string) driftDomain.Severity {
+	switch objType {
+	case "table", "column", "primary_key", "foreign_key":
+		return driftDomain.SeverityCritical
+	case "index", "unique_constraint":
+		return driftDomain.SeverityWarning
+	default:
+		return driftDomain.SeverityInfo
+	}
+}
+
+func summarizeChanges(changes []schemaDomain.FieldChange) string {
+	summary := ""
+	for _, c := range changes {
+		if summary != "" {
+			summary += "; "
+		}
+		summary += fmt.Sprintf("%s: %v → %v", c.Field, c.Before, c.After)
+	}
+	return summary
 }
 
 // pgxPoolWrapper adapts *pgxpool.Pool to schemaDomain.DBPool interface.

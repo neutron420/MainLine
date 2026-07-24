@@ -148,6 +148,27 @@ func (h *AuthHandler) ListLinkedIdentities(ctx context.Context, req *authv1.List
 	return &authv1.ListLinkedIdentitiesResponse{Identities: protoIdentities}, nil
 }
 
+func (h *AuthHandler) SendVerificationEmail(ctx context.Context, req *authv1.SendVerificationEmailRequest) (*authv1.SendVerificationEmailResponse, error) {
+	if err := h.svc.SendVerificationEmail(ctx, req.Email); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.SendVerificationEmailResponse{}, nil
+}
+
+func (h *AuthHandler) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest) (*authv1.VerifyEmailResponse, error) {
+	if err := h.svc.VerifyEmail(ctx, req.Token); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.VerifyEmailResponse{}, nil
+}
+
+func (h *AuthHandler) DeleteAccount(ctx context.Context, req *authv1.DeleteAccountRequest) (*authv1.DeleteAccountResponse, error) {
+	if err := h.svc.DeleteAccount(ctx, userIDFromContext(ctx), req.Password); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.DeleteAccountResponse{}, nil
+}
+
 func toProtoUser(u *domain.User) *commonv1.User {
 	if u == nil {
 		return nil

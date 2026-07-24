@@ -121,6 +121,24 @@ type UnlinkOAuthIdentityRequest struct {
 
 type UnlinkOAuthIdentityResponse struct{}
 
+type SendVerificationEmailRequest struct {
+	Email string `json:"email"`
+}
+
+type SendVerificationEmailResponse struct{}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token"`
+}
+
+type VerifyEmailResponse struct{}
+
+type DeleteAccountRequest struct {
+	Password string `json:"password"`
+}
+
+type DeleteAccountResponse struct{}
+
 type ListLinkedIdentitiesRequest struct{}
 
 type ListLinkedIdentitiesResponse struct {

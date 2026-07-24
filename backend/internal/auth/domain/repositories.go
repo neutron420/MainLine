@@ -19,6 +19,13 @@ type RefreshTokenRepository interface {
 	GetActiveByUserID(ctx context.Context, userID string) ([]*RefreshToken, error)
 }
 
+type VerificationTokenRepository interface {
+	Create(ctx context.Context, token *VerificationToken) error
+	GetByHash(ctx context.Context, hash string) (*VerificationToken, error)
+	Consume(ctx context.Context, id string) error
+	GetActiveByUserID(ctx context.Context, userID string) ([]*VerificationToken, error)
+}
+
 type OAuthIdentityRepository interface {
 	Create(ctx context.Context, identity *OAuthIdentity) error
 	GetByProvider(ctx context.Context, provider, providerUserID string) (*OAuthIdentity, error)

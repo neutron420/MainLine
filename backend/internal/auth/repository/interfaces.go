@@ -10,3 +10,4 @@ import (
 type UserRepository = domain.UserRepository
 type RefreshTokenRepository = domain.RefreshTokenRepository
 type OAuthIdentityRepository = domain.OAuthIdentityRepository
+type VerificationTokenRepository = domain.VerificationTokenRepository

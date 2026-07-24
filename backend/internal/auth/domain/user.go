@@ -45,6 +45,16 @@ type RefreshToken struct {
 	Family      string
 }
 
+type VerificationToken struct {
+	ID        string
+	UserID    string
+	Email     string
+	TokenHash string
+	ExpiresAt time.Time
+	ConsumedAt *time.Time
+	CreatedAt time.Time
+}
+
 type OAuthIdentity struct {
 	ID                  string
 	UserID              string
