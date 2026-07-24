@@ -22,10 +22,14 @@ import (
 	"github.com/schemahub/backend/internal/pkg/jwt"
 	"github.com/schemahub/backend/internal/pkg/logger"
 	"github.com/schemahub/backend/internal/pkg/redis"
+	migrationDomain "github.com/schemahub/backend/internal/migration/domain"
+	migrationHandler "github.com/schemahub/backend/internal/migration/handler"
+	migrationRepo "github.com/schemahub/backend/internal/migration/repository/postgres"
 	schemaDomain "github.com/schemahub/backend/internal/schema/domain"
 	schemaHandler "github.com/schemahub/backend/internal/schema/handler"
 	schemaRepo "github.com/schemahub/backend/internal/schema/repository/postgres"
 	authv1 "github.com/schemahub/backend/proto/auth/v1"
+	migrationv1 "github.com/schemahub/backend/proto/migration/v1"
 	projectv1 "github.com/schemahub/backend/proto/project/v1"
 	schemav1 "github.com/schemahub/backend/proto/schema/v1"
 	"google.golang.org/grpc"
@@ -107,6 +111,11 @@ func main() {
 
 	schemaH := schemaHandler.NewSchemaHandler(schemaSvc, connStringResolver)
 
+	// ── Migration Service ──
+	migRepo := migrationRepo.NewMigrationRepository(db)
+	migSvc := migrationDomain.NewMigrationService(migRepo, connStringResolver)
+	migH := migrationHandler.NewMigrationHandler(migSvc)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		log.Error("failed to listen", "error", err)
@@ -126,6 +135,7 @@ func main() {
 	authv1.RegisterAuthServiceServer(srv, authH)
 	projectv1.RegisterProjectServiceServer(srv, projH)
 	schemav1.RegisterSchemaServiceServer(srv, schemaH)
+	migrationv1.RegisterMigrationServiceServer(srv, migH)
 	reflection.Register(srv)
 
 	go func() {
