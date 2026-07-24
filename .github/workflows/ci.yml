@@ -55,7 +55,7 @@ jobs:
         with:
           version: latest
           working-directory: backend
-          args: --timeout=5m --go=1.24
+          args: --timeout=5m
 
       - name: Test with race detection
         run: go test -race -count=1 -timeout=5m ./...
@@ -123,7 +123,7 @@ jobs:
         run: buf lint proto/
 
       - name: Check breaking changes
-        run: buf breaking proto/ --against .git#branch=main
+        run: buf breaking proto/ --against "https://github.com/${{ github.repository }}.git#branch=main"
 
   docker:
     name: Docker build
