@@ -123,7 +123,7 @@ jobs:
         run: buf lint proto/
 
       - name: Check breaking changes
-        run: buf breaking proto/ --against ../.git#branch=main
+        run: buf breaking proto/ --against .git#branch=main
 
   docker:
     name: Docker build
