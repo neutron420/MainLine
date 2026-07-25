@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(320) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE users (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE refresh_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     token_hash VARCHAR(64) UNIQUE NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE refresh_tokens (
     family VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE email_verifications (
+CREATE TABLE IF NOT EXISTS email_verifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     token_hash VARCHAR(64) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE email_verifications (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE oauth_identities (
+CREATE TABLE IF NOT EXISTS oauth_identities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     provider VARCHAR(20) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE oauth_identities (
     UNIQUE(provider, provider_user_id)
 );
 
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
     slug VARCHAR(200) UNIQUE NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE projects (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE project_members (
+CREATE TABLE IF NOT EXISTS project_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
     user_id UUID NOT NULL REFERENCES users(id),
@@ -72,7 +72,7 @@ CREATE TABLE project_members (
     UNIQUE(project_id, user_id)
 );
 
-CREATE TABLE connections (
+CREATE TABLE IF NOT EXISTS connections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
     name VARCHAR(200) NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE connections (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE schemas (
+CREATE TABLE IF NOT EXISTS schemas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
     connection_id UUID NOT NULL REFERENCES connections(id),
@@ -103,7 +103,7 @@ CREATE TABLE schemas (
     UNIQUE(project_id, connection_id, schema_name)
 );
 
-CREATE TABLE schema_versions (
+CREATE TABLE IF NOT EXISTS schema_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     schema_id UUID NOT NULL REFERENCES schemas(id),
     version INTEGER NOT NULL,
@@ -116,9 +116,16 @@ CREATE TABLE schema_versions (
     UNIQUE(schema_id, version)
 );
 
-ALTER TABLE schemas ADD FOREIGN KEY (current_version_id) REFERENCES schema_versions(id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'schemas_current_version_id_fkey'
+    ) THEN
+        ALTER TABLE schemas ADD FOREIGN KEY (current_version_id) REFERENCES schema_versions(id);
+    END IF;
+END $$;
 
-CREATE TABLE schema_objects (
+CREATE TABLE IF NOT EXISTS schema_objects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     schema_version_id UUID NOT NULL REFERENCES schema_versions(id),
     object_type VARCHAR(50) NOT NULL,
@@ -128,7 +135,7 @@ CREATE TABLE schema_objects (
     parent_object_id UUID REFERENCES schema_objects(id)
 );
 
-CREATE TABLE migrations (
+CREATE TABLE IF NOT EXISTS migrations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id),
     title VARCHAR(300) NOT NULL,
@@ -145,7 +152,7 @@ CREATE TABLE migrations (
     UNIQUE(project_id, version)
 );
 
-CREATE TABLE migration_runs (
+CREATE TABLE IF NOT EXISTS migration_runs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     migration_id UUID NOT NULL REFERENCES migrations(id),
     connection_id UUID NOT NULL REFERENCES connections(id),
@@ -159,7 +166,7 @@ CREATE TABLE migration_runs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE migration_logs (
+CREATE TABLE IF NOT EXISTS migration_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     migration_run_id UUID NOT NULL REFERENCES migration_runs(id),
     sequence INTEGER NOT NULL,
@@ -171,8 +178,8 @@ CREATE TABLE migration_logs (
     UNIQUE(migration_run_id, sequence)
 );
 
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID DEFAULT gen_random_uuid(),
     event_type VARCHAR(100) NOT NULL,
     actor_id UUID REFERENCES users(id),
     actor_email VARCHAR(320),
@@ -184,19 +191,20 @@ CREATE TABLE audit_logs (
     ip_address INET,
     user_agent TEXT,
     trace_id UUID NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
-CREATE TABLE audit_logs_2026_07 PARTITION OF audit_logs
+CREATE TABLE IF NOT EXISTS audit_logs_2026_07 PARTITION OF audit_logs
     FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
-CREATE TABLE audit_logs_2026_08 PARTITION OF audit_logs
+CREATE TABLE IF NOT EXISTS audit_logs_2026_08 PARTITION OF audit_logs
     FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
-CREATE TABLE audit_logs_2026_09 PARTITION OF audit_logs
+CREATE TABLE IF NOT EXISTS audit_logs_2026_09 PARTITION OF audit_logs
     FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
-CREATE TABLE audit_logs_default PARTITION OF audit_logs
+CREATE TABLE IF NOT EXISTS audit_logs_default PARTITION OF audit_logs
     FOR VALUES FROM ('2026-10-01') TO ('2027-01-01');
 
-CREATE TABLE drift_events (
+CREATE TABLE IF NOT EXISTS drift_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     connection_id UUID NOT NULL REFERENCES connections(id),
     schema_id UUID REFERENCES schemas(id),
@@ -214,16 +222,16 @@ CREATE TABLE drift_events (
     resolved_by UUID REFERENCES users(id)
 );
 
-CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-CREATE INDEX idx_oauth_identities_user_id ON oauth_identities(user_id);
-CREATE INDEX idx_projects_slug ON projects(slug);
-CREATE INDEX idx_project_members_user_id ON project_members(user_id);
-CREATE INDEX idx_connections_project_id ON connections(project_id);
-CREATE INDEX idx_schema_versions_checksum ON schema_versions(checksum);
-CREATE INDEX idx_schema_objects_version_id ON schema_objects(schema_version_id);
-CREATE INDEX idx_migrations_project_id ON migrations(project_id);
-CREATE INDEX idx_migrations_status ON migrations(status);
-CREATE INDEX idx_migration_runs_status ON migration_runs(status);
-CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_id);
-CREATE INDEX idx_audit_logs_event_type ON audit_logs(event_type);
-CREATE INDEX idx_drift_events_status ON drift_events(status);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_identities_user_id ON oauth_identities(user_id);
+CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
+CREATE INDEX IF NOT EXISTS idx_project_members_user_id ON project_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_connections_project_id ON connections(project_id);
+CREATE INDEX IF NOT EXISTS idx_schema_versions_checksum ON schema_versions(checksum);
+CREATE INDEX IF NOT EXISTS idx_schema_objects_version_id ON schema_objects(schema_version_id);
+CREATE INDEX IF NOT EXISTS idx_migrations_project_id ON migrations(project_id);
+CREATE INDEX IF NOT EXISTS idx_migrations_status ON migrations(status);
+CREATE INDEX IF NOT EXISTS idx_migration_runs_status ON migration_runs(status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_drift_events_status ON drift_events(status);
