@@ -47,7 +47,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 relative">
         <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-blue-100 via-blue-50 to-transparent opacity-40 blur-3xl -mt-20"></div>
         <div className="p-8">
@@ -70,6 +70,7 @@ export default function RegisterPage() {
                 onBlur={() => handleBlur("name")}
                 className={`bg-white border-2 shadow-sm transition-all text-gray-900 placeholder:text-gray-400 h-12 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus:border-blue-500 w-full px-3 py-2 text-sm ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${errors.name && touched.name ? "border-red-400 focus-visible:ring-red-500 focus:border-red-500" : "border-gray-300"}`}
                 placeholder="John Doe"
+                suppressHydrationWarning
               />
               {errors.name && touched.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
@@ -83,6 +84,7 @@ export default function RegisterPage() {
                 onBlur={() => handleBlur("email")}
                 className={`bg-white border-2 shadow-sm transition-all text-gray-900 placeholder:text-gray-400 h-12 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus:border-blue-500 w-full px-3 py-2 text-sm ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${errors.email && touched.email ? "border-red-400 focus-visible:ring-red-500 focus:border-red-500" : "border-gray-300"}`}
                 placeholder="you@example.com"
+                suppressHydrationWarning
               />
               {errors.email && touched.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
@@ -97,6 +99,7 @@ export default function RegisterPage() {
                   onBlur={() => handleBlur("password")}
                   className={`bg-white border-2 shadow-sm transition-all text-gray-900 pr-12 h-12 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus:border-blue-500 w-full px-3 py-2 text-sm ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${errors.password && touched.password ? "border-red-400 focus-visible:ring-red-500 focus:border-red-500" : "border-gray-300"}`}
                   placeholder="••••••••"
+                  suppressHydrationWarning
                 />
                 <button
                   type="button"
@@ -154,3 +157,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
