@@ -6,11 +6,21 @@ User gets redirected to → **`/dashboard`**
 
 ---
 
+## Status Legend
+
+| Icon | Meaning |
+|------|---------|
+| ✅ | Built (page or component exists) |
+| ⬜ | Not yet built |
+| 📦 | shadcn/ui component installed |
+
+---
+
 ## All Pages & Components
 
 ---
 
-### 1. Auth Pages (Done ✓)
+### 1. Auth Pages (✅ Page logic done, pages exist)
 
 | Route | Page Component | Child Components (File Name) |
 |---|---|---|
@@ -187,34 +197,81 @@ User gets redirected to → **`/dashboard`**
 
 ## Shared / Global Components
 
-| File Name | Description | Used In |
+| File Name | Status | Description | Used In |
+|---|---|---|---|
+| **shadcn/ui Components** (installed from registry) |
+| `Button` | 📦 | Reusable button (default, destructive, outline, secondary, ghost, link) | All pages |
+| `Input` | 📦 | Text input with validation states | All forms |
+| `Textarea` | 📦 | Multi-line text input | Forms |
+| `Label` | 📦 | Form label with peer-disabled | All forms |
+| `Select` | 📦 | Dropdown select with search | All forms |
+| `Card` | 📦 | Card with header, content, footer | Dashboard, Projects |
+| `Dialog` | 📦 | Modal dialog | Create/Delete/Invite |
+| `DropdownMenu` | 📦 | Context menu / user menu | TopNav, UserMenu |
+| `Tabs` | 📦 | Tabbed navigation | Project Detail, Settings |
+| `Skeleton` | 📦 | Loading placeholder | All pages |
+| `Table` | 📦 | Sortable data table | Audit, Events, Members |
+| `Form` | 📦 | Form with validation (react-hook-form + zod) | All forms |
+| `Sidebar` | 📦 | Collapsible sidebar (shadcn) | Protected layout |
+| `Sheet` | 📦 | Slide-over panel | Sidebar mobile, dialogs |
+| `Separator` | 📦 | Visual divider | Layout, menus |
+| `Tooltip` | 📦 | Hover tooltip | Actions, icons |
+| `Sonner` | 📦 | Toast notifications | Global |
+| **Custom Components (⬜ not yet built)** |
+| `TopNav` | ⬜ | Top navigation bar | All protected pages |
+| `ProjectSwitcher` | ⬜ | Dropdown to switch projects | `TopNav` |
+| `UserMenu` | ⬜ | Avatar + dropdown (profile/settings/logout) | `TopNav` |
+| `Avatar` | ⬜ | User avatar with fallback | TopNav, UserMenu, Members |
+| `Badge` | ⬜ | Status badge (success, warning, error) | Multiple pages |
+| `EmptyState` | ⬜ | Empty state with icon + message + action | All list pages |
+| `DataTable` | ⬜ | Sortable/filterable table wrapper | Audit, Events, Members |
+| `SqlEditor` | ⬜ | SQL code editor (CodeMirror/Monaco) | Migrations, Schema Diff |
+| `LoadingSpinner` | ⬜ | Loading indicator | All pages |
+
+---
+
+## Pages Status
+
+| Route | Page Component | Status |
 |---|---|---|
-| `TopNav.tsx` | Top navigation bar | All protected pages |
-| `Sidebar.tsx` | Side navigation (collapsible) | All protected pages |
-| `ProjectSwitcher.tsx` | Dropdown to switch projects | `TopNav.tsx` |
-| `UserMenu.tsx` | Avatar + dropdown (profile/settings/logout) | `TopNav.tsx` |
-| `Button.tsx` | Reusable button (variants: primary, secondary, danger, ghost) | All pages |
-| `Input.tsx` | Text input with label + error | All forms |
-| `Badge.tsx` | Status badge (success, warning, error, info) | Multiple pages |
-| `Card.tsx` | Generic card container | Dashboard, Projects, etc. |
-| `Dialog.tsx` | Modal dialog wrapper | Create, Delete, Invite actions |
-| `LoadingSpinner.tsx` | Loading indicator | All pages |
-| `EmptyState.tsx` | Empty state with icon + message + action | All list pages |
-| `ConfirmDialog.tsx` | Confirmation modal | Delete/rollback actions |
-| `Toast.tsx` | Toast notification | Global |
-| `DataTable.tsx` | Sortable/filterable table | Audit, Events, Members |
-| `SqlEditor.tsx` | SQL code editor (CodeMirror/Monaco) | Migrations, Schema Diff |
-| `IconButton.tsx` | Icon-only button | Toolbar actions |
+| **Auth** |
+| `/login` | `LoginPage` | ✅ Done |
+| `/register` | `RegisterPage` | ✅ Done |
+| `/forgot-password/*` | Forgot flow | ✅ Done |
+| `/auth/callback/[provider]` | `OAuthCallbackPage` | ✅ Done |
+| **Protected** |
+| `/dashboard` | `DashboardPage` | ⬜ |
+| `/projects` | `ProjectsPage` | ⬜ |
+| `/projects/new` | `CreateProjectPage` | ⬜ |
+| `/projects/[id]` | `ProjectDetailPage` | ⬜ |
+| `/projects/[id]/connections` | `ConnectionsPage` | ⬜ |
+| `/projects/[id]/connections/new` | `CreateConnectionPage` | ⬜ |
+| `/projects/[id]/schemas` | `SchemasPage` | ⬜ |
+| `/projects/[id]/schemas/[schemaId]` | `SchemaDetailPage` | ⬜ |
+| `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` | ⬜ |
+| `/projects/[id]/schemas/[schemaId]/compare` | `SchemaComparePage` | ⬜ |
+| `/projects/[id]/migrations` | `MigrationsPage` | ⬜ |
+| `/projects/[id]/migrations/new` | `CreateMigrationPage` | ⬜ |
+| `/projects/[id]/migrations/[migrationId]` | `MigrationDetailPage` | ⬜ |
+| `/projects/[id]/migrations/[migrationId]/run` | `MigrationRunPage` | ⬜ |
+| `/projects/[id]/drift` | `DriftPage` | ⬜ |
+| `/projects/[id]/drift/[driftId]` | `DriftDetailPage` | ⬜ |
+| `/projects/[id]/audit` | `AuditPage` | ⬜ |
+| `/projects/[id]/events` | `EventsPage` | ⬜ |
+| `/projects/[id]/settings` | `ProjectSettingsPage` | ⬜ |
+| `/projects/[id]/settings/members` | `MembersPage` | ⬜ |
+| `/settings` | `SettingsPage` | ⬜ |
+| `/settings/connections` | `LinkedAccountsPage` | ⬜ |
 
 ---
 
 ## Summary
 
-| Category | Count |
-|---|---|
-| Total Routes | ~24 |
-| Auth Pages (done) | 6 |
-| Protected Pages | ~18 |
-| Page Components | ~24 |
-| Unique Child Components | ~65 |
-| Shared/Global Components | ~16 |
+| Category | Count | Status |
+|---|---|---|
+| Total Routes | ~24 | 6 ✅ / 18 ⬜ |
+| Auth Pages | 6 | 6 ✅ **Done** |
+| Protected Pages | ~18 | 0 ✅ / 18 ⬜ |
+| shadcn/ui Components | 17 | 17 📦 **Installed** |
+| Custom Components | 9 | 0 ✅ / 9 ⬜ |
+| Child Components (domain) | ~65 | 0 ✅ / 65 ⬜ |
