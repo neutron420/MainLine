@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
+import { Background } from "@/components/background";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
 export default function OAuthCallbackPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -16,25 +19,32 @@ export default function OAuthCallbackPage() {
     const state = searchParams.get("state");
 
     if (!code || !state) {
-      // TODO: show error state via URL params or context
       router.push("/login?error=invalid_oauth_response");
       return;
     }
-
-    // TODO: call HandleOAuthCallback RPC
-    // On success: store tokens, redirect to /dashboard
-    // If needs_linking: redirect to /settings/connections
-    // If is_new_user: redirect to /welcome
 
     router.push("/login");
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
-        <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-gray-500">Completing sign in...</p>
-      </div>
-    </div>
+    <Background>
+      <section className="py-28 lg:pt-44 lg:pb-32">
+        <div className="container">
+          <div className="flex flex-col gap-4">
+            <Card className="mx-auto w-full max-w-sm">
+              <CardHeader className="flex flex-col items-center space-y-0">
+                <p className="mb-2 text-2xl font-bold">Completing sign in</p>
+                <p className="text-muted-foreground text-center">
+                  Please wait while we authenticate you.
+                </p>
+              </CardHeader>
+              <CardContent className="flex justify-center pb-8">
+                <div className="border-primary h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+    </Background>
   );
 }

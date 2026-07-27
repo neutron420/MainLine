@@ -30,9 +30,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# bun
-bun.lockb
-
 # env files (can opt-in for committing if needed)
 .env*
 
@@ -42,3 +39,4 @@ bun.lockb
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.qodo

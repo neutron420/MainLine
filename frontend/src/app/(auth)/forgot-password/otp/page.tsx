@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-export default function OtpPage() {
+import { ArrowLeft } from "lucide-react";
+
+import { Background } from "@/components/background";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
+const OtpPage = () => {
   const router = useRouter();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -27,63 +34,78 @@ export default function OtpPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: verify OTP via backend — otp.join("")
     router.push("/forgot-password/reset");
   };
 
-  const handleResend = () => {
-    // TODO: call ForgotPassword RPC again
-  };
+  const handleResend = () => {};
 
   return (
-    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 relative">
-        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-blue-100 via-blue-50 to-transparent opacity-40 blur-3xl -mt-20"></div>
-        <div className="p-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-white p-3 rounded-2xl shadow-lg mb-6 flex items-center justify-center">
-              <Image src="/logo.png" alt="SchemaHub" width={56} height={56} className="object-contain" />
-            </div>
-            <div className="p-0">
-              <h2 className="text-2xl font-bold text-gray-900 text-center">Verify OTP</h2>
-              <p className="text-center text-gray-500 mt-2">Enter the 6-digit code sent to your email</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6 p-0">
-            <div className="flex justify-center gap-3">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => { inputRefs.current[index] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-14 h-16 text-center text-xl font-bold bg-white border-2 border-gray-300 text-gray-900 rounded-xl shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus:border-blue-500 ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+    <Background>
+      <section className="py-28 lg:pt-44 lg:pb-32">
+        <div className="container">
+          <div className="flex flex-col gap-4">
+            <Card className="mx-auto w-full max-w-sm">
+              <CardHeader className="flex flex-col items-center space-y-0">
+                <Image
+                  src="/logo.svg"
+                  alt="logo"
+                  width={94}
+                  height={18}
+                  className="mb-7 dark:invert"
                 />
-              ))}
-            </div>
-
-            <button type="submit" className="w-full h-12 bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-700 hover:via-blue-600 hover:to-blue-500 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md hover:shadow-blue-100 active:scale-[0.98] inline-flex items-center justify-center whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
-              Verify OTP
-            </button>
-          </form>
-
-          <div className="p-0 mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Didn&apos;t receive the code?{" "}
-              <button onClick={handleResend} className="text-blue-600 hover:underline font-medium bg-transparent border-none cursor-pointer text-sm">
-                Resend
-              </button>
-            </p>
+                <p className="mb-2 text-2xl font-bold">Check your email</p>
+                <p className="text-muted-foreground text-center">
+                  Enter the 6-digit code we sent to your email.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="grid gap-6">
+                  <div className="flex justify-center gap-3">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => {
+                          inputRefs.current[index] = el;
+                        }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        className="border-input bg-background ring-offset-background focus-visible:ring-ring h-14 w-12 rounded-xl border text-center text-xl font-bold shadow-xs transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+                      />
+                    ))}
+                  </div>
+                  <Button type="submit" className="mt-2 w-full">
+                    Verify OTP
+                  </Button>
+                </form>
+                <div className="text-muted-foreground mx-auto mt-6 flex flex-col items-center gap-3 text-sm">
+                  <p>
+                    Didn&apos;t receive the code?{" "}
+                    <button
+                      onClick={handleResend}
+                      className="text-primary cursor-pointer bg-transparent border-none font-medium text-sm"
+                    >
+                      Resend
+                    </button>
+                  </p>
+                  <Link
+                    href="/forgot-password"
+                    className="flex items-center gap-1 text-primary font-medium"
+                  >
+                    <ArrowLeft className="size-4" />
+                    Use a different email
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </Background>
   );
-}
+};
 
-
+export default OtpPage;
