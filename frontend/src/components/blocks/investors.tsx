@@ -37,13 +37,13 @@ export function Investors() {
       <div className="mt-8 grid grid-cols-2 gap-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {investors.map((investor) => (
           <div key={investor.name} className="">
-            <Image
-              src={investor.image}
-              alt={investor.name}
-              width={120}
-              height={120}
-              className="object-cover"
-            />
+              <Image
+                src={investor.image}
+                alt={investor.name}
+                width={120}
+                height={120}
+                className="w-full h-auto object-cover"
+              />
             <h3 className="mt-3 font-semibold">{investor.name}</h3>
             <p className="text-muted-foreground">{investor.company}</p>
           </div>

@@ -135,7 +135,7 @@ export const Navbar = () => {
 
           {/* Hamburger Menu Button (Mobile Only) */}
           <button
-            className="text-muted-foreground relative flex size-8 lg:hidden"
+            className="text-muted-foreground relative flex size-11 lg:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <span className="sr-only">Open main menu</span>

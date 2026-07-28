@@ -56,8 +56,8 @@ const Signup = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" className="w-full">
+                  <div className="grid grid-cols-3 gap-3">
+                    <Button variant="outline" size="lg" className="w-full">
                       <FcGoogle className="size-5" />
                     </Button>
                     <Button variant="outline" className="w-full">

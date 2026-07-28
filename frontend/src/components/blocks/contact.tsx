@@ -46,20 +46,20 @@ const contactInfo = [
   {
     title: "Follow us",
     content: (
-      <div className="mt-3 flex gap-6 lg:gap-10">
-        <Link href="#" className="text-muted-foreground hover:text-foreground">
-          <Facebook className="size-5" />
-        </Link>
-        <Link
-          href="https://x.com/mainline"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Twitter className="size-5" />
-        </Link>
-        <Link href="#" className="text-muted-foreground hover:text-foreground">
-          <Linkedin className="size-5" />
-        </Link>
-      </div>
+        <div className="mt-3 flex gap-2 lg:gap-4">
+          <Link href="#" className="text-muted-foreground hover:text-foreground p-2.5">
+            <Facebook className="size-5" />
+          </Link>
+          <Link
+            href="https://x.com/mainline"
+            className="text-muted-foreground hover:text-foreground p-2.5"
+          >
+            <Twitter className="size-5" />
+          </Link>
+          <Link href="#" className="text-muted-foreground hover:text-foreground p-2.5">
+            <Linkedin className="size-5" />
+          </Link>
+        </div>
     ),
   },
 ];

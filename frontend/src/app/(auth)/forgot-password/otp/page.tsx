@@ -60,7 +60,7 @@ const OtpPage = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="grid gap-6">
-                  <div className="flex justify-center gap-3">
+                  <div className="grid grid-cols-6 gap-2">
                     {otp.map((digit, index) => (
                       <input
                         key={index}
@@ -73,7 +73,7 @@ const OtpPage = () => {
                         value={digit}
                         onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
-                        className="border-input bg-background ring-offset-background focus-visible:ring-ring h-14 w-12 rounded-xl border text-center text-xl font-bold shadow-xs transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+                        className="border-input bg-background ring-offset-background focus-visible:ring-ring h-14 w-full rounded-xl border text-center text-xl font-bold shadow-xs transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden"
                       />
                     ))}
                   </div>
@@ -86,7 +86,7 @@ const OtpPage = () => {
                     Didn&apos;t receive the code?{" "}
                     <button
                       onClick={handleResend}
-                      className="text-primary cursor-pointer bg-transparent border-none font-medium text-sm"
+                      className="text-primary cursor-pointer bg-transparent border-none font-medium text-sm px-3 py-2"
                     >
                       Resend
                     </button>

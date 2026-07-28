@@ -58,7 +58,7 @@ export function ContactForm() {
   const { isExecuting, hasSucceeded } = formAction;
   if (hasSucceeded) {
     return (
-      <div className="w-full gap-2 rounded-md border p-2 sm:p-5 md:p-8">
+      <div className="w-full gap-2 rounded-md border p-5 sm:p-5 md:p-8">
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -241,7 +241,7 @@ export function ContactForm() {
           )}
         />
         <div className="flex w-full items-center justify-end pt-3">
-          <Button className="rounded-lg" size="sm">
+          <Button className="rounded-lg">
             {isExecuting ? "Submitting..." : "Submit"}
           </Button>
         </div>

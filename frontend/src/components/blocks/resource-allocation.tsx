@@ -170,7 +170,7 @@ const Item = ({ item, isLast, className }: ItemProps) => {
   return (
     <div
       className={cn(
-        "relative flex flex-col justify-between px-0 py-6 md:px-6 md:py-8",
+        "relative flex flex-col justify-between px-4 py-6 md:px-6 md:py-8",
         className,
         item.className,
       )}

@@ -141,8 +141,8 @@ export const Testimonials = ({
                 ))}
               </CarouselContent>
               <div className="mt-8 flex gap-3">
-                <CarouselPrevious className="bg-muted hover:bg-muted/80 static size-14.5 translate-x-0 translate-y-0 transition-colors [&>svg]:size-6 lg:[&>svg]:size-8" />
-                <CarouselNext className="bg-muted hover:bg-muted/80 static size-14.5 translate-x-0 translate-y-0 transition-colors [&>svg]:size-6 lg:[&>svg]:size-8" />
+                <CarouselPrevious className="bg-muted hover:bg-muted/80 static size-[3.625rem] translate-x-0 translate-y-0 transition-colors [&>svg]:size-6 lg:[&>svg]:size-8" />
+                <CarouselNext className="bg-muted hover:bg-muted/80 static size-[3.625rem] translate-x-0 translate-y-0 transition-colors [&>svg]:size-6 lg:[&>svg]:size-8" />
               </div>
             </Carousel>
           </div>

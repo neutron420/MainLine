@@ -43,20 +43,20 @@ export function Footer() {
         <ul className="flex flex-wrap items-center justify-center gap-6">
           {navigation.map((item) => (
             <li key={item.name}>
-              <Link
-                href={item.href}
-                className="font-medium transition-opacity hover:opacity-75"
-              >
-                {item.name}
-              </Link>
-            </li>
-          ))}
-          {social.map((item) => (
-            <li key={item.name}>
-              <Link
-                href={item.href}
-                className="flex items-center gap-0.5 font-medium transition-opacity hover:opacity-75"
-              >
+                <Link
+                  href={item.href}
+                  className="font-medium transition-opacity hover:opacity-75 block px-2 py-2"
+                >
+                  {item.name}
+                </Link>
+              </li>
+            ))}
+            {social.map((item) => (
+              <li key={item.name}>
+                <Link
+                  href={item.href}
+                  className="flex items-center gap-0.5 font-medium transition-opacity hover:opacity-75 px-2 py-2"
+                >
                 {item.name} <ArrowUpRight className="size-4" />
               </Link>
             </li>

@@ -32,7 +32,7 @@ export function AboutHero() {
             Mainline is bringing Git-like version control to PostgreSQL schemas.
           </p>
 
-          <p className="text-muted-foreground mt-8 hidden max-w-lg space-y-6 text-lg text-balance md:block lg:mt-12">
+          <p className="text-muted-foreground mt-8 max-w-lg space-y-6 text-base text-balance lg:text-lg lg:mt-12">
             At Mainline, we are dedicated to transforming the way teams version,
             review, and deploy database schema changes. Our mission is to
             provide our customers with an unbeatable edge over schema drift,
@@ -50,7 +50,7 @@ export function AboutHero() {
         </div>
 
         <div
-          className={`relative flex flex-1 flex-col justify-center gap-3 pt-10 lg:pt-0 lg:pl-10`}
+          className={`relative flex flex-1 flex-col justify-center gap-1 pt-10 lg:pt-0 lg:pl-10 lg:gap-3`}
         >
           <DashedLine
             orientation="vertical"

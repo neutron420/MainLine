@@ -44,7 +44,7 @@ export const Hero = () => {
             GitHub for Database Schemas
           </h1>
 
-          <p className="text-muted-foreground text-1xl mt-5 md:text-3xl">
+          <p className="text-muted-foreground text-xl mt-5 md:text-3xl">
             Mainline is the modern platform for versioning, reviewing, and
             deploying PostgreSQL schema changes with confidence.
           </p>
@@ -81,7 +81,7 @@ export const Hero = () => {
                   <h2 className="font-text text-foreground font-semibold">
                     {feature.title}
                   </h2>
-                  <p className="text-muted-foreground max-w-76 text-sm">
+                    <p className="text-muted-foreground text-sm">
                     {feature.description}
                   </p>
                 </div>
@@ -91,13 +91,13 @@ export const Hero = () => {
         </div>
       </div>
 
-      <div className="mt-12 max-lg:ml-6 max-lg:h-[550px] max-lg:overflow-hidden md:mt-20 lg:container lg:mt-24">
+        <div className="mt-12 md:mt-20 lg:container lg:mt-24">
         <div className="relative h-[793px] w-full">
           <Image
             src="/hero.webp"
             alt="hero"
             fill
-            className="rounded-2xl object-cover object-left-top shadow-lg max-lg:rounded-tr-none"
+            className="rounded-2xl object-cover object-center shadow-lg"
           />
         </div>
       </div>

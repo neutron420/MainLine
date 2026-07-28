@@ -54,7 +54,7 @@ const ResetPassword = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer bg-transparent border-none"
+                      className="text-muted-foreground hover:text-foreground absolute right-1 top-1/2 -translate-y-1/2 grid size-11 place-items-center cursor-pointer bg-transparent border-none"
                     >
                       {showPassword ? (
                         <EyeOff className="size-4" />
@@ -75,7 +75,7 @@ const ResetPassword = () => {
                     <button
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer bg-transparent border-none"
+                      className="text-muted-foreground hover:text-foreground absolute right-1 top-1/2 -translate-y-1/2 grid size-11 place-items-center cursor-pointer bg-transparent border-none"
                     >
                       {showConfirm ? (
                         <EyeOff className="size-4" />
