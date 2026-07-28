@@ -91,16 +91,16 @@ export const Hero = () => {
         </div>
       </div>
 
-        <div className="mt-12 md:mt-20 lg:container lg:mt-24">
-        <div className="relative h-[793px] w-full">
+        <div className="mx-auto mt-12 w-full md:mt-20 lg:container lg:mt-24">
           <Image
             src="/hero.webp"
             alt="hero"
-            fill
-            className="rounded-2xl object-cover object-center shadow-lg"
+            width={1200}
+            height={793}
+            className="h-auto w-full rounded-2xl shadow-lg"
+            priority
           />
         </div>
-      </div>
     </section>
   );
 };
