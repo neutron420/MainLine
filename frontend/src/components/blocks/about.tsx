@@ -20,7 +20,7 @@ const About = () => {
         <TextSection
           title="The team"
           paragraphs={[
-            "We started building Mainline in 2019 and launched in 2022. Every endpoint has been designed from the ground up — with no technical debt or legacy systems. We are purpose-built to power database schema versioning for the next hundred years.",
+            "We started building Mainline in 2019 and launched in 2022. Every endpoint has been designed from the ground up with no technical debt or legacy systems. We are purpose-built to power database schema versioning for the next hundred years.",
             "We are 100% founder and team-owned, profitable, and we keep our team lean. Over time, this page will become more polished, but for now, we're focused on delivering for developers.",
             "If you're interested in building the future of database tooling, check out our open roles below.",
           ]}
@@ -36,7 +36,7 @@ const About = () => {
         <TextSection
           paragraphs={[
             "At Mainline, we are dedicated to transforming the way teams version, review, and deploy database schema changes. Our mission is to provide our customers with an unbeatable edge over schema drift, migration failures, and deployment anxiety through actionable insights and seamless collaboration. We'll stop at nothing to give you the tools you need to ship schema changes with confidence.",
-            "We're customer-obsessed — investing the time to understand every aspect of your workflow so that we can help you operate better than ever before. We're all in this together because your success is our success. In our history as a company, we've never lost a customer, because when your schemas succeed, so do we.",
+            "We're customer-obsessed investing the time to understand every aspect of your workflow so that we can help you operate better than ever before. We're all in this together because your success is our success. In our history as a company, we've never lost a customer, because when your schemas succeed, so do we.",
           ]}
         />
         <ImageSection

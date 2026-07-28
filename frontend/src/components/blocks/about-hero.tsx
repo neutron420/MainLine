@@ -41,7 +41,7 @@ export function AboutHero() {
             give you the tools you need to ship schema changes with confidence.
             <br />
             <br />
-            We&apos;re customer-obsessed — investing the time to understand every
+            We&apos;re customer-obsessed investing the time to understand every
             aspect of your workflow so that we can help you operate better than
             ever before. We&apos;re all in this together because your success is our
             success. In our history as a company, we&apos;ve never lost a customer,

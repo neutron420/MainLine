@@ -25,7 +25,7 @@ const categories = [
       {
         question: "How does schema diffing work?",
         answer:
-          "Mainline compares your target schema against the current live state and generates a detailed diff — added, removed, or altered tables, columns, indexes, constraints, and more. You can see exactly what will change before applying any migration.",
+          "Mainline compares your target schema against the current live state and generates a detailed diff added, removed, or altered tables, columns, indexes, constraints, and more. You can see exactly what will change before applying any migration.",
       },
     ],
   },
@@ -55,7 +55,7 @@ const categories = [
       {
         question: "How do you handle schema drift?",
         answer:
-          "Mainline continuously monitors your live databases and compares them against your versioned schema. If drift is detected — someone ran an ad-hoc ALTER TABLE, for example — we alert your team immediately with a detailed report of what changed.",
+          "Mainline continuously monitors your live databases and compares them against your versioned schema. If drift is detected someone ran an ad-hoc ALTER TABLE, for example we alert your team immediately with a detailed report of what changed.",
       },
     ],
   },
