@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, MoreHorizontal, Pin, Settings, Share2, Trash, TriangleAlert, ListFilter, Columns, Plus, GitBranch, Database, UserPlus, Clock, CheckCircle2, GitPullRequest, AlertCircle } from "lucide-react";
+import { ArrowDown, ArrowUp, MoreHorizontal, Pin, Settings, Share2, Trash, TriangleAlert, ListFilter, Columns, Plus, GitBranch, Database, UserPlus, Clock, CheckCircle2, GitPullRequest, AlertCircle, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectDataTable, Project } from "@/components/ui/project-data-table";
+import { NotificationsPopover } from "@/components/notifications-popover";
 
 const stats = [
   { title: "Total Schemas", value: 1248, delta: 12.5, lastMonth: 1109, positive: true, prefix: "", suffix: "" },
@@ -86,9 +87,9 @@ export default function Page() {
     >
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger className="-ml-1 size-9" />
+          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem><BreadcrumbPage>Dashboard</BreadcrumbPage></BreadcrumbItem>
@@ -96,6 +97,16 @@ export default function Page() {
               <BreadcrumbItem className="hidden md:block"><BreadcrumbPage>Overview</BreadcrumbPage></BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="flex items-center gap-2 ml-auto">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
+              />
+            </div>
+            <NotificationsPopover />
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Stats */}
