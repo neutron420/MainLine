@@ -7,44 +7,58 @@
 | Route | Page Component | Status |
 |---|---|---|
 | `/login` | `LoginPage` | ✅ Built |
-| `/register` | `RegisterPage` | ✅ Built |
+| `/register` | `RegisterPage` (route: `/signup`) | ✅ Built |
 | `/forgot-password` | `ForgotPasswordPage` | ✅ Built |
 | `/forgot-password/otp` | `OtpPage` | ✅ Built |
 | `/forgot-password/reset` | `ResetPasswordPage` | ✅ Built |
 | `/auth/callback/[provider]` | `OAuthCallbackPage` | ✅ Built |
 
-### 📦 Installed shadcn/ui Components
+### ✅ Product Pages (Built)
 
-Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skeleton, Table, Form, Sidebar, Sheet, Separator, Tooltip, Sonner, Avatar, Badge, Checkbox, Drawer, Toggle, Chart, Breadcrumb, Collapsible, ToggleGroup
+| Route | Page Component | Status |
+|---|---|---|
+| `/dashboard` | `DashboardPage` | ✅ Built |
+| `/projects` | `ProjectsPage` | ✅ Built |
+| `/projects/[id]` | `ProjectDetailPage` | ✅ Built |
+| `/reviews` | `ReviewsPage` | ✅ Built |
+| `/reviews/[id]` | `ReviewDetailPage` | ✅ Built |
+| `/team` | `TeamPage` | ✅ Built |
+| `/settings` | `SettingsPage` | ✅ Built |
+| `/schemas` | `SchemasPage` — database explorer (tree + table detail + SQL DDL) | ✅ Built |
 
----
+> `/projects/[id]` tabs are all live: Overview, Schemas, Migrations, Drift, Audit, Events (only Settings tab is a placeholder).
 
 ### ⬜ Pages To Build (Future)
 
 | Route | Page Component |
 |---|---|
-| `/dashboard` | `DashboardPage` |
-| `/projects` | `ProjectsPage` |
-| `/projects/new` | `CreateProjectPage` |
-| `/projects/[id]` | `ProjectDetailPage` |
+| `/projects/new` | `CreateProjectPage` (currently a dialog) |
 | `/projects/[id]/connections` | `ConnectionsPage` |
 | `/projects/[id]/connections/new` | `CreateConnectionPage` |
-| `/projects/[id]/schemas` | `SchemasPage` |
+| `/projects/[id]/schemas` | `SchemasPage` (project-scoped) |
 | `/projects/[id]/schemas/[schemaId]` | `SchemaDetailPage` |
-| `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` |
+| `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` (React Flow) |
 | `/projects/[id]/schemas/[schemaId]/compare` | `SchemaComparePage` |
-| `/projects/[id]/migrations` | `MigrationsPage` |
+| `/projects/[id]/migrations` | `MigrationsPage` (project-scoped) |
 | `/projects/[id]/migrations/new` | `CreateMigrationPage` |
 | `/projects/[id]/migrations/[migrationId]` | `MigrationDetailPage` |
 | `/projects/[id]/migrations/[migrationId]/run` | `MigrationRunPage` |
-| `/projects/[id]/drift` | `DriftPage` |
+| `/projects/[id]/drift` | `DriftPage` (project-scoped) |
 | `/projects/[id]/drift/[driftId]` | `DriftDetailPage` |
-| `/projects/[id]/audit` | `AuditPage` |
-| `/projects/[id]/events` | `EventsPage` |
+| `/projects/[id]/audit` | `AuditPage` (project-scoped) |
+| `/projects/[id]/events` | `EventsPage` (project-scoped) |
 | `/projects/[id]/settings` | `ProjectSettingsPage` |
 | `/projects/[id]/settings/members` | `MembersPage` |
-| `/settings` | `SettingsPage` |
 | `/settings/connections` | `LinkedAccountsPage` |
+
+### 📦 Installed shadcn/ui Components
+
+Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skeleton, Table, Form, Sidebar, Sheet, Separator, Tooltip, Sonner, Avatar, Badge, Checkbox, Drawer, Toggle, Chart, Breadcrumb, Collapsible, ToggleGroup, Alert, Popover
+
+### 🔧 Shared Data Modules
+
+- `src/lib/reviews-data.ts` — review types + mock data for `/reviews` and `/reviews/[id]`
+- `src/lib/schemas-data.ts` — schema explorer types + mock data for `/schemas`
 
 ---
 
@@ -53,5 +67,9 @@ Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skelet
 | Category | Count | Progress |
 |---|---|---|
 | Auth Pages | 6 | ✅ Done |
-| Protected Pages | 22 | ⬜ Not started |
-| shadcn/ui Components | 26 | 📦 Installed |
+| Product Pages | 8 | ✅ Done |
+| Protected Pages | 14 | ⬜ Remaining |
+| shadcn/ui Components | 28 | 📦 Installed |
+
+> Build passes with 21 routes. Next up: ERD page (React Flow) or migration sub-pages.
+

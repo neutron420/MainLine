@@ -52,15 +52,14 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 
   --font-dm-sans: "dmSans", sans-serif;
-  --font-inter: "inter", sans-serif;
 
-  --font-sans: var(--font-dm-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* StyleGlide provides a better abstraction for fonts */
   --display-family: var(--font-sans);
-  --text-family: var(--font-inter);
+  --text-family: var(--font-sans);
   --display-weight: 600;
   --text-weight: 400;
 }
