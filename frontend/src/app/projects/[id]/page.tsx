@@ -368,6 +368,12 @@ export default function ProjectDetailPage() {
                         Open Explorer
                       </Button>
                     </Link>
+                    <Link href={`/projects/${id}/schemas/public/erd`}>
+                      <Button size="sm" className="h-9 gap-2">
+                        <GitBranch className="size-4" />
+                        View ERD
+                      </Button>
+                    </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">

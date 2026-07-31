@@ -25,6 +25,7 @@
 | `/team` | `TeamPage` | ✅ Built |
 | `/settings` | `SettingsPage` | ✅ Built |
 | `/schemas` | `SchemasPage` — database explorer (tree + table detail + SQL DDL) | ✅ Built |
+| `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` — React Flow entity relationship diagram | ✅ Built |
 
 > `/projects/[id]` tabs are all live: Overview, Schemas, Migrations, Drift, Audit, Events (only Settings tab is a placeholder).
 
@@ -37,7 +38,6 @@
 | `/projects/[id]/connections/new` | `CreateConnectionPage` |
 | `/projects/[id]/schemas` | `SchemasPage` (project-scoped) |
 | `/projects/[id]/schemas/[schemaId]` | `SchemaDetailPage` |
-| `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` (React Flow) |
 | `/projects/[id]/schemas/[schemaId]/compare` | `SchemaComparePage` |
 | `/projects/[id]/migrations` | `MigrationsPage` (project-scoped) |
 | `/projects/[id]/migrations/new` | `CreateMigrationPage` |
@@ -67,9 +67,9 @@ Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skelet
 | Category | Count | Progress |
 |---|---|---|
 | Auth Pages | 6 | ✅ Done |
-| Product Pages | 8 | ✅ Done |
-| Protected Pages | 14 | ⬜ Remaining |
+| Product Pages | 9 | ✅ Done |
+| Protected Pages | 13 | ⬜ Remaining |
 | shadcn/ui Components | 28 | 📦 Installed |
 
-> Build passes with 21 routes. Next up: ERD page (React Flow) or migration sub-pages.
+> Build passes with 21 routes. Next up: migration sub-pages or schema compare.
 
