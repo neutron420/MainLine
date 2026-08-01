@@ -169,8 +169,7 @@ export default function ProjectsPage() {
                   <DialogDescription>
                     Set up a new database schema project for your team.
                   </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-5 py-4">
+                </DialogHeader>                <div className="grid gap-5 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="name">Project Name</Label>
                     <Input id="name" placeholder="e.g. User Service Schema" className="h-11" />
@@ -207,6 +206,12 @@ export default function ProjectsPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <Link href="/projects/new">
+              <Button variant="outline" className="h-11 gap-2">
+                <FolderKanban className="size-4" />
+                Full Page
+              </Button>
+            </Link>
           </div>
 
           {/* Search + Filters */}

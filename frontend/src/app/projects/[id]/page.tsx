@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Database, GitBranch, GitPullRequest, AlertTriangle, FileText, Calendar, Users, Settings, ExternalLink, Clock, CheckCircle2, XCircle, Search, RotateCcw } from "lucide-react";
+import { ArrowLeft, Database, GitBranch, GitPullRequest, AlertTriangle, FileText, Calendar, Users, Settings, ExternalLink, Clock, CheckCircle2, XCircle, Search, RotateCcw, GitCompareArrows } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -104,18 +104,18 @@ const projectTables = {
 
 const migrationStatusConfig = {
   deployed: { label: "Deployed", badge: "default" as const, icon: CheckCircle2 },
+  inReview: { label: "In Review", badge: "secondary" as const, icon: Clock },
   inProgress: { label: "In Progress", badge: "secondary" as const, icon: Clock },
   failed: { label: "Failed", badge: "destructive" as const, icon: XCircle },
   rolledBack: { label: "Rolled Back", badge: "outline" as const, icon: RotateCcw },
 };
 
 const migrations = [
-  { version: "v1.2.0", name: "Add users table composite index", author: "Alice", status: "deployed" as const, duration: "42s", applied: "2 hours ago" },
-  { version: "v1.1.2", name: "Backfill email_verified_at", author: "Bob", status: "deployed" as const, duration: "3m 12s", applied: "1 day ago" },
-  { version: "v1.1.1", name: "Drop legacy zip_code column", author: "Charlie", status: "failed" as const, duration: "—", applied: "2 days ago" },
-  { version: "v1.1.0", name: "Add email verification columns", author: "Alice", status: "inProgress" as const, duration: "running", applied: "3 days ago" },
-  { version: "v1.0.3", name: "Rename stock_level column", author: "Diana", status: "rolledBack" as const, duration: "1m 05s", applied: "5 days ago" },
-  { version: "v1.0.2", name: "Add notification_preferences jsonb", author: "Eve", status: "deployed" as const, duration: "28s", applied: "1 week ago" },
+  { id: "m1", version: "v1.2.0", name: "Add users table composite index", author: "Alice", status: "deployed" as const, duration: "42s", applied: "2 hours ago" },
+  { id: "m2", version: "v1.1.0", name: "Add email verification columns", author: "Alice", status: "inReview" as const, duration: "—", applied: "3 days ago" },
+  { id: "m3", version: "v1.0.3", name: "Rename stock_level column", author: "Diana", status: "rolledBack" as const, duration: "1m 05s", applied: "5 days ago" },
+  { id: "m4", version: "v1.1.1", name: "Drop legacy zip_code column", author: "Charlie", status: "failed" as const, duration: "—", applied: "2 days ago" },
+  { id: "m5", version: "v1.0.2", name: "Add notification_preferences jsonb", author: "Eve", status: "deployed" as const, duration: "28s", applied: "1 week ago" },
 ];
 
 const driftStatusConfig = {
@@ -369,9 +369,15 @@ export default function ProjectDetailPage() {
                       </Button>
                     </Link>
                     <Link href={`/projects/${id}/schemas/public/erd`}>
-                      <Button size="sm" className="h-9 gap-2">
+                      <Button variant="outline" size="sm" className="h-9 gap-2">
                         <GitBranch className="size-4" />
                         View ERD
+                      </Button>
+                    </Link>
+                    <Link href={`/projects/${id}/schemas/public/compare`}>
+                      <Button size="sm" className="h-9 gap-2">
+                        <GitCompareArrows className="size-4" />
+                        Compare
                       </Button>
                     </Link>
                   </div>
@@ -399,7 +405,14 @@ export default function ProjectDetailPage() {
                                 <span className="font-mono text-sm">{table.name}</span>
                               </div>
                             </TableCell>
-                            <TableCell><span className="font-mono text-xs text-muted-foreground">{table.schema}</span></TableCell>
+                            <TableCell>
+                              <Link
+                                href={`/projects/${id}/schemas/${table.schema}`}
+                                className="font-mono text-xs text-muted-foreground hover:text-primary hover:underline"
+                              >
+                                {table.schema}
+                              </Link>
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">{table.columns}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{table.indexes}</TableCell>
                             <TableCell>
@@ -424,10 +437,12 @@ export default function ProjectDetailPage() {
                       Migration History
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0">{migrations.length}</Badge>
                     </CardTitle>
-                    <Button size="sm" className="h-9 gap-2">
-                      <GitBranch className="size-4" />
-                      Run Migration
-                    </Button>
+                    <Link href={`/projects/${id}/migrations/new`}>
+                      <Button size="sm" className="h-9 gap-2">
+                        <GitBranch className="size-4" />
+                        Run Migration
+                      </Button>
+                    </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -446,13 +461,13 @@ export default function ProjectDetailPage() {
                       {migrations.map((migration) => {
                         const status = migrationStatusConfig[migration.status];
                         return (
-                          <TableRow key={migration.version}>
+                          <TableRow key={migration.id}>
                             <TableCell><span className="font-mono text-sm">{migration.version}</span></TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2.5">
+                              <Link href={`/projects/${id}/migrations/${migration.id}`} className="flex items-center gap-2.5 hover:underline">
                                 <status.icon className="size-4 text-muted-foreground" />
                                 <span className="text-sm truncate">{migration.name}</span>
-                              </div>
+                              </Link>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">{migration.author}</TableCell>
                             <TableCell>
@@ -488,19 +503,21 @@ export default function ProjectDetailPage() {
                           <AlertTriangle className="size-4 text-amber-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium">{drift.kind}</p>
-                            <Badge variant={severity.badge} className="text-[10px] px-1.5 py-0">{severity.label}</Badge>
-                            <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">{drift.detail}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <span className="font-mono">{drift.schema}.{drift.table}</span>
-                            <span>·</span>
-                            <span>{drift.env}</span>
-                            <span>·</span>
-                            <span>{drift.detected}</span>
-                          </div>
+                          <Link href={`/projects/${id}/drift/${drift.id}`} className="block rounded-lg hover:bg-muted/40 p-2 -m-2 transition-colors">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium">{drift.kind}</p>
+                              <Badge variant={severity.badge} className="text-[10px] px-1.5 py-0">{severity.label}</Badge>
+                              <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{drift.detail}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <span className="font-mono">{drift.schema}.{drift.table}</span>
+                              <span>·</span>
+                              <span>{drift.env}</span>
+                              <span>·</span>
+                              <span>{drift.detected}</span>
+                            </div>
+                          </Link>
                         </div>
                       </div>
                     );
@@ -589,7 +606,23 @@ export default function ProjectDetailPage() {
               <Card>
                 <CardContent className="py-8 text-center">
                   <Settings className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Project settings coming soon</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manage project configuration, migration policy and members
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <Link href={`/projects/${id}/settings`}>
+                      <Button variant="outline" className="gap-2">
+                        <Settings className="size-4" />
+                        Project Settings
+                      </Button>
+                    </Link>
+                    <Link href={`/projects/${id}/settings/members`}>
+                      <Button variant="outline" className="gap-2">
+                        <Users className="size-4" />
+                        Members
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, MoreHorizontal, Pin, Settings, Share2, Trash, TriangleAlert, ListFilter, Columns, Plus, GitBranch, Database, UserPlus, Clock, CheckCircle2, GitPullRequest, AlertCircle, Search } from "lucide-react";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -153,9 +154,23 @@ export default function Page() {
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-3">
             {quickActions.map((action) => (
-              <Button key={action.label} variant={action.variant} className="h-11 gap-2">
-                <action.icon className="size-4" />
-                {action.label}
+              <Button
+                key={action.label}
+                variant={action.variant}
+                className="h-11 gap-2"
+                asChild={action.label === "New Project"}
+              >
+                {action.label === "New Project" ? (
+                  <Link href="/projects/new">
+                    <action.icon className="size-4" />
+                    {action.label}
+                  </Link>
+                ) : (
+                  <>
+                    <action.icon className="size-4" />
+                    {action.label}
+                  </>
+                )}
               </Button>
             ))}
           </div>
