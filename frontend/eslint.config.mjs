@@ -12,7 +12,10 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   {
-    ignores: ["node_modules/**"],
+    ignores: [
+      "node_modules/**",
+      "src/lib/gen/**",
+    ],
   },
   ...compat.extends(
     "next/core-web-vitals",
