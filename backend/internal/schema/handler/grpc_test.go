@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
@@ -65,6 +66,7 @@ func (f *fakeSchemaRepo) ListVersionsBySchemaID(ctx context.Context, schemaID, c
 			out = append(out, v)
 		}
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Version > out[j].Version })
 	return out, "", int32(len(out)), nil
 }
 func (f *fakeSchemaRepo) GetLatestVersion(ctx context.Context, schemaID string) (*domain.SchemaVersion, error) {
@@ -139,8 +141,8 @@ func TestSchemaHandler_ListSchemaVersions(t *testing.T) {
 	if len(resp.Versions) != 2 {
 		t.Errorf("Versions len = %d, want 2", len(resp.Versions))
 	}
-	if resp.Versions[0].Checksum != "abc" {
-		t.Errorf("first version Checksum = %q, want abc", resp.Versions[0].Checksum)
+	if resp.Versions[0].Checksum != "def" {
+		t.Errorf("first version Checksum = %q, want def (newest first)", resp.Versions[0].Checksum)
 	}
 }
 
