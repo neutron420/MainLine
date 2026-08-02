@@ -138,6 +138,22 @@ export function useResetPassword() {
   });
 }
 
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      await authClient.verifyEmail({ token });
+    },
+  });
+}
+
+export function useSendVerificationEmail() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      await authClient.sendVerificationEmail({ email });
+    },
+  });
+}
+
 export function useListLinkedIdentities() {
   return useQuery({
     queryKey: IDENTITIES_KEY,

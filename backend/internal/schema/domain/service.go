@@ -153,6 +153,11 @@ func (s *SchemaService) GetSchemaByID(ctx context.Context, id string) (*Schema, 
 	return schema, nil
 }
 
+// GetSchemaByConnection resolves the schema record tracked for a connection.
+func (s *SchemaService) GetSchemaByConnection(ctx context.Context, connID, schemaName string) (*Schema, error) {
+	return s.repo.GetByConnectionAndSchema(ctx, connID, schemaName)
+}
+
 func (s *SchemaService) ListSchemas(ctx context.Context, projectID, cursor string, pageSize int32) ([]*Schema, string, int32, error) {
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 20

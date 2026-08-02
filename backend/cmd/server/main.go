@@ -31,6 +31,8 @@ import (
 	"github.com/schemahub/backend/internal/pkg/interceptor"
 	"github.com/schemahub/backend/internal/pkg/jwt"
 	"github.com/schemahub/backend/internal/pkg/logger"
+	"github.com/schemahub/backend/internal/pkg/mailer"
+	"github.com/schemahub/backend/internal/pkg/middleware"
 	"github.com/schemahub/backend/internal/pkg/redis"
 	"github.com/schemahub/backend/internal/pkg/worker"
 	projectDomain "github.com/schemahub/backend/internal/project/domain"
@@ -99,11 +101,12 @@ func main() {
 	oauthRepo := authRepo.NewOAuthIdentityRepository(db)
 	oauthCfg := &authDomain.OAuthProviderConfig{
 		Google: authDomain.OAuthConfig{
-			ClientID:    cfg.GoogleClientID,
-			AuthURL:     "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL:    "https://oauth2.googleapis.com/token",
-			CallbackURL: cfg.GoogleCallbackURL,
-			Scopes:      "openid profile email",
+			ClientID:     cfg.GoogleClientID,
+			ClientSecret: cfg.GoogleClientSecret,
+			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL:     "https://oauth2.googleapis.com/token",
+			CallbackURL:  cfg.GoogleCallbackURL,
+			Scopes:       "openid profile email",
 		},
 		GitHub: authDomain.OAuthConfig{
 			ClientID:     cfg.GitHubClientID,
@@ -125,6 +128,16 @@ func main() {
 	}
 	verifyRepo := authRepo.NewVerificationTokenRepo(db)
 	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, verifyRepo, jwtManager, oauthCfg)
+	authSvc.SetMailer(mailer.New(mailer.Config{
+		SMTPHost:    cfg.SMTPHost,
+		SMTPPort:    cfg.SMTPPort,
+		Username:    cfg.SMTPUser,
+		Password:    cfg.SMTPPassword,
+		From:        cfg.SMTPFrom,
+		FromName:    cfg.SMTPFromName,
+		FrontendURL: cfg.FrontendURL,
+		Log:         log,
+	}))
 	authH := authHandler.NewAuthHandler(authSvc)
 
 	// ── Project + Connection Service ──
@@ -181,8 +194,13 @@ func main() {
 	workerRunner.Add(worker.NewConnectionHealthWorker(connRepo, []byte(cfg.EncryptionKey)))
 	workerRunner.Add(worker.NewAuditPartitionWorker(db))
 	workerRunner.Add(worker.NewHardDeleteWorker(db))
-	workerRunner.Add(worker.NewOAuthRefreshWorker(oauthRepo, userRepo, []byte(cfg.EncryptionKey)))
+	oauthRefreshWorker := worker.NewOAuthRefreshWorker(oauthRepo, userRepo, []byte(cfg.EncryptionKey))
+	oauthRefreshWorker.SetClientSecret("google", cfg.GoogleClientSecret)
+	oauthRefreshWorker.SetClientSecret("github", cfg.GitHubClientSecret)
+	oauthRefreshWorker.SetClientSecret("slack", cfg.SlackClientSecret)
+	workerRunner.Add(oauthRefreshWorker)
 	workerRunner.Add(worker.NewDriftAlertWorker(driftRepoInstance, eventSvc, rdb))
+	workerRunner.Add(worker.NewDriftCheckWorker(connRepo, driftSvc, []byte(cfg.EncryptionKey)))
 	workerRunner.Start(ctx)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
@@ -193,21 +211,36 @@ func main() {
 
 	rateLimiter := interceptor.NewRateLimiter(100, 200)
 
-	rbacCheck := func(ctx context.Context, userID, role, fullMethod string) error {
-		return nil
+	rbacEnforcer := &rbacEnforcer{
+		projects:    projRepo,
+		connections: connRepo,
+		schemas:     schemaRepoInstance,
+		migrations:  migRepo,
+		drifts:      driftRepoInstance,
+		audits:      auditRepoInstance,
+	}
+
+	rbacCheck := func(ctx context.Context, userID, role, fullMethod string, req any) error {
+		return rbacEnforcer.enforce(ctx, userID, role, fullMethod, req)
 	}
 
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.RecoveryInterceptor(log),
+			middleware.TracingInterceptor(),
+			middleware.CORSInterceptor([]string{cfg.FrontendURL}),
 			interceptor.AuthInterceptor(jwtManager),
 			interceptor.RBACInterceptor(rbacCheck),
+			interceptor.RateLimitInterceptor(rdb, cfg.RateLimit),
 			rateLimiter.UnaryServerInterceptor(),
 			interceptor.IdempotencyInterceptor(rdb),
 			interceptor.MetricsInterceptor(nil),
 			interceptor.DBRetryInterceptor(3),
 		),
 		grpc.ChainStreamInterceptor(
+			middleware.CORSStreamInterceptor([]string{cfg.FrontendURL}),
+			interceptor.StreamAuthInterceptor(jwtManager),
+			interceptor.StreamRBACInterceptor(rbacCheck),
 			rateLimiter.StreamServerInterceptor(),
 		),
 	)
@@ -263,9 +296,21 @@ type schemaDriftComparator struct {
 	connString func(ctx context.Context, connID string) (string, error)
 }
 
-func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, connStr, schemaVersionID string, schemaNames []string) ([]*driftDomain.DriftEvent, error) {
-	// Re-introspect live DB
-	schema, version, err := c.svc.Introspect(ctx, connStr, "", schemaNames, "")
+func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, connStr, connectionID string, schemaNames []string) ([]*driftDomain.DriftEvent, error) {
+	schemaName := "public"
+	if len(schemaNames) > 0 {
+		schemaName = schemaNames[0]
+	}
+
+	// Capture the tracked baseline BEFORE introspection, since introspection
+	// bumps the schema's current version to the live snapshot.
+	expectedVersionID := ""
+	if tracked, err := c.svc.GetSchemaByConnection(ctx, connectionID, schemaName); err == nil && tracked != nil && tracked.CurrentVersionID != nil {
+		expectedVersionID = *tracked.CurrentVersionID
+	}
+
+	// Re-introspect live DB (passing the real connection ID).
+	schema, version, err := c.svc.Introspect(ctx, connStr, connectionID, schemaNames, "")
 	if err != nil {
 		return nil, fmt.Errorf("introspecting live schema: %w", err)
 	}
@@ -274,8 +319,14 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 		return nil, nil
 	}
 
-	// Compare with current version (diff engine)
-	diff, err := c.svc.CompareVersions(ctx, schemaVersionID, version.ID)
+	// No baseline yet (first introspection) or schema unchanged: no drift to report.
+	if expectedVersionID == "" || expectedVersionID == version.ID {
+		return nil, nil
+	}
+
+	// Compare live (A) against the expected baseline (B): objects added in B but
+	// missing from A are missing from live; objects removed from B are extra in live.
+	diff, err := c.svc.CompareVersions(ctx, version.ID, expectedVersionID)
 	if err != nil {
 		return nil, fmt.Errorf("comparing versions: %w", err)
 	}
@@ -291,7 +342,7 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 	for _, o := range diff.AddedObjects {
 		events = append(events, &driftDomain.DriftEvent{
 			SchemaID:           schema.ID,
-			ExpectedVersionID:  schemaVersionID,
+			ExpectedVersionID:  expectedVersionID,
 			DriftType:          driftDomain.DriftTypeMissingObject,
 			ObjectType:         o.Type,
 			ObjectName:         o.Name,
@@ -303,7 +354,7 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 	for _, o := range diff.RemovedObjects {
 		events = append(events, &driftDomain.DriftEvent{
 			SchemaID:          schema.ID,
-			ExpectedVersionID: schemaVersionID,
+			ExpectedVersionID: expectedVersionID,
 			DriftType:         driftDomain.DriftTypeExtraObject,
 			ObjectType:        o.Type,
 			ObjectName:        o.Name,
@@ -315,7 +366,7 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 	for _, o := range diff.ModifiedObjects {
 		events = append(events, &driftDomain.DriftEvent{
 			SchemaID:           schema.ID,
-			ExpectedVersionID:  schemaVersionID,
+			ExpectedVersionID:  expectedVersionID,
 			DriftType:          driftDomain.DriftTypeModifiedObject,
 			ObjectType:         o.Type,
 			ObjectName:         o.Name,

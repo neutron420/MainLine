@@ -13,21 +13,73 @@ import (
 	"github.com/schemahub/backend/internal/pkg/errors"
 )
 
+const (
+	// migrationQueueSize bounds pending runs awaiting a worker.
+	migrationQueueSize = 32
+	// migrationWorkers is the number of concurrent migration runs.
+	migrationWorkers = 4
+)
+
+type pendingRun struct {
+	runID  string
+	sql    string
+	connID string
+}
+
 type MigrationService struct {
 	repo       MigrationRepository
 	validator  *SQLValidator
 	connString func(ctx context.Context, connID string) (string, error)
 	watchMu    sync.RWMutex
 	watchers   map[string][]chan *MigrationStatusMessage
+	queue      chan pendingRun
 }
 
 func NewMigrationService(repo MigrationRepository, connString func(ctx context.Context, connID string) (string, error)) *MigrationService {
-	return &MigrationService{
+	s := &MigrationService{
 		repo:       repo,
 		validator:  NewSQLValidator(),
 		connString: connString,
 		watchers:   make(map[string][]chan *MigrationStatusMessage),
+		queue:      make(chan pendingRun, migrationQueueSize),
 	}
+	s.startWorkers()
+	return s
+}
+
+// startWorkers launches the bounded worker pool that executes queued runs.
+func (s *MigrationService) startWorkers() {
+	for i := 0; i < migrationWorkers; i++ {
+		go func() {
+			for r := range s.queue {
+				s.executeAsync(r.runID, r.sql, r.connID)
+			}
+		}()
+	}
+}
+
+func (s *MigrationService) enqueue(r pendingRun) error {
+	select {
+	case s.queue <- r:
+		return nil
+	default:
+		return errors.New("RESOURCE_EXHAUSTED", "migration queue is full, retry shortly")
+	}
+}
+
+// failQueuedRun marks a run failed when it could not be enqueued.
+func (s *MigrationService) failQueuedRun(run *MigrationRun, errMsg string) {
+	ctx := context.Background()
+	run.Status = RunStatusFailed
+	run.ErrorMessage = errMsg
+	now := time.Now()
+	run.CompletedAt = &now
+	run.DurationMs = 0
+	_ = s.repo.UpdateRun(ctx, run)
+	s.broadcast(run.ID, &MigrationStatusMessage{
+		RunID: run.ID, State: RunStatusFailed, ErrorMessage: errMsg,
+	})
+	s.finalizeMigration(ctx, run.MigrationID, MigrationStatusFailed)
 }
 
 // ── CRUD ──
@@ -142,7 +194,10 @@ func (s *MigrationService) Execute(ctx context.Context, migrationID, connectionI
 		return nil, fmt.Errorf("updating migration status: %w", err)
 	}
 
-	go s.executeAsync(run.ID, m.UpSQL, connectionID)
+	if err := s.enqueue(pendingRun{runID: run.ID, sql: m.UpSQL, connID: connectionID}); err != nil {
+		s.failQueuedRun(run, err.Error())
+		return nil, err
+	}
 
 	return run, nil
 }
@@ -353,7 +408,10 @@ func (s *MigrationService) Rollback(ctx context.Context, runID, userID string) (
 		return nil, fmt.Errorf("creating rollback run: %w", err)
 	}
 
-	go s.executeAsync(run.ID, m.DownSQL, originalRun.ConnectionID)
+	if err := s.enqueue(pendingRun{runID: run.ID, sql: m.DownSQL, connID: originalRun.ConnectionID}); err != nil {
+		s.failQueuedRun(run, err.Error())
+		return nil, err
+	}
 
 	return run, nil
 }

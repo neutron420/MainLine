@@ -129,6 +129,37 @@ func (s *EventService) GetPresence(ctx context.Context, projectID string) ([]str
 	return userIDs, nil
 }
 
+const ackKeyTTL = 24 * time.Hour
+
+func ackKey(userID string) string {
+	return fmt.Sprintf("schema:events:acked:%s", userID)
+}
+
+// Acknowledge records that a user has processed an event. Acks live in a Redis
+// set keyed by user and expire after ackKeyTTL.
+func (s *EventService) Acknowledge(ctx context.Context, userID, eventID string) error {
+	if userID == "" || eventID == "" {
+		return fmt.Errorf("user id and event id are required")
+	}
+	key := ackKey(userID)
+	pipe := s.rdb.TxPipeline()
+	pipe.SAdd(ctx, key, eventID)
+	pipe.Expire(ctx, key, ackKeyTTL)
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("storing acknowledgement: %w", err)
+	}
+	return nil
+}
+
+// IsAcknowledged reports whether the user already acknowledged an event.
+func (s *EventService) IsAcknowledged(ctx context.Context, userID, eventID string) (bool, error) {
+	member, err := s.rdb.SIsMember(ctx, ackKey(userID), eventID).Result()
+	if err != nil {
+		return false, fmt.Errorf("checking acknowledgement: %w", err)
+	}
+	return member, nil
+}
+
 func (s *EventService) ensurePubSubRunning() {
 	s.psMu.Lock()
 	defer s.psMu.Unlock()

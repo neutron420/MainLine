@@ -63,6 +63,15 @@ func (h *EventHandler) Subscribe(req *eventv1.SubscribeRequest, stream eventv1.E
 }
 
 func (h *EventHandler) AcknowledgeEvent(ctx context.Context, req *eventv1.AcknowledgeEventRequest) (*eventv1.AcknowledgeEventResponse, error) {
+	userID, err := interceptor.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.svc.Acknowledge(ctx, userID, req.EventId); err != nil {
+		return nil, err
+	}
+
 	return &eventv1.AcknowledgeEventResponse{}, nil
 }
 

@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("PORT", "")
@@ -10,8 +13,11 @@ func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("STREAM_BUFFER_SIZE", "")
 	t.Setenv("LOG_LEVEL", "")
 	t.Setenv("LOG_FORMAT", "")
-	t.Setenv("DATABASE_URL", "")
-	t.Setenv("REDIS_URL", "")
+	t.Setenv("DATABASE_URL", "postgres://localhost/app")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_PRIVATE_KEY", "test-private-key")
+	t.Setenv("JWT_PUBLIC_KEY", "test-public-key")
+	t.Setenv("ENCRYPTION_MASTER_KEY", "0123456789abcdef0123456789abcdef")
 
 	cfg, err := Load()
 	if err != nil {
@@ -43,6 +49,8 @@ func TestLoad_Overrides(t *testing.T) {
 	t.Setenv("STREAM_BUFFER_SIZE", "500")
 	t.Setenv("DATABASE_URL", "postgres://localhost/app")
 	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_PRIVATE_KEY", "test-private-key")
+	t.Setenv("JWT_PUBLIC_KEY", "test-public-key")
 	t.Setenv("ENCRYPTION_MASTER_KEY", "0123456789abcdef0123456789abcdef")
 	t.Setenv("LOG_LEVEL", "debug")
 	t.Setenv("LOG_FORMAT", "text")
@@ -85,6 +93,34 @@ func TestLoad_InvalidPort(t *testing.T) {
 	t.Setenv("PORT", "not-a-number")
 	if _, err := Load(); err == nil {
 		t.Error("Load() with invalid PORT = nil error, want error")
+	}
+}
+
+func TestLoad_MissingRequiredVars(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_PRIVATE_KEY", "")
+	t.Setenv("JWT_PUBLIC_KEY", "pub")
+	t.Setenv("ENCRYPTION_MASTER_KEY", "0123456789abcdef0123456789abcdef")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() = nil error, want missing-var error")
+	}
+	if !strings.Contains(err.Error(), "DATABASE_URL") || !strings.Contains(err.Error(), "JWT_PRIVATE_KEY") {
+		t.Errorf("Load() error = %v, want missing DATABASE_URL and JWT_PRIVATE_KEY", err)
+	}
+}
+
+func TestLoad_ShortEncryptionKey(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://localhost/app")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_PRIVATE_KEY", "key")
+	t.Setenv("JWT_PUBLIC_KEY", "pub")
+	t.Setenv("ENCRYPTION_MASTER_KEY", "short")
+
+	if _, err := Load(); err == nil {
+		t.Error("Load() with short encryption key = nil error, want error")
 	}
 }
 

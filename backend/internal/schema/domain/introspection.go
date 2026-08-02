@@ -111,14 +111,16 @@ func (s *IntrospectionService) Introspect(ctx context.Context, connStr string, s
 	}
 
 	enums, err := s.listEnums(ctx, pool, schemaList)
-	if err == nil {
-		meta.Enums = enums
+	if err != nil {
+		return nil, fmt.Errorf("listing enums: %w", err)
 	}
+	meta.Enums = enums
 
 	extensions, err := s.listExtensions(ctx, pool)
-	if err == nil {
-		meta.Extensions = extensions
+	if err != nil {
+		return nil, fmt.Errorf("listing extensions: %w", err)
 	}
+	meta.Extensions = extensions
 
 	data, err := json.Marshal(meta)
 	if err != nil {

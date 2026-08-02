@@ -35,30 +35,63 @@ func AuthInterceptor(jwtManager *jwt.Manager) grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, status.Error(codes.Unauthenticated, "missing metadata")
-		}
-
-		authHeaders := md.Get("authorization")
-		if len(authHeaders) == 0 {
-			return nil, status.Error(codes.Unauthenticated, "missing authorization header")
-		}
-
-		token := strings.TrimPrefix(authHeaders[0], "Bearer ")
-		if token == authHeaders[0] {
-			return nil, status.Error(codes.Unauthenticated, "invalid authorization format")
-		}
-
-		claims, err := jwtManager.VerifyAccessToken(token)
+		ctx, err := authenticate(ctx, jwtManager, info.FullMethod)
 		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, "invalid or expired token")
+			return nil, err
 		}
-
-		ctx = context.WithValue(ctx, UserIDKey, claims["sub"])
-		ctx = context.WithValue(ctx, UserEmailKey, claims["email"])
-		ctx = context.WithValue(ctx, UserRoleKey, claims["role"])
 
 		return handler(ctx, req)
 	}
+}
+
+func StreamAuthInterceptor(jwtManager *jwt.Manager) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if publicMethods[info.FullMethod] {
+			return handler(srv, ss)
+		}
+
+		ctx, err := authenticate(ss.Context(), jwtManager, info.FullMethod)
+		if err != nil {
+			return err
+		}
+
+		return handler(srv, &contextStream{ServerStream: ss, ctx: ctx})
+	}
+}
+
+// contextStream swaps the context of a server stream so auth claims set by the
+// interceptor are visible to the handler.
+type contextStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *contextStream) Context() context.Context { return s.ctx }
+
+func authenticate(ctx context.Context, jwtManager *jwt.Manager, fullMethod string) (context.Context, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+	}
+
+	authHeaders := md.Get("authorization")
+	if len(authHeaders) == 0 {
+		return nil, status.Error(codes.Unauthenticated, "missing authorization header")
+	}
+
+	token := strings.TrimPrefix(authHeaders[0], "Bearer ")
+	if token == authHeaders[0] {
+		return nil, status.Error(codes.Unauthenticated, "invalid authorization format")
+	}
+
+	claims, err := jwtManager.VerifyAccessToken(token)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid or expired token")
+	}
+
+	ctx = context.WithValue(ctx, UserIDKey, claims["sub"])
+	ctx = context.WithValue(ctx, UserEmailKey, claims["email"])
+	ctx = context.WithValue(ctx, UserRoleKey, claims["role"])
+
+	return ctx, nil
 }

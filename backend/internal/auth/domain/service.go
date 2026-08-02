@@ -12,6 +12,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type EmailSender interface {
+	SendVerificationEmail(ctx context.Context, to, token string) error
+	SendPasswordResetEmail(ctx context.Context, to, token string) error
+}
+
 type AuthService struct {
 	userRepo     UserRepository
 	tokenRepo    RefreshTokenRepository
@@ -19,6 +24,7 @@ type AuthService struct {
 	verifyRepo   VerificationTokenRepository
 	jwtManager   *jwt.Manager
 	oauthConfigs *OAuthProviderConfig
+	mailer       EmailSender
 }
 
 func NewAuthService(
@@ -37,6 +43,12 @@ func NewAuthService(
 		jwtManager:   jwtManager,
 		oauthConfigs: oauthConfigs,
 	}
+}
+
+// SetMailer injects the email sender. Without a mailer, verification and
+// password-reset emails are skipped (tokens are still issued).
+func (s *AuthService) SetMailer(m EmailSender) {
+	s.mailer = m
 }
 
 func (s *AuthService) Register(ctx context.Context, email, password, displayName string) (*User, string, string, error) {
@@ -229,6 +241,13 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, email string) e
 		return fmt.Errorf("storing verification token: %w", err)
 	}
 
+	if s.mailer == nil {
+		return nil
+	}
+	if err := s.mailer.SendVerificationEmail(ctx, user.Email, rawToken); err != nil {
+		return fmt.Errorf("sending verification email: %w", err)
+	}
+
 	return nil
 }
 
@@ -310,6 +329,13 @@ func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 
 	if err := s.verifyRepo.Create(ctx, t); err != nil {
 		return fmt.Errorf("storing reset token: %w", err)
+	}
+
+	if s.mailer == nil {
+		return nil
+	}
+	if err := s.mailer.SendPasswordResetEmail(ctx, user.Email, rawToken); err != nil {
+		return fmt.Errorf("sending reset email: %w", err)
 	}
 
 	return nil

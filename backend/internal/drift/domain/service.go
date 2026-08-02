@@ -8,7 +8,7 @@ import (
 )
 
 type SchemaComparator interface {
-	CompareLiveWithVersion(ctx context.Context, connStr, schemaVersionID string, schemaNames []string) ([]*DriftEvent, error)
+	CompareLiveWithVersion(ctx context.Context, connStr, connectionID string, schemaNames []string) ([]*DriftEvent, error)
 }
 
 type DriftService struct {

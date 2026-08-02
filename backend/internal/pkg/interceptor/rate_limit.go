@@ -24,10 +24,6 @@ var endpointLimits = map[string]methodLimit{
 
 func RateLimitInterceptor(rdb *redis.Client, defaultLimit int) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if publicMethods[info.FullMethod] {
-			return handler(ctx, req)
-		}
-
 		limit := defaultLimit
 		window := time.Minute
 

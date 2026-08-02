@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/schemahub/backend/internal/event/domain"
 	"github.com/schemahub/backend/internal/pkg/interceptor"
@@ -13,9 +14,14 @@ import (
 func TestEventHandler_AcknowledgeEvent(t *testing.T) {
 	t.Parallel()
 
-	h := NewEventHandler(domain.NewEventService(nil, nil))
+	srv := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: srv.Addr()})
+	defer rdb.Close()
 
-	resp, err := h.AcknowledgeEvent(context.Background(), &eventv1.AcknowledgeEventRequest{
+	h := NewEventHandler(domain.NewEventService(rdb, nil))
+
+	ctx := context.WithValue(context.Background(), interceptor.UserIDKey, "user_1")
+	resp, err := h.AcknowledgeEvent(ctx, &eventv1.AcknowledgeEventRequest{
 		EventId: "evt_1",
 	})
 	if err != nil {
@@ -23,6 +29,27 @@ func TestEventHandler_AcknowledgeEvent(t *testing.T) {
 	}
 	if resp == nil {
 		t.Fatal("AcknowledgeEvent() returned nil response")
+	}
+
+	acked, err := h.svc.IsAcknowledged(ctx, "user_1", "evt_1")
+	if err != nil {
+		t.Fatalf("IsAcknowledged() error = %v", err)
+	}
+	if !acked {
+		t.Error("event evt_1 not marked as acknowledged for user_1")
+	}
+}
+
+func TestEventHandler_AcknowledgeEventNoUser(t *testing.T) {
+	t.Parallel()
+
+	h := NewEventHandler(domain.NewEventService(nil, nil))
+
+	_, err := h.AcknowledgeEvent(context.Background(), &eventv1.AcknowledgeEventRequest{
+		EventId: "evt_1",
+	})
+	if err == nil {
+		t.Fatal("AcknowledgeEvent() without user in context = nil error, want error")
 	}
 }
 

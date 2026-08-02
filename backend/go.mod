@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	github.com/air-verse/air v1.67.4
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/bufbuild/buf v1.72.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golangci/golangci-lint v1.64.8
@@ -249,6 +250,7 @@ require (
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.3.0 // indirect
 	github.com/ykadowak/zerologlint v0.1.5 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	gitlab.com/bosi/decorder v0.4.2 // indirect
 	go-simpler.org/musttag v0.13.0 // indirect
 	go-simpler.org/sloglint v0.9.0 // indirect

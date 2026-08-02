@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -41,11 +42,9 @@ func (m *Manager) GenerateAccessToken(userID, email, role string) (string, error
 }
 
 func (m *Manager) GenerateRefreshToken() (string, error) {
-	// In production, use crypto/rand for 48 bytes
-	// For now returns a placeholder — real impl uses crypto/rand
 	b := make([]byte, 48)
-	for i := range b {
-		b[i] = byte(i % 256)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generating refresh token: %w", err)
 	}
 	return fmt.Sprintf("rt_%x", b), nil
 }
