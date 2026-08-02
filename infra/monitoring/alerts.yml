@@ -1,0 +1,19 @@
+# SchemaHub alert rules (alerts.yml)
+groups:
+  - name: schemahub-backend
+    rules:
+      - alert: BackendDown
+        expr: up{job="schemahub-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SchemaHub backend is unreachable"
+
+      - alert: HighGRPCErrorRate
+        expr: rate(grpc_server_handled_total{grpc_code=~"Internal|Unavailable|DeadlineExceeded"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated gRPC error rate"

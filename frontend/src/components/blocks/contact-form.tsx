@@ -1,12 +1,13 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check } from "lucide-react";
+import { AlertCircle, Check } from "lucide-react";
 import { motion } from "motion/react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { serverAction } from "@/actions/server-action";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -55,7 +56,12 @@ export function ContactForm() {
     formAction.execute(data);
   });
 
-  const { isExecuting, hasSucceeded } = formAction;
+  const { isExecuting, hasSucceeded, hasErrored, result } = formAction;
+  const serverError = hasErrored
+    ? typeof result.serverError === "string"
+      ? result.serverError
+      : "Something went wrong. Please try again."
+    : null;
   if (hasSucceeded) {
     return (
       <div className="w-full gap-2 rounded-md border p-5 sm:p-5 md:p-8">
@@ -95,6 +101,13 @@ export function ContactForm() {
         onSubmit={handleSubmit}
         className="flex w-full flex-col gap-2 space-y-4 rounded-md"
       >
+        {serverError && (
+          <Alert variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Submission failed</AlertTitle>
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
         <FormField
           control={form.control}
           name="name"

@@ -1,0 +1,80 @@
+{
+  "title": "SchemaHub",
+  "uid": "schemahub",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "gRPC requests / sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_server_handled_total[5m])) by (grpc_method)",
+          "legendFormat": "{{grpc_method}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "gRPC error rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(grpc_server_handled_total{grpc_code!=\"OK\"}[5m])) / sum(rate(grpc_server_handled_total[5m]))",
+          "legendFormat": "error rate"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "row",
+      "title": "Database",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "DB pool connections",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "targets": [
+        {
+          "expr": "pgxpool_stats_current_conns{job=\"schemahub-backend\"}",
+          "legendFormat": "current"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Real-time",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Redis pub/sub messages",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "targets": [
+        {
+          "expr": "rate(redis_events_published_total{job=\"schemahub-backend\"}[5m])",
+          "legendFormat": "published"
+        }
+      ]
+    }
+  ],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" }
+}

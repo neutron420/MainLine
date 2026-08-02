@@ -11,13 +11,13 @@
 | **Backend** | 100% | 87 Go files, build+vet pass, gofmt clean |
 | **Proto** | 100% | 16 canonical .proto files + buf config |
 | **Docker** | 100% | compose + Dockerfiles + envoy + redis |
-| **CI/CD** | 100% | 4 GitHub Actions workflows + dependabot |
+| **CI/CD** | 100% | 4 GitHub Actions workflows + dependabot + coverage gate |
 | **Scripts** | 100% | 7 PowerShell scripts |
-| **Documentation** | 90% | 20 .md files (missing LICENSE, .editorconfig) |
-| **Infrastructure** | 0% | No infra/ directory at all |
+| **Documentation** | 95% | 21 .md files (incl. RUN_LOCALLY.md) |
+| **Infrastructure** | Skeleton | infra/ dir, Terraform modules, prometheus + grafana placeholders |
 | **Frontend** | 100% | 34 routes, 21/21 product pages (see FRONTEND_PLAN.md) |
-| **Testing** | 50% | 15 unit test files across domain + pkg layers (see below) |
-| **Tooling** | 50% | Missing Makefile, .golangci.yml, tools.go |
+| **Testing** | 75% | Unit (domain + handlers) complete; integration vs real Postgres pending |
+| **Tooling** | 100% | Makefiles x3, .golangci.yml, tools.go |
 
 ---
 
@@ -68,51 +68,55 @@
 
 ## What's Left To Do
 
-### 1. Backend Polish (3 items)
+### 1. Backend Polish — DONE
 
-| Item | Location | Why Needed |
-|---|---|---|
-| `.golangci.yml` | `backend/.golangci.yml` | Linter configuration for CI. Docs say `golangci-lint run` but no config exists |
-| `backend/tools.go` | `backend/tools.go` | Go tool dependency tracking (air, buf, golangci-lint). Docs mention it in FOLDER_STRUCTURE.md |
-| `Makefile` x3 | `./Makefile`, `backend/Makefile`, `proto/Makefile` | Build orchestration. Docs mention them but none exist |
+`.golangci.yml`, `backend/tools.go`, and 3 Makefiles (`./Makefile`,
+`backend/Makefile`, `proto/Makefile`) all created.
 
-### 2. Testing — In Progress (unit layer done, ~50%)
+### 2. Testing — In Progress (unit layer incl. handlers done, ~75%)
 
-`go test ./...` passes for all packages; gofmt clean; go vet clean. Coverage per package:
+`go test ./...` passes for all packages; gofmt clean; go vet clean.
+CI enforces a 25% coverage gate on `internal/ + pkg/`. Coverage per package:
 
 | Package | Coverage |
 |---|---|
 | internal/pkg/config | 100% |
 | internal/pkg/errors | 100% |
 | internal/pkg/rbac | 100% |
+| internal/audit/domain | 95.7% |
+| internal/audit/handler | 40.0% |
 | internal/pkg/interceptor | 62.5% (redis-backed paths need integration) |
 | internal/pkg/jwt | 89.6% |
 | pkg/encryption | 85.7% |
-| internal/audit/domain | 95.7% |
 | internal/drift/domain | 83.3% |
 | internal/migration/domain | 57.9% (executor paths need integration) |
-| internal/project/domain | 36.1% (handlers + repo thin, domain covered by focused tests) |
+| internal/project/domain | ~45% (incl. new AddMember email-invite tests) |
 | internal/schema/domain | 27.2% (introspection/service need integration) |
 
-**Remaining test work:** handler layer (gRPC unit tests per service), repository layer (integration tests against real Postgres via docker-compose), executor + introspection integration tests, CI coverage gate.
+Handler tests added for all 7 services (31 test functions: auth, project,
+schema, migration, audit, drift, event).
 
-### 2. Documentation Gaps (2 items)
+**Remaining test work:** repository layer (integration tests against real
+Postgres via docker-compose), executor + introspection integration tests,
+raise the CI coverage gate from 25%.
 
-| Item | Location | Why Needed |
-|---|---|---|
-| `LICENSE` | `./LICENSE` | MIT license. Docs show it in root folder structure |
-| `.editorconfig` | `./.editorconfig` | Editor consistency. Docs show it in root folder structure |
+### 3. Documentation — DONE
 
-### 3. Infrastructure — 0% (6 items)
+`LICENSE` (MIT) and `.editorconfig` added.
+
+### 4. Infrastructure — Skeleton (was 0%)
 
 | Item | Description |
 |---|---|
-| `infra/` directory | Doesn't exist at all |
-| Terraform/Pulumi IaC | No infrastructure-as-code. Docs describe a full `infra/` structure with modules for database, redis, backend-service, networking |
-| Prometheus config | No `prometheus.yml`. Docs mention metrics collection |
-| Grafana dashboards | No dashboard JSON. Docs describe dashboards for Overview, Schema, Migrations, Real-time, Database |
-| Monitoring/alerting | No alert rules configured |
+| `infra/` directory | Created: `terraform/` (environments + modules) + `monitoring/` |
+| Terraform IaC | `main.tf` + `variables.tf` + 4 module stubs + 3 env tfvars examples |
+| Prometheus config | `prometheus.yml` + `alerts.yml` ready to use |
+| Grafana dashboards | `schemahub.json` placeholder (Overview, gRPC, DB, Real-time) |
+| Monitoring/alerting | Alert rules defined; wiring depends on backend metrics export |
 | Backup/DR procedures | Not implemented |
+
+**Infra modules are stubs** — real resources (VPC, RDS, ElastiCache, ECS/Fly)
+are TODO inside each module.
 
 ### 4. Frontend — DONE (21/21 product pages)
 
@@ -151,12 +155,12 @@ A comprehensive `.gitignore` already exists at root. Here's what it covers:
 | Backend | **100% DONE** | - |
 | Proto files | **100% DONE** | - |
 | Docker | **100% DONE** | - |
-| CI/CD | **100% DONE** | - |
+| CI/CD (incl. coverage gate) | **100% DONE** | - |
 | Scripts | **100% DONE** | - |
 | .gitignore | **EXISTS** | - |
 | .env.example | **EXISTS** | - |
-| Backend polish (Makefile, linter, tools.go) | **NEEDED** | Medium |
-| Documentation (LICENSE, .editorconfig) | **NEEDED** | Low |
-| Infrastructure (infra/, monitoring) | **NEEDED** | Low (post-MVP) |
+| Backend polish (Makefile, linter, tools.go) | **DONE** | - |
+| Documentation (LICENSE, .editorconfig, RUN_LOCALLY) | **DONE** | - |
+| Infrastructure (infra/, monitoring) | **SKELETON (modules need resources)** | Low (post-MVP) |
 | **Frontend** | **100% DONE (34 routes)** | - |
-| **Tests** | **~50% (unit layer done; handler + integration pending)** | **High** |
+| **Tests** | **~75% (unit incl. handlers; integration pending)** | **High** |

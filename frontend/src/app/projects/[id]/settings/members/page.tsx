@@ -99,9 +99,11 @@ export default function ProjectMembersPage() {
   const [role, setRole] = useState("developer");
 
   const sendInvite = () => {
-    if (!userId.trim() || addMember.isPending) return;
+    const value = userId.trim();
+    if (!value || addMember.isPending) return;
+    const isEmail = value.includes("@");
     addMember.mutate(
-      { userId: userId.trim(), role },
+      isEmail ? { email: value, role } : { userId: value, role },
       {
         onSuccess: () => {
           setInviteOpen(false);
@@ -169,16 +171,18 @@ export default function ProjectMembersPage() {
                 <DialogHeader>
                   <DialogTitle>Add a member</DialogTitle>
                   <DialogDescription>
-                    Add a registered SchemaHub user by their user ID and assign a role.
+                    Invite a registered SchemaHub user by email (or user ID) and
+                    assign a role.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-1.5">
-                    <Label>User ID</Label>
+                    <Label>Email or user ID</Label>
                     <div className="relative">
                       <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                       <Input
-                        placeholder="user id or email"
+                        type="email"
+                        placeholder="teammate@company.com"
                         className="pl-8 font-mono"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}

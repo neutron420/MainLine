@@ -1,0 +1,7 @@
+# Production environment
+# Copy to terraform.tfvars and fill in real values before applying.
+name              = "schemahub-production"
+vpc_cidr          = "10.2.0.0/16"
+backend_image     = "ghcr.io/neutron420/mainline/backend:latest"
+jwt_private_key   = "-----BEGIN RSA PRIVATE KEY----- ..."
+jwt_public_key    = "-----BEGIN PUBLIC KEY----- ..."

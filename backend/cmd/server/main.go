@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -129,7 +130,7 @@ func main() {
 	// ── Project + Connection Service ──
 	projRepo := projectRepo.NewProjectRepository(db)
 	connRepo := projectRepo.NewConnectionRepository(db)
-	projSvc := projectDomain.NewProjectService(projRepo)
+	projSvc := projectDomain.NewProjectService(projRepo, &projectUserLookup{userRepo: userRepo})
 	connSvc := projectDomain.NewConnectionService(connRepo, []byte(cfg.EncryptionKey))
 	projH := projectHandler.NewProjectHandler(projSvc, connSvc)
 
@@ -237,7 +238,26 @@ func main() {
 	log.Info("server stopped")
 }
 
-// schemaDriftComparator implements driftDomain.SchemaComparator using schema service.
+// projectUserLookup adapts the auth user repository to the project domain's
+// UserLookup contract so members can be invited by email address.
+type projectUserLookup struct {
+	userRepo interface {
+		GetByEmail(context.Context, string) (*authDomain.User, error)
+	}
+}
+
+func (l *projectUserLookup) GetByEmail(ctx context.Context, email string) (string, error) {
+	u, err := l.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, authDomain.ErrUserNotFound) {
+			return "", projectDomain.ErrUserNotFoundByEmail{Email: email}
+		}
+		return "", err
+	}
+	return u.ID, nil
+}
+
+// schemaDriftComparator implements driftDomain.SchemaComparator using the schema service.
 type schemaDriftComparator struct {
 	svc        *schemaDomain.SchemaService
 	connString func(ctx context.Context, connID string) (string, error)

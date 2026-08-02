@@ -73,6 +73,7 @@ message AddMemberRequest {
   string project_id = 1;
   string user_id = 2;
   string role = 3;
+  string email = 4;
 }
 
 message AddMemberResponse {}

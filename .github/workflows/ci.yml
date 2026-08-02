@@ -61,6 +61,43 @@ jobs:
         if: steps.check-frontend.outputs.exists == 'true'
         run: npm run test
 
+  backend:
+    name: Backend build, vet, test, coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: backend/go.sum
+
+      - name: Build
+        working-directory: backend
+        run: go build ./...
+
+      - name: Vet
+        working-directory: backend
+        run: go vet ./...
+
+      - name: Test
+        working-directory: backend
+        run: go test ./...
+
+      - name: Coverage gate
+        working-directory: backend
+        run: |
+          go test ./internal/... ./pkg/... -coverprofile=coverage.out
+          total=$(go tool cover -func=coverage.out | grep 'total:' | awk '{print $NF}' | tr -d '%')
+          echo "Total coverage: $total%"
+          if awk "BEGIN { exit !($total >= 25) }"; then
+            echo "✅ Coverage gate passed ($total% >= 25%)"
+          else
+            echo "❌ Coverage gate failed ($total% < 25%)"
+            exit 1
+          fi
+
   docker:
     name: Docker build
     runs-on: ubuntu-latest

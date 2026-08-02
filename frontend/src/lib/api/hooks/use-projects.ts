@@ -112,10 +112,11 @@ export function useAddMember(projectId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { userId: string; role: string }) => {
+    mutationFn: async (input: { userId?: string; email?: string; role: string }) => {
       await projectClient.addMember({
         projectId,
-        userId: input.userId,
+        userId: input.userId ?? "",
+        email: input.email ?? "",
         role: input.role,
       });
     },

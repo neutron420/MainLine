@@ -9,6 +9,8 @@ type ErrProjectNotFound struct{ ID string }
 type ErrProjectSlugConflict struct{ Slug string }
 type ErrMemberNotFound struct{ ProjectID, UserID string }
 type ErrLastOwner struct{}
+type ErrUserNotFoundByEmail struct{ Email string }
+type ErrNoUserSpecified struct{}
 
 func (e ErrProjectNotFound) Error() string { return fmt.Sprintf("project %s not found", e.ID) }
 func (e ErrProjectSlugConflict) Error() string {
@@ -18,13 +20,26 @@ func (e ErrMemberNotFound) Error() string {
 	return fmt.Sprintf("member %s not found in project %s", e.UserID, e.ProjectID)
 }
 func (e ErrLastOwner) Error() string { return "cannot remove the last owner from a project" }
+func (e ErrUserNotFoundByEmail) Error() string {
+	return fmt.Sprintf("no registered user found with email %s", e.Email)
+}
+func (e ErrNoUserSpecified) Error() string {
+	return "specify either user_id or email of the user to add"
+}
+
+// UserLookup resolves a registered user ID from an email address so that
+// project members can be invited by email instead of raw user IDs.
+type UserLookup interface {
+	GetByEmail(ctx context.Context, email string) (string, error)
+}
 
 type ProjectService struct {
 	projRepo ProjectRepository
+	users    UserLookup
 }
 
-func NewProjectService(projRepo ProjectRepository) *ProjectService {
-	return &ProjectService{projRepo: projRepo}
+func NewProjectService(projRepo ProjectRepository, users UserLookup) *ProjectService {
+	return &ProjectService{projRepo: projRepo, users: users}
 }
 
 func (s *ProjectService) Create(ctx context.Context, name, description, visibilityStr, userID string) (*Project, error) {
@@ -131,7 +146,7 @@ func (s *ProjectService) Delete(ctx context.Context, id, actorID string) error {
 	return s.projRepo.SoftDelete(ctx, id)
 }
 
-func (s *ProjectService) AddMember(ctx context.Context, projectID, userID, roleStr, actorID string) error {
+func (s *ProjectService) AddMember(ctx context.Context, projectID, userID, email, roleStr, actorID string) error {
 	m, err := s.projRepo.GetMember(ctx, projectID, actorID)
 	if err != nil || !m.Role.CanManageMembers() {
 		return fmt.Errorf("permission denied")
@@ -144,6 +159,16 @@ func (s *ProjectService) AddMember(ctx context.Context, projectID, userID, roleS
 
 	if role == RoleOwner && m.Role != RoleOwner {
 		return fmt.Errorf("only the owner can assign the owner role")
+	}
+
+	if userID == "" && email == "" {
+		return ErrNoUserSpecified{}
+	}
+	if userID == "" {
+		userID, err = s.users.GetByEmail(ctx, email)
+		if err != nil {
+			return ErrUserNotFoundByEmail{Email: email}
+		}
 	}
 
 	member := &ProjectMember{

@@ -90,7 +90,7 @@ func (h *ProjectHandler) DeleteProject(ctx context.Context, req *projectv1.Delet
 func (h *ProjectHandler) AddMember(ctx context.Context, req *projectv1.AddMemberRequest) (*projectv1.AddMemberResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	if err := h.svc.AddMember(ctx, req.ProjectId, req.UserId, req.Role, userID); err != nil {
+	if err := h.svc.AddMember(ctx, req.ProjectId, req.UserId, req.Email, req.Role, userID); err != nil {
 		return nil, mapProjectError(err)
 	}
 
@@ -175,6 +175,10 @@ func mapProjectError(err error) error {
 		return status.Error(codes.NotFound, e.Error())
 	case domain.ErrLastOwner:
 		return status.Error(codes.FailedPrecondition, e.Error())
+	case domain.ErrUserNotFoundByEmail:
+		return status.Error(codes.NotFound, e.Error())
+	case domain.ErrNoUserSpecified:
+		return status.Error(codes.InvalidArgument, e.Error())
 	}
 
 	if err.Error() == "permission denied" {
