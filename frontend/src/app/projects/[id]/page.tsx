@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import {
   ArrowLeft,
   Database,
@@ -120,6 +121,13 @@ export default function ProjectDetailPage() {
   const { data: members } = useMembers(id);
   const { data: auditEntries } = useAuditEntries();
   const { events, connected } = useEventStream({ projectIds: [id], maxEvents: 8 });
+  const [search, setSearch] = useState("");
+
+  const filteredSchemas = (schemas ?? []).filter((s) => {
+    if (search === "") return true;
+    const haystack = `${s.schemaName} ${s.connectionId}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   if (isLoading) {
     return (
@@ -173,7 +181,9 @@ export default function ProjectDetailPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search schemas..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -358,6 +368,10 @@ export default function ProjectDetailPage() {
                     <p className="text-muted-foreground text-sm py-6 text-center">
                       No schemas tracked yet. Connect a database to start introspecting.
                     </p>
+                  ) : filteredSchemas.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-6 text-center">
+                      No schemas match your search.
+                    </p>
                   ) : (
                     <Table>
                       <TableHeader>
@@ -369,7 +383,7 @@ export default function ProjectDetailPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {schemas.map((schema) => (
+                        {filteredSchemas.map((schema) => (
                           <TableRow key={schema.id}>
                             <TableCell>
                               <div className="flex items-center gap-2.5">

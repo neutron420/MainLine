@@ -50,6 +50,25 @@ const notifications = [
   { id: "n4", title: "Weekly digest", description: "A weekly summary of migrations and project activity" },
 ];
 
+const NOTIF_STORAGE_KEY = "schemahub.notification_prefs";
+
+function loadNotifState(): Record<string, boolean> {
+  const defaults: Record<string, boolean> = { n1: true, n2: true, n3: true, n4: false };
+  if (typeof window === "undefined") return defaults;
+  try {
+    const raw = window.localStorage.getItem(NOTIF_STORAGE_KEY);
+    if (!raw) return defaults;
+    return { ...defaults, ...(JSON.parse(raw) as Record<string, boolean>) };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveNotifState(state: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(state));
+}
+
 function ProjectMemberStats({ project }: { project: Project }) {
   const { data: members, isLoading } = useMembers(project.id);
 
@@ -110,12 +129,7 @@ export default function SettingsPage() {
 
   const [displayName, setDisplayName] = useState("");
   const [saveState, setSaveState] = useState<{ ok?: boolean; message: string } | null>(null);
-  const [notifState, setNotifState] = useState<Record<string, boolean>>({
-    n1: true,
-    n2: true,
-    n3: true,
-    n4: false,
-  });
+  const [notifState, setNotifState] = useState<Record<string, boolean>>(loadNotifState);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwState, setPwState] = useState<{ ok?: boolean; message: string } | null>(null);
 
@@ -324,7 +338,13 @@ export default function SettingsPage() {
                         </div>
                         <Switch
                           checked={notifState[n.id]}
-                          onCheckedChange={(checked) => setNotifState((prev) => ({ ...prev, [n.id]: checked }))}
+                          onCheckedChange={(checked) =>
+                            setNotifState((prev) => {
+                              const next = { ...prev, [n.id]: checked };
+                              saveNotifState(next);
+                              return next;
+                            })
+                          }
                         />
                       </div>
                     ))}

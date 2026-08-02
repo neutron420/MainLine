@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, FileCode2, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, FileCode2, Send, Loader2, CheckCircle2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -116,13 +116,6 @@ export default function CreateMigrationPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
-              />
-            </div>
             <NotificationsPopover />
           </div>
         </header>

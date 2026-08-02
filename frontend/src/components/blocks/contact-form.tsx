@@ -2,11 +2,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Check } from "lucide-react";
 import { motion } from "motion/react";
-import { useAction } from "next-safe-action/hooks";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-import { serverAction } from "@/actions/server-action";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,7 +30,12 @@ import { formSchema } from "@/lib/form-schema";
 
 type Schema = z.infer<typeof formSchema>;
 
+const CONTACT_EMAIL = "hello@schemahub.dev";
+
 export function ContactForm() {
+  const [hasSucceeded, setHasSucceeded] = useState(false);
+  const [hasErrored, setHasErrored] = useState(false);
+
   const form = useForm<Schema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,25 +47,23 @@ export function ContactForm() {
       agree: false,
     } as unknown as Schema,
   });
-  const formAction = useAction(serverAction, {
-    onSuccess: () => {
-      // TODO: show success message
-      form.reset();
-    },
-    onError: () => {
-      // TODO: show error message
-    },
-  });
+
   const handleSubmit = form.handleSubmit(async (data: Schema) => {
-    formAction.execute(data);
+    try {
+      const subject = encodeURIComponent(
+        `SchemaHub contact: ${data.company || data.name} (${data.employees || "n/a"})`,
+      );
+      const body = encodeURIComponent(
+        `${data.message}\n\n— ${data.name} <${data.email}>`,
+      );
+      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+      form.reset();
+      setHasSucceeded(true);
+    } catch {
+      setHasErrored(true);
+    }
   });
 
-  const { isExecuting, hasSucceeded, hasErrored, result } = formAction;
-  const serverError = hasErrored
-    ? typeof result.serverError === "string"
-      ? result.serverError
-      : "Something went wrong. Please try again."
-    : null;
   if (hasSucceeded) {
     return (
       <div className="w-full gap-2 rounded-md border p-5 sm:p-5 md:p-8">
@@ -101,11 +103,13 @@ export function ContactForm() {
         onSubmit={handleSubmit}
         className="flex w-full flex-col gap-2 space-y-4 rounded-md"
       >
-        {serverError && (
+        {hasErrored && (
           <Alert variant="destructive">
             <AlertCircle />
             <AlertTitle>Submission failed</AlertTitle>
-            <AlertDescription>{serverError}</AlertDescription>
+            <AlertDescription>
+              Could not open your email client. Please email us directly at {CONTACT_EMAIL}.
+            </AlertDescription>
           </Alert>
         )}
         <FormField
@@ -254,8 +258,8 @@ export function ContactForm() {
           )}
         />
         <div className="flex w-full items-center justify-end pt-3">
-          <Button className="rounded-lg">
-            {isExecuting ? "Submitting..." : "Submit"}
+          <Button type="submit" className="rounded-lg">
+            Submit
           </Button>
         </div>
       </form>

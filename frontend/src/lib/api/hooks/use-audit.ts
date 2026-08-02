@@ -38,18 +38,4 @@ export function useAuditEntries(filter: AuditFilter = {}) {
   });
 }
 
-export function useAuditStats(dateFrom?: string, dateTo?: string) {
-  return useQuery({
-    queryKey: ["audit", "stats", dateFrom, dateTo],
-    queryFn: async () => {
-      const res = await auditClient.getAuditStats({
-        dateFrom: dateFrom ?? "",
-        dateTo: dateTo ?? "",
-      });
-      return res;
-    },
-    staleTime: 60_000,
-  });
-}
-
 export type { AuditEntry };

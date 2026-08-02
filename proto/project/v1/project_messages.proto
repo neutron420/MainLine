@@ -13,6 +13,7 @@ message Project {
   string created_by = 7;
   string created_at = 8;
   string updated_at = 9;
+  string template = 10;
 }
 
 message ProjectMember {
@@ -27,6 +28,7 @@ message CreateProjectRequest {
   string name = 1;
   string description = 2;
   string visibility = 3;
+  string template = 4;
 }
 
 message CreateProjectResponse {

@@ -41,11 +41,13 @@ export function useCreateProject() {
       name: string;
       description?: string;
       visibility?: string;
+      template?: string;
     }) => {
       const res = await projectClient.createProject({
         name: input.name,
         description: input.description ?? "",
         visibility: input.visibility ?? "private",
+        template: input.template ?? "blank",
       });
       if (!res.project) throw new Error("Create failed: no project returned");
       return res.project;

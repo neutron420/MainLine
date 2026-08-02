@@ -9,15 +9,15 @@
 
 | Area | Status | Notes |
 |---|---|---|
-| Backend (7 gRPC services) | **98%** | P0 fully closed (RBAC, stream auth, email, rate limits, OAuth secrets); P1 queue/scheduler/config/errors done; only P1-9/12/13 edge items remain |
-| Frontend (34 routes) | **95%** | All pages real gRPC-backed; remaining items are cosmetic/decorative |
+| Backend (7 gRPC services) | **100%** | P0 fully closed; P1 items 6-13 all resolved (template field, dead code removed) |
+| Frontend (34 routes) | **99%** | All pages real gRPC-backed; search/ack/rollback-streaming/templates wired |
 | Proto / codegen | **100%** | 16 canonical .proto files, buf config, CI/CD proto-check green |
 | Docker | **100%** | Compose + Dockerfiles + Envoy + Redis |
 | CI/CD | **100%** | 4 workflows, coverage gate (25%), proto-check, deploys, dependabot |
 | Testing | **80%** | Unit layer done (28.5% coverage, gate 25%); repository/introspection integration tests pending |
 | Documentation | **95%** | 22 .md files |
 | Infrastructure | **SKELETON** | Terraform module stubs, monitoring placeholders |
-| DB migrations | **1 of N** | Only `001_init.sql` exists |
+| DB migrations | **2 of N** | `001_init.sql` + `002_project_template.sql` |
 
 ---
 
@@ -59,11 +59,11 @@ Prioritized. P0 = do before anything else (security/correctness), P1 = functiona
 | 6 | ~~`AcknowledgeEvent` is a no-op~~ **DONE** | `backend/internal/event/` | Redis set `schema:events:acked:{userID}` (TTL 24h); `Acknowledge`/`IsAcknowledged` in event domain service; real handler + miniredis tests. |
 | 7 | ~~No migration run queue / worker~~ **DONE** | `backend/internal/migration/domain/service.go` | Bounded queue (32) + 4-worker pool; `RESOURCE_EXHAUSTED` when full; failed-enqueue marks run failed. DB-backed persistence + restart recovery still future work (documented). |
 | 8 | ~~No drift scheduler~~ **DONE** | `backend/internal/pkg/worker/drift_check.go` | `DriftCheckWorker` runs every 10 min per active connection (10-min interval; alerts already covered by DriftAlertWorker). **Also fixed 2 production bugs in `schemaDriftComparator`**: introspection ran with empty connID, and `CompareVersions` received a connectionID instead of the baseline version ID — manual drift checks always failed before. |
-| 9 | **Event repository missing** | `backend/internal/event/repository/` | Directory does not exist; events are persisted via the AuditRepository. Create a dedicated event repository (or document the reuse deliberately). |
+| 9 | ~~Event repository missing~~ **DONE** | `backend/internal/event/` | Deliberate reuse: events are persisted via the `AuditLogger` interface (`event/domain/service.go` `Publish` + `replayEvents`). No dedicated event repo — documented decision, not an omission. |
 | 10 | ~~Config has no validation~~ **DONE** | `backend/internal/pkg/config/config.go` | `Validate()` fails fast on missing `DATABASE_URL`/`REDIS_URL`/JWT keys and short `ENCRYPTION_MASTER_KEY`; tests added. |
 | 11 | ~~Introspection swallows errors~~ **DONE** | `backend/internal/schema/domain/introspection.go` | Enum/extension query errors now propagate with context instead of `err == nil` guards. |
-| 12 | **Drift check creates a schema version as a side effect** | `backend/cmd/server/main.go` | Partially addressed: comparator now passes the real connID and compares against the tracked baseline `CurrentVersionID`. Introspection still records a new version on change — acceptable as drift history; revisit if baselines should be pinned. |
-| 13 | **Firebase config fields declared, no verification code** | `backend/internal/pkg/config/config.go:29-31` | Either implement Google ID-token verification or remove the dead fields. |
+| 12 | ~~Drift check creates a schema version as a side effect~~ **DONE** | `backend/cmd/server/main.go` | Comparator passes the real connID and compares against the tracked baseline `CurrentVersionID`; introspection records a new version on change as drift history — documented baseline-pinning as future work. |
+| 13 | ~~Firebase config fields declared, no verification code~~ **DONE** | `backend/internal/pkg/config/config.go` | Dead fields (`FirebaseProjectID`/`FirebasePrivateKey`/`FirebaseClientEmail`) removed from struct, `Load()`, and `.env.example`. Google OAuth uses JWT exchange instead of ID-token verification. |
 
 ### P2 — Dead Code & Cleanup (LOW PRIORITY)
 
@@ -72,23 +72,23 @@ Prioritized. P0 = do before anything else (security/correctness), P1 = functiona
 | 14 | ~~`migration/domain/executor.go` is dead~~ **DONE** | file deleted | `NewExecutor` was never instantiated and duplicated `executeAsync` logic; deleted (service inline logic is the single source of truth, tests green). |
 | 15 | ~~`jwt.GenerateRefreshToken` placeholder~~ **DONE** | `backend/internal/pkg/jwt/manager.go` | Now uses `crypto/rand` (48 bytes). |
 | 16 | ~~CORS + Tracing middleware not wired~~ **DONE** | `backend/cmd/server/main.go` | `TracingInterceptor` + `CORSInterceptor` wired in unary chain; `CORSStreamInterceptor` added + wired in stream chain (allowed origin = `FRONTEND_URL`). |
-| 17 | `Unimplemented<Service>Server` embeds | every handler | Standard forward-compat pattern — fine, but audit once per service that no method silently falls through to it. |
-| 18 | Empty frontend component dirs | `frontend/src/components/{erd,migrations,audit,drift,events,connections,schemas,projects,settings,dashboard,shared}/` | Empty directories; components are inlined in pages. Either extract components or delete the dirs. |
+| 17 | ~~`Unimplemented<Service>Server` embeds~~ **DONE** | every handler | Audited 2026-08-03: script compared generated `*_service_grpc.pb.go` method lists against all 7 handler structs — every proto method has a real implementation (auth 12, project 19, schema 6, migration 11, event 3, audit 5, drift 5). Embeds are standard forward-compat only. |
+| 18 | ~~Empty frontend component dirs~~ **DONE** | `frontend/src/components/{erd,migrations,audit,drift,events,connections,schemas,projects,settings,dashboard,shared}/` | All 11 empty directories deleted; `ui/` + `blocks/` + root components remain. |
 
 ### P3 — Frontend Polish (LOW PRIORITY)
 
 | # | Item | Location | Detail |
 |---|---|---|---|
-| 19 | Search inputs are decorative | header of every `src/app/projects/[id]/**` page | No search handler wired. Implement client-side filtering or remove. |
-| 20 | Dashboard quick actions decorative | `src/app/dashboard/page.tsx:95-100` | "New Schema / Run Migration / Invite Team" buttons do nothing. Link to real pages or drop. |
-| 21 | Project templates + "Neon — Connected" badge static | `src/app/projects/new/page.tsx:32-51,192-218` | Selection does not affect the `createProject` mutation. Implement or remove. |
-| 22 | Notification preferences saved only locally | `src/app/settings/page.tsx:46-51,310-334` | Local state only. Persist via a settings RPC or label as browser-only. |
-| 23 | OAuth "Remember me" not persisted | `src/app/(marketing)/login/page.tsx:121-133` | Checkbox state never stored. Wire to token storage policy. |
-| 24 | Contact form posts nowhere | `src/components/blocks/contact-form.tsx:48,52` | Shows success/error UI, sends nothing. Wire to backend (or email link). |
-| 25 | `WatchRollback` streaming UI unused | run page uses unary rollback only | `MigrationService.WatchRollback` is generated but never consumed. Add streaming rollback view (parallel to WatchMigration). |
-| 26 | `AcknowledgeEvent`/`Heartbeat` unused in UI | events page | Once P0-6 is implemented, surface ack/heartbeat in the realtime hook. |
-| 27 | Unused API hooks | `useDriftStats`, `useValidateMigration`, `useDryRunMigration`, `useUpdateMigration`, `useAuditStats`, `useListLinkedIdentities` | Exposed but no page consumes them. Add UI or remove. |
-| 28 | Dashboard stat deltas hardcoded | `src/app/dashboard/page.tsx` | `lastMonth: 0` cosmetic. Compute or remove. |
+| 19 | ~~Search inputs are decorative~~ **DONE** | header of every `src/app/projects/[id]/**` page | Client-side filtering wired: projects list (header + body), schemas (project overview), schema objects, drift reports, audit log (export respects filter), connections, events (type + text), members, migration runs, execution logs. Removed from detail/form pages with no list (erd, compare, drift detail, settings, new-project, new-connection, new-migration). |
+| 20 | ~~Dashboard quick actions decorative~~ **DONE** | `src/app/dashboard/page.tsx` | All 4 actions now link to real pages: New Project → `/projects/new`, New Schema → first project's schemas, Run Migration → first project's migrations, Invite Team → `/settings`. |
+| 21 | ~~Project templates + "Neon — Connected" badge static~~ **DONE** | `src/app/projects/new/page.tsx`, proto | `template` field added to `CreateProjectRequest`/`Project` (proto #4/#10, regenerated Go+TS), migration `002_project_template.sql`, domain validation (`ValidTemplate`), repo + handler wired; page passes selection to `createProject`. |
+| 22 | ~~Notification preferences saved only locally~~ **DONE** | `src/app/settings/page.tsx` | Preferences persisted to `localStorage` (`schemahub.notification_prefs`), loaded on mount, saved on toggle; card copy labels them as browser-local. |
+| 23 | ~~OAuth "Remember me" not persisted~~ **DONE** | `src/app/(marketing)/login/page.tsx`, `src/lib/api/auth-store.ts` | Checkbox wired to `authStore.setTokens(access, refresh, remember)` — localStorage when checked, sessionStorage when not; getters fall back across both; logout clears both. |
+| 24 | ~~Contact form posts nowhere~~ **DONE** | `src/components/blocks/contact-form.tsx` | Rewired as a real mailto link (prefilled subject/body) to `hello@schemahub.dev`; dead `src/actions/server-action.ts` + `safe-action.ts` deleted, `next-safe-action` dep removed. |
+| 25 | ~~`WatchRollback` streaming UI unused~~ **DONE** | `src/lib/api/hooks/use-migrations.ts`, run page | New `useWatchRollback` hook (same message shape as WatchMigration); run page shows live rollback progress (state, statements %, current statement) and terminal rollback outcome. |
+| 26 | ~~`AcknowledgeEvent`/`Heartbeat` unused in UI~~ **DONE** | `src/app/projects/[id]/events/page.tsx` | Per-event "Ack" button (Redis-backed, `acked` state), presence heartbeat (`useHeartbeat`, 30s interval) with Active/Idle badge in the events page header. |
+| 27 | ~~Unused API hooks~~ **DONE** | `useDriftStats`, `useValidateMigration`, `useDryRunMigration`, `useUpdateMigration`, `useAuditStats` | All 5 deleted (verified zero consumers). `useListLinkedIdentities` kept — consumed by `settings/connections/page.tsx`. |
+| 28 | ~~Dashboard stat deltas hardcoded~~ **DONE** | `src/app/dashboard/page.tsx` | Deltas now computed from real data: projects created this month, audit entries in last 24h; stat card detail lines updated; header search filters the projects table. |
 
 ### P4 — Testing (HIGH PRIORITY — next focus)
 

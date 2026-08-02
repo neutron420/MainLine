@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Search, Loader2, CheckCircle2, XCircle, PlugZap, Database } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2, XCircle, PlugZap, Database } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -119,13 +119,6 @@ export default function CreateConnectionPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
-              />
-            </div>
             <NotificationsPopover />
           </div>
         </header>

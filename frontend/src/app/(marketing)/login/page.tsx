@@ -33,6 +33,7 @@ const Login = () => {
   const router = useRouter();
   const loginMutation = useLogin();
   const [error, setError] = useState<string | null>(null);
+  const [remember, setRemember] = useState(true);
 
   const {
     register,
@@ -46,7 +47,7 @@ const Login = () => {
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
     try {
-      await loginMutation.mutateAsync(values);
+      await loginMutation.mutateAsync({ ...values, remember });
       router.push("/dashboard");
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -123,6 +124,8 @@ const Login = () => {
                       <Checkbox
                         id="remember"
                         className="border-muted-foreground"
+                        checked={remember}
+                        onCheckedChange={(checked) => setRemember(checked === true)}
                       />
                       <label
                         htmlFor="remember"

@@ -97,6 +97,13 @@ export default function ProjectMembersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState("developer");
+  const [search, setSearch] = useState("");
+
+  const filteredMembers = (members ?? []).filter((m) => {
+    if (search === "") return true;
+    const haystack = `${m.displayName} ${m.email} ${m.role}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   const sendInvite = () => {
     const value = userId.trim();
@@ -136,7 +143,9 @@ export default function ProjectMembersPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search members..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -249,7 +258,7 @@ export default function ProjectMembersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {members.map((member) => (
+                    {filteredMembers.map((member) => (
                       <TableRow key={member.userId}>
                         <TableCell>
                           <div className="flex items-center gap-3">

@@ -86,6 +86,13 @@ export default function DriftPage() {
   });
   const checkDrift = useCheckDrift();
 
+  const [search, setSearch] = useState("");
+  const filteredEvents = events?.filter((d) => {
+    if (search === "") return true;
+    const haystack = `${d.objectName} ${d.objectType} ${d.driftType} ${d.status}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
   const unresolved = events?.filter((d) => d.status === "unresolved").length ?? 0;
 
   return (
@@ -108,7 +115,9 @@ export default function DriftPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search drift..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -207,7 +216,7 @@ export default function DriftPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {events.map((drift) => {
+                    {filteredEvents?.map((drift) => {
                       const severity = severityConfig[drift.severity] ?? severityConfig.medium;
                       const status = statusConfig[drift.status] ?? statusConfig.unresolved;
                       return (

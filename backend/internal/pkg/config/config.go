@@ -25,12 +25,9 @@ type Config struct {
 	GitHubClientSecret string
 	GitHubCallbackURL  string
 
-	GoogleClientID      string
-	GoogleClientSecret  string
-	GoogleCallbackURL   string
-	FirebaseProjectID   string
-	FirebasePrivateKey  string
-	FirebaseClientEmail string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleCallbackURL  string
 
 	SlackClientID     string
 	SlackClientSecret string
@@ -100,12 +97,9 @@ func Load() (*Config, error) {
 		GitHubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
 		GitHubCallbackURL:  getEnv("GITHUB_CALLBACK_URL", ""),
 
-		GoogleClientID:      getEnv("GOOGLE_CLIENT_ID", ""),
-		GoogleClientSecret:  getEnv("GOOGLE_CLIENT_SECRET", ""),
-		GoogleCallbackURL:   getEnv("GOOGLE_CALLBACK_URL", ""),
-		FirebaseProjectID:   getEnv("FIREBASE_PROJECT_ID", ""),
-		FirebasePrivateKey:  getEnv("FIREBASE_PRIVATE_KEY", ""),
-		FirebaseClientEmail: getEnv("FIREBASE_CLIENT_EMAIL", ""),
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+		GoogleCallbackURL:  getEnv("GOOGLE_CALLBACK_URL", ""),
 
 		SlackClientID:     getEnv("SLACK_CLIENT_ID", ""),
 		SlackClientSecret: getEnv("SLACK_CLIENT_SECRET", ""),

@@ -92,26 +92,35 @@ function toTableProject(
 
 const allColumns: (keyof Project)[] = ["name", "repository", "team", "tech", "createdAt", "contributors", "status"];
 
-const quickActions = [
-  { label: "New Project", icon: Plus, variant: "default" as const },
-  { label: "New Schema", icon: Database, variant: "outline" as const },
-  { label: "Run Migration", icon: GitBranch, variant: "outline" as const },
-  { label: "Invite Team", icon: UserPlus, variant: "outline" as const },
-];
-
 export default function Page() {
   const { data: projects, isLoading, error } = useProjects();
   const { data: auditEntries } = useAuditEntries();
   const { events, connected } = useEventStream({ maxEvents: 8 });
+  const [projectSearch, setProjectSearch] = useState("");
 
   const activityCount = auditEntries?.length ?? 0;
   const liveEventCount = events.length;
 
+  const firstProject = projects?.[0];
+
+  const now = Date.now();
+  const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+  const projectsThisMonth = projects?.filter((p) => new Date(p.createdAt).getTime() >= monthAgo).length ?? 0;
+  const auditToday = auditEntries?.filter((e) => new Date(e.createdAt).getTime() >= dayAgo).length ?? 0;
+
   const stats = [
-    { title: "Total Projects", value: projects?.length ?? 0, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
-    { title: "Live Events", value: liveEventCount, delta: 0, lastMonth: 0, positive: connected, prefix: "", suffix: "" },
-    { title: "Audit Entries", value: activityCount, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
-    { title: "Team Members", value: projects?.reduce((sum, p) => sum + p.memberCount, 0) ?? 0, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
+    { title: "Total Projects", value: projects?.length ?? 0, delta: projectsThisMonth, lastMonth: 0, positive: true, prefix: "", suffix: "", detail: `${projectsThisMonth} new this month` },
+    { title: "Live Events", value: liveEventCount, delta: 0, lastMonth: 0, positive: connected, prefix: "", suffix: "", detail: connected ? "Real-time stream connected" : "Connecting to event stream..." },
+    { title: "Audit Entries", value: activityCount, delta: auditToday, lastMonth: 0, positive: true, prefix: "", suffix: "", detail: `${auditToday} in the last 24h` },
+    { title: "Team Members", value: projects?.reduce((sum, p) => sum + p.memberCount, 0) ?? 0, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "", detail: "Across all projects" },
+  ];
+
+  const quickActions = [
+    { label: "New Project", icon: Plus, variant: "default" as const, href: "/projects/new" },
+    { label: "New Schema", icon: Database, variant: "outline" as const, href: firstProject ? `/projects/${firstProject.id}/schemas` : "/projects" },
+    { label: "Run Migration", icon: GitBranch, variant: "outline" as const, href: firstProject ? `/projects/${firstProject.id}/migrations` : "/projects" },
+    { label: "Invite Team", icon: UserPlus, variant: "outline" as const, href: "/settings" },
   ];
 
   return (
@@ -134,7 +143,9 @@ export default function Page() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search projects..."
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -174,9 +185,7 @@ export default function Page() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-2 border-t pt-2.5">
-                    {stat.title === "Live Events"
-                      ? (connected ? "Real-time stream connected" : "Connecting to event stream...")
-                      : `From your ${stat.title === "Audit Entries" ? "activity log" : stat.title.toLowerCase()}`}
+                    {stat.detail}
                   </div>
                 </CardContent>
               </Card>
@@ -190,19 +199,12 @@ export default function Page() {
                 key={action.label}
                 variant={action.variant}
                 className="h-11 gap-2"
-                asChild={action.label === "New Project"}
+                asChild
               >
-                {action.label === "New Project" ? (
-                  <Link href="/projects/new">
-                    <action.icon className="size-4" />
-                    {action.label}
-                  </Link>
-                ) : (
-                  <>
-                    <action.icon className="size-4" />
-                    {action.label}
-                  </>
-                )}
+                <Link href={action.href}>
+                  <action.icon className="size-4" />
+                  {action.label}
+                </Link>
               </Button>
             ))}
           </div>
@@ -308,6 +310,7 @@ export default function Page() {
             <FilterableProjectTable
               projects={(projects ?? []).map(toTableProject)}
               isLoading={isLoading}
+              search={projectSearch}
             />
           </div>
         </div>
@@ -319,9 +322,11 @@ export default function Page() {
 function FilterableProjectTable({
   projects,
   isLoading,
+  search,
 }: {
   projects: Project[];
   isLoading: boolean;
+  search: string;
 }) {
   const [techFilter, setTechFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -331,9 +336,13 @@ function FilterableProjectTable({
     return projects.filter((project) => {
       const techMatch = techFilter === "" || project.tech.toLowerCase().includes(techFilter.toLowerCase());
       const statusMatch = statusFilter === "all" || project.status.variant === statusFilter;
-      return techMatch && statusMatch;
+      const searchMatch =
+        search === "" ||
+        project.name.toLowerCase().includes(search.toLowerCase()) ||
+        project.team.toLowerCase().includes(search.toLowerCase());
+      return techMatch && statusMatch && searchMatch;
     });
-  }, [projects, techFilter, statusFilter]);
+  }, [projects, techFilter, statusFilter, search]);
 
   const toggleColumn = (column: keyof Project) => {
     setVisibleColumns((prev) => {

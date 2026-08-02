@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowLeft, Search, Plus, Database, Globe, Server, User, Shield, Clock, PlugZap, Trash2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -66,6 +67,13 @@ export default function ConnectionsPage() {
   const testConnection = useTestConnection();
   const deleteConnection = useDeleteConnection(projectId);
 
+  const [search, setSearch] = useState("");
+  const filteredConnections = (connections ?? []).filter((c) => {
+    if (search === "") return true;
+    const haystack = `${c.name} ${c.databaseName} ${c.host} ${c.connectionStatus}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
   const connected = (connections ?? []).filter((c) => c.connectionStatus === "connected").length;
   const withError = (connections ?? []).filter((c) => c.connectionStatus === "error").length;
 
@@ -89,7 +97,9 @@ export default function ConnectionsPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search connections..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -148,9 +158,18 @@ export default function ConnectionsPage() {
                 </Link>
               </CardContent>
             </Card>
+          ) : filteredConnections.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <Database className="size-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  No connections match your search.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {connections.map((conn) => (
+              {filteredConnections.map((conn) => (
                 <Card key={conn.id}>
                   <CardHeader className="border-0 pb-0">
                     <div className="flex items-start justify-between gap-3">

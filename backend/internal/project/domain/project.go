@@ -31,6 +31,7 @@ type Project struct {
 	Slug        string
 	Description string
 	Visibility  ProjectVisibility
+	Template    string
 	CreatedBy   string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -64,6 +65,16 @@ type ProjectRepository interface {
 }
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+var validTemplates = map[string]bool{
+	"blank":     true,
+	"starter":   true,
+	"ecommerce": true,
+}
+
+func ValidTemplate(t string) bool {
+	return validTemplates[t]
+}
 
 func GenerateSlug(name string) string {
 	s := strings.ToLower(name)

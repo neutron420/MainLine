@@ -42,10 +42,18 @@ func NewProjectService(projRepo ProjectRepository, users UserLookup) *ProjectSer
 	return &ProjectService{projRepo: projRepo, users: users}
 }
 
-func (s *ProjectService) Create(ctx context.Context, name, description, visibilityStr, userID string) (*Project, error) {
+func (s *ProjectService) Create(ctx context.Context, name, description, visibilityStr, template, userID string) (*Project, error) {
 	visibility, err := ValidateVisibility(visibilityStr)
 	if err != nil {
 		return nil, err
+	}
+
+	tmpl := template
+	if tmpl == "" {
+		tmpl = "blank"
+	}
+	if !ValidTemplate(tmpl) {
+		return nil, fmt.Errorf("invalid template: %s (must be blank, starter, or ecommerce)", tmpl)
 	}
 
 	slug := GenerateSlug(name)
@@ -60,6 +68,7 @@ func (s *ProjectService) Create(ctx context.Context, name, description, visibili
 		Slug:        slug,
 		Description: description,
 		Visibility:  visibility,
+		Template:    tmpl,
 		CreatedBy:   userID,
 	}
 

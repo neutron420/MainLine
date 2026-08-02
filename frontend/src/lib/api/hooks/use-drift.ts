@@ -94,17 +94,4 @@ export function useResolveDriftEvent() {
   });
 }
 
-export function useDriftStats(connectionId: string | undefined) {
-  return useQuery({
-    queryKey: ["drift", connectionId, "stats"],
-    queryFn: async () => {
-      if (!connectionId) throw new Error("Missing connection id");
-      const res = await driftClient.getDriftStats({ connectionId });
-      return res;
-    },
-    enabled: Boolean(connectionId),
-    staleTime: 30_000,
-  });
-}
-
 export type { DriftEvent };

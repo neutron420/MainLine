@@ -33,10 +33,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { useMigration ,
+import { useMigration,
   useExecuteMigration,
   useRollbackMigration,
   useWatchMigration,
+  useWatchRollback,
 } from "@/lib/api/hooks/use-migrations";
 import { useConnections } from "@/lib/api/hooks/use-connections";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -69,10 +70,19 @@ export default function MigrationRunPage() {
 
   const [connectionId, setConnectionId] = useState("");
   const [runId, setRunId] = useState<string | null>(null);
+  const [logSearch, setLogSearch] = useState("");
+  const [watchingRollback, setWatchingRollback] = useState(false);
 
   const execute = useExecuteMigration();
   const rollback = useRollbackMigration();
   const { status, logs, connected } = useWatchMigration(runId ?? undefined);
+  const rollbackWatch = useWatchRollback(runId ?? undefined, watchingRollback);
+
+  const filteredLogs = logs.filter((log) => {
+    if (logSearch === "") return true;
+    const haystack = `${log.sql ?? ""} ${log.errorMessage ?? ""} ${log.sequence ?? ""}`.toLowerCase();
+    return haystack.includes(logSearch.toLowerCase());
+  });
 
   const alreadyRun = migration && ["completed", "rolled_back"].includes(migration.status);
 
@@ -90,11 +100,20 @@ export default function MigrationRunPage() {
 
   const doRollback = () => {
     if (!runId) return;
+    setWatchingRollback(true);
     rollback.mutate({ migrationId, runId });
   };
 
   const isTerminal =
-    status?.state === "completed" || status?.state === "failed" || status?.state === "rolled_back";
+    status?.state === "completed" ||
+    status?.state === "failed" ||
+    status?.state === "rolled_back" ||
+    rollbackWatch.status?.state === "rolled_back" ||
+    rollbackWatch.status?.state === "failed";
+
+  const terminalState = watchingRollback
+    ? (rollbackWatch.status?.state ?? status?.state)
+    : status?.state;
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -120,7 +139,9 @@ export default function MigrationRunPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search logs..."
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -168,14 +189,60 @@ export default function MigrationRunPage() {
                 </Link>
               </CardContent>
             </Card>
+          ) : watchingRollback && !isTerminal ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="size-5 animate-spin" />
+                  <h2 className="text-lg font-semibold">Rolling back migration…</h2>
+                </div>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  {rollbackWatch.connected ? "Live" : "Connecting..."}
+                </Badge>
+                {rollbackWatch.status && (
+                  <div className="w-full max-w-md space-y-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{rollbackWatch.status.state}</span>
+                      <span>{formatElapsed(Number(rollbackWatch.status.elapsedMs ?? 0))}</span>
+                    </div>
+                    {rollbackWatch.status.totalStatements > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                          <span>
+                            {rollbackWatch.status.completedStatements} / {rollbackWatch.status.totalStatements} statements
+                          </span>
+                          <span>
+                            {Math.round((rollbackWatch.status.completedStatements / rollbackWatch.status.totalStatements) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{
+                              width: `${(rollbackWatch.status.completedStatements / rollbackWatch.status.totalStatements) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {rollbackWatch.status.currentStatement && (
+                      <pre className="rounded-md bg-muted/50 px-3 py-2.5 overflow-x-auto font-mono text-xs leading-relaxed text-left">
+                        {rollbackWatch.status.currentStatement}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ) : isTerminal ? (
-            status?.state === "completed" ? (
+            terminalState === "completed" && !watchingRollback ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                   <CheckCircle2 className="size-12 text-green-500 mb-4" />
                   <h2 className="text-lg font-semibold">Migration executed successfully</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {migration?.version} applied in {formatElapsed(Number(status.elapsedMs ?? 0))}
+                    {migration?.version} applied in {formatElapsed(Number(status?.elapsedMs ?? 0))}
                   </p>
                   <div className="flex items-center gap-2 mt-6">
                     <Link href={`/projects/${projectId}/migrations/${migrationId}`}>
@@ -192,12 +259,19 @@ export default function MigrationRunPage() {
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                   <AlertTriangle className="size-12 text-red-500 mb-4" />
                   <h2 className="text-lg font-semibold">
-                    {status?.state === "rolled_back" ? "Migration rolled back" : "Migration failed"}
+                    {terminalState === "rolled_back"
+                      ? "Migration rolled back"
+                      : watchingRollback
+                        ? "Rollback failed"
+                        : "Migration failed"}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-                    {status?.errorMessage || rollback.data?.errorMessage || "Execution did not complete. Check the logs below."}
+                    {rollbackWatch.status?.errorMessage ||
+                      status?.errorMessage ||
+                      rollback.data?.errorMessage ||
+                      "Execution did not complete. Check the logs below."}
                   </p>
-                  {status?.state !== "rolled_back" && (
+                  {terminalState !== "rolled_back" && (
                     <Button
                       className="mt-6 gap-2"
                       variant="destructive"
@@ -299,22 +373,33 @@ export default function MigrationRunPage() {
                             <div className="flex items-center gap-2 border-b px-3 py-2">
                               <Terminal className="size-3.5 text-muted-foreground" />
                               <span className="font-mono text-xs font-medium text-muted-foreground">Execution log</span>
+                              {logSearch && (
+                                <span className="text-xs text-muted-foreground ml-auto">
+                                  {filteredLogs.length} / {logs.length} matches
+                                </span>
+                              )}
                             </div>
                             <div className="max-h-56 overflow-y-auto">
-                              {logs.map((log, i) => (
-                                <div key={`${log.sequence}-${i}`} className="flex items-start gap-3 px-3 py-2 border-b last:border-b-0 font-mono text-xs">
-                                  <span className="text-muted-foreground shrink-0">#{log.sequence}</span>
-                                  <span className="text-muted-foreground shrink-0">
-                                    {log.durationMs >= 0 ? `${formatElapsed(log.durationMs)}` : ""}
-                                  </span>
-                                  <span className="truncate flex-1">
-                                    {log.sql || log.errorMessage || "statement"}
-                                  </span>
-                                  {log.rowsAffected > 0 && (
-                                    <span className="text-muted-foreground shrink-0">{log.rowsAffected} rows</span>
-                                  )}
-                                </div>
-                              ))}
+                              {filteredLogs.length === 0 ? (
+                                <p className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                                  No log lines match your search.
+                                </p>
+                              ) : (
+                                filteredLogs.map((log, i) => (
+                                  <div key={`${log.sequence}-${i}`} className="flex items-start gap-3 px-3 py-2 border-b last:border-b-0 font-mono text-xs">
+                                    <span className="text-muted-foreground shrink-0">#{log.sequence}</span>
+                                    <span className="text-muted-foreground shrink-0">
+                                      {log.durationMs >= 0 ? `${formatElapsed(log.durationMs)}` : ""}
+                                    </span>
+                                    <span className="truncate flex-1">
+                                      {log.sql || log.errorMessage || "statement"}
+                                    </span>
+                                    {log.rowsAffected > 0 && (
+                                      <span className="text-muted-foreground shrink-0">{log.rowsAffected} rows</span>
+                                    )}
+                                  </div>
+                                ))
+                              )}
                             </div>
                           </div>
                         )}

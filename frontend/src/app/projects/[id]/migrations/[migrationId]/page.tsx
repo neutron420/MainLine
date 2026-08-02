@@ -91,6 +91,7 @@ export default function MigrationDetailPage() {
   const { data: migration, isLoading, error } = useMigration(projectId, migrationId);
   const { data: runs } = useMigrationRuns(migrationId);
   const [activeTab, setActiveTab] = useState("sql");
+  const [search, setSearch] = useState("");
 
   if (isLoading) {
     return (
@@ -129,6 +130,12 @@ export default function MigrationDetailPage() {
   const status = migrationStatusConfig[migration.status] ?? migrationStatusConfig.draft;
   const canRun = !["completed", "rolled_back", "running", "pending"].includes(migration.status);
 
+  const filteredRuns = (runs ?? []).filter((run) => {
+    if (search === "") return true;
+    const haystack = `${run.direction} ${run.status} ${run.executedBy}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
@@ -149,7 +156,9 @@ export default function MigrationDetailPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search runs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -247,8 +256,12 @@ export default function MigrationDetailPage() {
                         <p className="text-sm text-muted-foreground py-6 text-center">
                           This migration has not been run yet.
                         </p>
+                      ) : filteredRuns.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-6 text-center">
+                          No runs match your search.
+                        </p>
                       ) : (
-                        runs.map((run) => {
+                        filteredRuns.map((run) => {
                           const runStatus = runStatusConfig[run.status] ?? runStatusConfig.pending;
                           return (
                             <div key={run.id} className="flex items-start gap-3 py-3 border-b last:border-b-0">

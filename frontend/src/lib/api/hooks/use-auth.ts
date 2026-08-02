@@ -28,12 +28,20 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+    mutationFn: async ({
+      email,
+      password,
+      remember = true,
+    }: {
+      email: string;
+      password: string;
+      remember?: boolean;
+    }) => {
       const res = await authClient.login({ email, password });
       if (!res.accessToken || !res.refreshToken) {
         throw new Error("Login failed: server did not return tokens");
       }
-      authStore.setTokens(res.accessToken, res.refreshToken);
+      authStore.setTokens(res.accessToken, res.refreshToken, remember);
       return res.user ?? null;
     },
     onSuccess: (user) => {

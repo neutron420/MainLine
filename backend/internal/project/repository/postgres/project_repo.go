@@ -25,9 +25,9 @@ func (r *ProjectRepository) Create(ctx context.Context, p *domain.Project) error
 	p.UpdatedAt = time.Now()
 
 	_, err := r.db.Exec(ctx,
-		`INSERT INTO projects (id, name, slug, description, visibility, created_by, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		p.ID, p.Name, p.Slug, p.Description, string(p.Visibility), p.CreatedBy, p.CreatedAt, p.UpdatedAt,
+		`INSERT INTO projects (id, name, slug, description, visibility, template, created_by, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		p.ID, p.Name, p.Slug, p.Description, string(p.Visibility), p.Template, p.CreatedBy, p.CreatedAt, p.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting project: %w", err)
@@ -37,13 +37,13 @@ func (r *ProjectRepository) Create(ctx context.Context, p *domain.Project) error
 
 func (r *ProjectRepository) GetByID(ctx context.Context, id string) (*domain.Project, error) {
 	row := r.db.QueryRow(ctx,
-		`SELECT id, name, slug, description, visibility, created_by, created_at, updated_at, deleted_at
+		`SELECT id, name, slug, description, visibility, template, created_by, created_at, updated_at, deleted_at
 		 FROM projects WHERE id = $1 AND deleted_at IS NULL`, id,
 	)
 
 	p := &domain.Project{}
 	var deletedAt *time.Time
-	if err := row.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.Template, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("project not found")
 		}
@@ -54,13 +54,13 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id string) (*domain.Pro
 
 func (r *ProjectRepository) GetBySlug(ctx context.Context, slug string) (*domain.Project, error) {
 	row := r.db.QueryRow(ctx,
-		`SELECT id, name, slug, description, visibility, created_by, created_at, updated_at, deleted_at
+		`SELECT id, name, slug, description, visibility, template, created_by, created_at, updated_at, deleted_at
 		 FROM projects WHERE slug = $1 AND deleted_at IS NULL`, slug,
 	)
 
 	p := &domain.Project{}
 	var deletedAt *time.Time
-	if err := row.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.Template, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("project not found")
 		}
@@ -70,7 +70,7 @@ func (r *ProjectRepository) GetBySlug(ctx context.Context, slug string) (*domain
 }
 
 func (r *ProjectRepository) ListByUserID(ctx context.Context, userID, cursor string, limit int32) ([]*domain.Project, string, int32, error) {
-	query := `SELECT p.id, p.name, p.slug, p.description, p.visibility, p.created_by, p.created_at, p.updated_at, p.deleted_at,
+	query := `SELECT p.id, p.name, p.slug, p.description, p.visibility, p.template, p.created_by, p.created_at, p.updated_at, p.deleted_at,
 		(SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count
 		FROM projects p
 		JOIN project_members pm ON p.id = pm.project_id
@@ -81,7 +81,7 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID, cursor str
 	args = append(args, userID)
 
 	if cursor != "" {
-		query = `SELECT p.id, p.name, p.slug, p.description, p.visibility, p.created_by, p.created_at, p.updated_at, p.deleted_at,
+		query = `SELECT p.id, p.name, p.slug, p.description, p.visibility, p.template, p.created_by, p.created_at, p.updated_at, p.deleted_at,
 			(SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count
 			FROM projects p
 			JOIN project_members pm ON p.id = pm.project_id
@@ -107,7 +107,7 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID, cursor str
 		p := &domain.Project{}
 		var deletedAt *time.Time
 		var memberCount int32
-		if err := rows.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt, &memberCount); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Slug, &p.Description, &p.Visibility, &p.Template, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt, &deletedAt, &memberCount); err != nil {
 			return nil, "", 0, fmt.Errorf("scanning project: %w", err)
 		}
 		projects = append(projects, p)

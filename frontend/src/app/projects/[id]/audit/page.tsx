@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowLeft, Search, FileText, Download } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -66,10 +67,17 @@ export default function AuditPage() {
     resourceId: projectId,
   });
 
+  const [search, setSearch] = useState("");
+  const filtered = (entries ?? []).filter((e) => {
+    if (search === "") return true;
+    const haystack = `${e.eventType} ${e.action} ${e.actorEmail} ${e.actorId} ${e.resourceType} ${e.resourceId}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
   const exportCsv = () => {
-    if (!entries || entries.length === 0) return;
+    if (filtered.length === 0) return;
     const header = "id,eventType,actorId,actorEmail,action,resourceType,resourceId,createdAt";
-    const rows = entries.map((e) =>
+    const rows = filtered.map((e) =>
       [e.id, e.eventType, e.actorId, e.actorEmail, e.action, e.resourceType, e.resourceId, e.createdAt]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(","),
@@ -103,7 +111,9 @@ export default function AuditPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search audit log..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -124,7 +134,7 @@ export default function AuditPage() {
                   <FileText className="size-6" />
                   Audit Log
                 </h1>
-                <Badge variant="outline" className="text-[11px]">{entries?.length ?? 0} entries</Badge>
+                <Badge variant="outline" className="text-[11px]">{filtered.length} entries</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">Every schema-changing action, permanently recorded</p>
             </div>
@@ -132,7 +142,7 @@ export default function AuditPage() {
               variant="outline"
               className="h-10 gap-2 shrink-0"
               onClick={exportCsv}
-              disabled={!entries || entries.length === 0}
+              disabled={filtered.length === 0}
             >
               <Download className="size-4" />
               Export CSV
@@ -155,9 +165,13 @@ export default function AuditPage() {
                 <p className="text-sm text-muted-foreground py-6 text-center">
                   No audit activity for this project yet.
                 </p>
+              ) : filtered.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  No entries match your search.
+                </p>
               ) : (
                 <div className="divide-y">
-                  {entries.map((entry) => (
+                  {filtered.map((entry) => (
                     <div key={entry.id} className="flex items-start gap-3 py-4">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
                         <span className="text-xs font-medium">{initialsOf(entry.actorEmail || entry.actorId)}</span>

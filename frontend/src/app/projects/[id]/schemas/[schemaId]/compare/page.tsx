@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Columns3, GitCompareArrows, Plus, Minus, PencilLine } from "lucide-react";
+import { ArrowLeft, Columns3, GitCompareArrows, Plus, Minus, PencilLine } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -141,13 +140,6 @@ export default function SchemaComparePage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
-              />
-            </div>
             <NotificationsPopover />
           </div>
         </header>

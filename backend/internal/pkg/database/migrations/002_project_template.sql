@@ -1,0 +1,2 @@
+ALTER TABLE projects
+    ADD COLUMN IF NOT EXISTS template VARCHAR(50) NOT NULL DEFAULT 'blank';

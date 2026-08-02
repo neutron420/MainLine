@@ -4,9 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { eventClient } from "@/lib/api/clients";
 import { isUnauthenticated } from "@/lib/api/errors";
-import type { SchemaEvent } from "@/lib/gen/event/v1/event_messages_pb";
-
-export type EventStreamOptions = {
+import type { SchemaEvent } from "@/lib/gen/event/v1/event_messages_pb";export type EventStreamOptions = {
   projectIds?: string[];
   eventTypes?: string[];
   maxEvents?: number;
@@ -108,4 +106,55 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
     lastEventId: lastEventIdRef.current,
     error,
   };
+}
+
+/**
+ * Acknowledges an event so it is marked as processed for the current user.
+ * Acks are stored server-side in Redis and expire after 24h.
+ */
+export async function acknowledgeEvent(eventId: string): Promise<void> {
+  await eventClient.acknowledgeEvent({ eventId });
+}
+
+/**
+ * Sends a presence heartbeat for the current user across the given projects.
+ * Presence keys expire after 60s, so call this periodically while viewing.
+ */
+export async function sendHeartbeat(projectIds: string[]): Promise<void> {
+  if (projectIds.length === 0) return;
+  await eventClient.heartbeat({ projectIds });
+}
+
+/**
+ * Sends a presence heartbeat on an interval while mounted. Returns a
+ * function to stop the interval. Presence expires server-side after 60s.
+ */
+export function useHeartbeat(projectIds: string[], intervalMs = 30_000): boolean {
+  const [active, setActive] = useState(false);
+  const idsKey = projectIds.join(",");
+
+  useEffect(() => {
+    if (projectIds.length === 0) return;
+    let cancelled = false;
+
+    const beat = async () => {
+      try {
+        await sendHeartbeat(projectIds);
+        if (!cancelled) setActive(true);
+      } catch {
+        if (!cancelled) setActive(false);
+      }
+    };
+
+    void beat();
+    const timer = setInterval(beat, intervalMs);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey, intervalMs]);
+
+  return active;
 }

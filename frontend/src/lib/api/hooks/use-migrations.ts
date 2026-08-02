@@ -70,39 +70,6 @@ export function useCreateMigration() {
   });
 }
 
-export function useUpdateMigration(projectId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: {
-      migrationId: string;
-      title?: string;
-      description?: string;
-      upSql?: string;
-      downSql?: string;
-      status?: string;
-    }) => {
-      const res = await migrationClient.updateMigration({
-        id: input.migrationId,
-        title: input.title,
-        description: input.description,
-        upSql: input.upSql,
-        downSql: input.downSql,
-        status: input.status,
-      });
-      return res.migration ?? null;
-    },
-    onSuccess: (_migration, input) => {
-      queryClient.invalidateQueries({
-        queryKey: ["projects", projectId, "migrations", input.migrationId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["projects", projectId, "migrations"],
-      });
-    },
-  });
-}
-
 export function useDeleteMigration(projectId: string) {
   const queryClient = useQueryClient();
 
@@ -170,31 +137,6 @@ export function useRollbackMigration() {
   });
 }
 
-export function useValidateMigration() {
-  return useMutation({
-    mutationFn: async (input: { upSql: string; downSql?: string }) => {
-      const res = await migrationClient.validateMigration({
-        upSql: input.upSql,
-        downSql: input.downSql ?? "",
-      });
-      return { valid: res.valid, errors: res.errors };
-    },
-  });
-}
-
-export function useDryRunMigration() {
-  return useMutation({
-    mutationFn: async (input: { migrationId: string; connectionId: string }) => {
-      const res = await migrationClient.dryRunMigration(input);
-      return {
-        valid: res.valid,
-        errors: res.errors,
-        warnings: res.warnings,
-      };
-    },
-  });
-}
-
 /**
  * Real-time migration execution progress via the WatchMigration
  * server-streaming RPC. Returns the latest status message plus a live
@@ -215,6 +157,59 @@ export function useWatchMigration(runId: string | undefined, enabled = true) {
     const stream = async () => {
       try {
         const iterable = migrationClient.watchMigration(
+          { runId },
+          { signal: abort!.signal },
+        );
+        for await (const msg of iterable) {
+          if (cancelled) return;
+          setStatus(msg);
+          if (msg.lastLog) {
+            logsRef.current = [...logsRef.current, msg.lastLog];
+            setLogs(logsRef.current);
+          }
+          if (msg.state === "completed" || msg.state === "failed" || msg.state === "rolled_back") {
+            break;
+          }
+        }
+      } catch {
+        // stream closed (abort or transient error) - surface disconnect state
+      } finally {
+        if (!cancelled) setConnected(false);
+      }
+    };
+
+    setConnected(true);
+    void stream();
+
+    return () => {
+      cancelled = true;
+      abort?.abort();
+      setConnected(false);
+    };
+  }, [runId, enabled]);
+
+  return { status, logs, connected };
+}
+
+/**
+ * Real-time rollback progress via the WatchRollback server-streaming RPC.
+ * Shares the same message shape as WatchMigration.
+ */
+export function useWatchRollback(runId: string | undefined, enabled = true) {
+  const [status, setStatus] = useState<MigrationStatusMessage | null>(null);
+  const [logs, setLogs] = useState<MigrationLogEntry[]>([]);
+  const [connected, setConnected] = useState(false);
+  const logsRef = useRef<MigrationLogEntry[]>([]);
+
+  useEffect(() => {
+    if (!runId || !enabled) return;
+
+    let cancelled = false;
+    const abort: AbortController | null = new AbortController();
+
+    const stream = async () => {
+      try {
+        const iterable = migrationClient.watchRollback(
           { runId },
           { signal: abort!.signal },
         );

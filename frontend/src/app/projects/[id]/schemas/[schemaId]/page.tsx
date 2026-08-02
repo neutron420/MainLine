@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowLeft, Search, Table2, Columns3, Hash, Link2, GitCompareArrows, GitBranch, Database, Loader2, RefreshCw } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -69,6 +70,13 @@ export default function SchemaDetailPage() {
   const { data: schema, isLoading, error } = useSchema(projectId, schemaId);
   const { data: objects } = useSchemaObjects(schema?.currentVersionId);
   const introspect = useIntrospectSchema();
+  const [search, setSearch] = useState("");
+
+  const filteredObjects = (objects ?? []).filter((o) => {
+    if (search === "") return true;
+    const haystack = `${o.objectName} ${o.objectType} ${o.objectSchema ?? ""} ${o.parentObjectId ?? ""}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   if (isLoading) {
     return (
@@ -134,7 +142,9 @@ export default function SchemaDetailPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search objects..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -220,6 +230,10 @@ export default function SchemaDetailPage() {
                 <p className="text-muted-foreground text-sm py-6 text-center">
                   No objects in this schema version yet. Re-introspect the connection to capture the structure.
                 </p>
+              ) : filteredObjects.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-6 text-center">
+                  No objects match your search.
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -231,7 +245,7 @@ export default function SchemaDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {objects.map((obj) => {
+                    {filteredObjects.map((obj) => {
                       const type = typeConfig[obj.objectType] ?? { label: obj.objectType, badge: "outline" as const };
                       return (
                         <TableRow key={obj.id}>

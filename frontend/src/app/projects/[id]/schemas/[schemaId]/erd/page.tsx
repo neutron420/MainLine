@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, KeyRound, Link2, Table2 } from "lucide-react";
+import { ArrowLeft, KeyRound, Link2, Table2 } from "lucide-react";
 import {
   ReactFlow,
   Background,
@@ -22,7 +22,6 @@ import "@xyflow/react/dist/style.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -182,13 +181,6 @@ export default function ErdPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
-              />
-            </div>
             <NotificationsPopover />
           </div>
         </header>

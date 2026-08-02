@@ -30,7 +30,7 @@ func userIDFromContext(ctx context.Context) string {
 func (h *ProjectHandler) CreateProject(ctx context.Context, req *projectv1.CreateProjectRequest) (*projectv1.CreateProjectResponse, error) {
 	userID := userIDFromContext(ctx)
 
-	p, err := h.svc.Create(ctx, req.Name, req.Description, req.Visibility, userID)
+	p, err := h.svc.Create(ctx, req.Name, req.Description, req.Visibility, req.Template, userID)
 	if err != nil {
 		return nil, mapProjectError(err)
 	}
@@ -144,6 +144,7 @@ func toProtoProject(p *domain.Project) *projectv1.Project {
 		Slug:        p.Slug,
 		Description: p.Description,
 		Visibility:  string(p.Visibility),
+		Template:    p.Template,
 		CreatedBy:   p.CreatedBy,
 		CreatedAt:   p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   p.UpdatedAt.Format(time.RFC3339),

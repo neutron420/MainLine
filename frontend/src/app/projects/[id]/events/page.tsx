@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Search, Zap, GitBranch, AlertTriangle, GitPullRequest, PlugZap, Rocket, Radio } from "lucide-react";
+import { ArrowLeft, Search, Zap, GitBranch, AlertTriangle, GitPullRequest, PlugZap, Rocket, Radio, CheckCheck } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { useEventStream } from "@/lib/api/hooks/use-realtime";
+import { useEventStream, acknowledgeEvent, useHeartbeat } from "@/lib/api/hooks/use-realtime";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 const eventIcons = {
   migration: GitBranch,
@@ -63,11 +64,31 @@ export default function EventsPage() {
   const params = useParams();
   const projectId = params.id as string;
   const [filter, setFilter] = useState<(typeof filterTypes)[number]>("all");
+  const [search, setSearch] = useState("");
+  const [acked, setAcked] = useState<Set<string>>(new Set());
+  const [ackError, setAckError] = useState<string | null>(null);
 
   const { events, connected } = useEventStream({ projectIds: [projectId], maxEvents: 100 });
+  const presenceActive = useHeartbeat([projectId]);
 
-  const filtered =
-    filter === "all" ? events : events.filter((e) => eventCategory(e.type) === filter);
+  const markAcked = async (eventId: string) => {
+    if (acked.has(eventId)) return;
+    try {
+      await acknowledgeEvent(eventId);
+      setAcked((prev) => new Set(prev).add(eventId));
+      setAckError(null);
+    } catch (err) {
+      setAckError(getApiErrorMessage(err));
+    }
+  };
+
+  const filtered = events.filter((e) => {
+    const categoryMatch = filter === "all" || eventCategory(e.type) === filter;
+    if (!categoryMatch) return false;
+    if (search === "") return true;
+    const haystack = `${e.type} ${e.actor?.email ?? ""} ${e.resource?.type ?? ""} ${e.resource?.id ?? ""}`.toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -89,7 +110,9 @@ export default function EventsPage() {
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search events..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
@@ -114,6 +137,10 @@ export default function EventsPage() {
                 <Badge variant={connected ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 gap-1">
                   <span className={`size-1.5 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-muted-foreground/50"}`} />
                   {connected ? "LIVE" : "Reconnecting…"}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1" title="Presence heartbeat">
+                  <span className={`size-1.5 rounded-full ${presenceActive ? "bg-emerald-500" : "bg-muted-foreground/50"}`} />
+                  {presenceActive ? "Active" : "Idle"}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">Real-time activity across this project</p>
@@ -144,6 +171,9 @@ export default function EventsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
+              {ackError && (
+                <p className="text-destructive text-xs mb-3">{ackError}</p>
+              )}
               <div className="relative pl-6">
                 <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
                 <div className="space-y-0">
@@ -173,6 +203,22 @@ export default function EventsPage() {
                                 {event.resource?.id ? ` · ${event.resource.id.slice(0, 8)}` : ""}
                               </p>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => markAcked(event.id)}
+                              disabled={acked.has(event.id)}
+                              className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors ${
+                                acked.has(event.id)
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 cursor-default"
+                                  : "text-muted-foreground hover:bg-muted"
+                              }`}
+                              title={acked.has(event.id) ? "Acknowledged" : "Mark as acknowledged"}
+                            >
+                              <span className="flex items-center gap-1">
+                                <CheckCheck className="size-3" />
+                                {acked.has(event.id) ? "Acked" : "Ack"}
+                              </span>
+                            </button>
                             <span className="text-xs text-muted-foreground shrink-0">{relativeTime(event.timestamp)}</span>
                           </div>
                         </div>
