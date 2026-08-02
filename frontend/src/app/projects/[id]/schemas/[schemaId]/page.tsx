@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Table2, Columns3, Hash, Link2, GitCompareArrows, GitBranch, Database , MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Search, Table2, Columns3, Hash, Link2, GitCompareArrows, GitBranch, Database, Loader2, RefreshCw } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
@@ -38,18 +32,59 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { schemaProjects, schemaStatusConfig } from "@/lib/schemas-data";
+import {
+  useSchema,
+  useSchemaObjects,
+  useIntrospectSchema,
+} from "@/lib/api/hooks/use-schemas";
+import { getApiErrorMessage } from "@/lib/api/errors";
+
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "Never";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "Never";
+  const mins = Math.floor((Date.now() - then) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+const typeConfig: Record<string, { label: string; badge: "default" | "secondary" | "destructive" | "outline" }> = {
+  table: { label: "Table", badge: "default" },
+  view: { label: "View", badge: "secondary" },
+  index: { label: "Index", badge: "outline" },
+  sequence: { label: "Sequence", badge: "outline" },
+  function: { label: "Function", badge: "outline" },
+  trigger: { label: "Trigger", badge: "outline" },
+  constraint: { label: "Constraint", badge: "outline" },
+};
 
 export default function SchemaDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const schemaName = params.schemaId as string;
+  const schemaId = params.schemaId as string;
 
-  const project = schemaProjects.find((p) => p.id === projectId);
-  const schema = project?.schemas.find((s) => s.name === schemaName);
+  const { data: schema, isLoading, error } = useSchema(projectId, schemaId);
+  const { data: objects } = useSchemaObjects(schema?.currentVersionId);
+  const introspect = useIntrospectSchema();
 
-  if (!project || !schema) {
+  if (isLoading) {
+    return (
+      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+            <Database className="size-12 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Loading schema...</p>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  if (!schema) {
     return (
       <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
         <AppSidebar />
@@ -57,7 +92,9 @@ export default function SchemaDetailPage() {
           <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
             <Database className="size-12 text-muted-foreground/40" />
             <h2 className="text-xl font-semibold">Schema not found</h2>
-            <p className="text-sm text-muted-foreground">The schema you are looking for does not exist.</p>
+            <p className="text-sm text-muted-foreground">
+              {error ? getApiErrorMessage(error) : "The schema you are looking for does not exist."}
+            </p>
             <Link href={`/projects/${projectId}`}>
               <Button variant="outline">Back to Project</Button>
             </Link>
@@ -67,16 +104,14 @@ export default function SchemaDetailPage() {
     );
   }
 
-  const totalColumns = schema.tables.reduce((acc, t) => acc + t.columns.length, 0);
-  const totalIndexes = schema.tables.reduce((acc, t) => acc + t.indexes.length, 0);
-  const driftCount = schema.tables.filter((t) => t.status === "drift").length;
-  const pendingCount = schema.tables.filter((t) => t.status === "pending").length;
+  const tables = (objects ?? []).filter((o) => o.objectType === "table");
+  const totalObjects = objects?.length ?? 0;
 
   const stats = [
-    { title: "Tables", value: schema.tables.length, icon: Table2 },
-    { title: "Columns", value: totalColumns, icon: Columns3 },
-    { title: "Indexes", value: totalIndexes, icon: Hash },
-    { title: "Relations", value: schema.tables.reduce((acc, t) => acc + t.relations.length, 0), icon: Link2 },
+    { title: "Tables", value: tables.length, icon: Table2 },
+    { title: "Objects", value: totalObjects, icon: Columns3 },
+    { title: "Version", value: schema.currentVersionId?.slice(0, 8) || "—", icon: Hash },
+    { title: "Last Introspected", value: relativeTime(schema.lastIntrospectedAt), icon: Link2 },
   ];
 
   return (
@@ -84,20 +119,15 @@ export default function SchemaDetailPage() {
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <Tooltip delay={0}>
-            <SidebarTrigger className="-ml-1 size-9" />
-            <Tooltip.Content>
-              <p>Toggle sidebar</p>
-            </Tooltip.Content>
-          </Tooltip>
+          <SidebarTrigger className="-ml-1 size-9" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href={`/projects/${project.id}`}>{project.name}</BreadcrumbLink></BreadcrumbItem>
+              <BreadcrumbItem><BreadcrumbLink href={`/projects/${projectId}`}>Project</BreadcrumbLink></BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>{schema.name}</BreadcrumbPage></BreadcrumbItem>
+              <BreadcrumbItem><BreadcrumbPage>{schema.schemaName}</BreadcrumbPage></BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div className="flex items-center gap-2 ml-auto">
@@ -115,31 +145,36 @@ export default function SchemaDetailPage() {
           {/* Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-4">
-              <Link href={`/projects/${project.id}`}>
+              <Link href={`/projects/${projectId}`}>
                 <Button variant="ghost" size="icon" className="size-10 shrink-0 mt-0.5">
                   <ArrowLeft className="size-4" />
                 </Button>
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl font-semibold tracking-tight font-mono">{schema.name}</h1>
-                  <Badge variant="outline" className="text-[11px]">{project.name}</Badge>
-                  <Badge variant="secondary" className="text-[11px]">{schema.tables.length} tables</Badge>
+                  <h1 className="text-2xl font-semibold tracking-tight font-mono">{schema.schemaName}</h1>
+                  <Badge variant="outline" className="text-[11px]">{schema.connectionId.slice(0, 8)}</Badge>
+                  <Badge variant="secondary" className="text-[11px]">{tables.length} tables</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {driftCount > 0 && <span className="text-red-500 font-medium">{driftCount} with drift · </span>}
-                  {pendingCount > 0 && <span className="text-yellow-500 font-medium">{pendingCount} pending review · </span>}
-                  Schema structure overview
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Schema structure overview</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Link href={`/projects/${projectId}/schemas/${schema.name}/erd`}>
+                <Button
+                  variant="outline"
+                  className="h-10 gap-2"
+                  disabled={introspect.isPending || !schema.connectionId}
+                  onClick={() => introspect.mutate({ connectionId: schema.connectionId, schemaNames: [schema.schemaName] })}
+                >
+                  {introspect.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                  {introspect.isPending ? "Introspecting…" : "Re-introspect"}
+                </Button>
+                <Link href={`/projects/${projectId}/schemas/${schemaId}/erd`}>
                   <Button variant="outline" className="h-10 gap-2">
                     <GitBranch className="size-4" />
                     View ERD
                   </Button>
                 </Link>
-                <Link href={`/projects/${projectId}/schemas/${schema.name}/compare`}>
+                <Link href={`/projects/${projectId}/schemas/${schemaId}/compare`}>
                   <Button className="h-10 gap-2">
                     <GitCompareArrows className="size-4" />
                     Compare
@@ -147,6 +182,15 @@ export default function SchemaDetailPage() {
                 </Link>
               </div>
             </div>
+            {introspect.isSuccess && (
+              <p className="text-sm text-green-500 flex items-center gap-1.5">
+                <RefreshCw className="size-3.5" />
+                Schema re-introspected successfully. Refresh the page to see the latest structure.
+              </p>
+            )}
+            {introspect.isError && (
+              <p className="text-sm text-red-500">{getApiErrorMessage(introspect.error)}</p>
+            )}
           </div>
 
           {/* Stats */}
@@ -157,8 +201,8 @@ export default function SchemaDetailPage() {
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
                     <stat.icon className="size-5 text-muted-foreground" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-semibold tracking-tight truncate">{stat.value}</p>
                     <p className="text-xs text-muted-foreground">{stat.title}</p>
                   </div>
                 </CardContent>
@@ -166,68 +210,50 @@ export default function SchemaDetailPage() {
             ))}
           </div>
 
-          {/* Tables */}
+          {/* Objects */}
           <Card>
             <CardHeader className="border-0">
-              <CardTitle className="text-base">Tables</CardTitle>
+              <CardTitle className="text-base">Schema Objects</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[30%]">Table</TableHead>
-                    <TableHead>Columns</TableHead>
-                    <TableHead>Indexes</TableHead>
-                    <TableHead>Relations</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schema.tables.map((table) => {
-                    const status = schemaStatusConfig[table.status];
-                    return (
-                      <TableRow key={table.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2.5">
-                            <div className={`size-1.5 rounded-full ${status.dot}`} />
-                            <span className="font-mono text-sm">{table.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{table.columns.length}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{table.indexes.length}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{table.relations.length}</TableCell>
-                        <TableCell>
-                          <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-8">
-                                <MoreHorizontal className="size-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <Link href={`/projects/${projectId}/schemas/${schema.name}/erd`}>
-                                <DropdownMenuItem className="gap-2">
-                                  <GitBranch className="size-4" />
-                                  View in ERD
-                                </DropdownMenuItem>
-                              </Link>
-                              <Link href={`/projects/${projectId}/schemas/${schema.name}/compare`}>
-                                <DropdownMenuItem className="gap-2">
-                                  <GitCompareArrows className="size-4" />
-                                  Compare
-                                </DropdownMenuItem>
-                              </Link>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {!objects || objects.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-6 text-center">
+                  No objects in this schema version yet. Re-introspect the connection to capture the structure.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[30%]">Name</TableHead>
+                      <TableHead>Schema</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Parent</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {objects.map((obj) => {
+                      const type = typeConfig[obj.objectType] ?? { label: obj.objectType, badge: "outline" as const };
+                      return (
+                        <TableRow key={obj.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2.5">
+                              <div className="size-1.5 rounded-full bg-primary/70" />
+                              <span className="font-mono text-sm">{obj.objectName}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground font-mono">{obj.objectSchema}</TableCell>
+                          <TableCell>
+                            <Badge variant={type.badge} className="text-[10px] px-1.5 py-0">{type.label}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground font-mono truncate max-w-[200px]">
+                            {obj.parentObjectId ? obj.parentObjectId.slice(0, 8) : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>

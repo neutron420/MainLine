@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Users, UserPlus, Mail , MoreHorizontal } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Search, Users, UserPlus, Mail, MoreHorizontal, Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -55,31 +56,68 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
+import {
+  useMembers,
+  useAddMember,
+  useUpdateMemberRole,
+  useRemoveMember,
+} from "@/lib/api/hooks/use-projects";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
-const members = [
-  { name: "Aarav Mehta", email: "aarav@schemahub.dev", role: "Admin", status: "Active" as const },
-  { name: "Priya Sharma", email: "priya@schemahub.dev", role: "Admin", status: "Active" as const },
-  { name: "Rahul Verma", email: "rahul@schemahub.dev", role: "Developer", status: "Active" as const },
-  { name: "Sneha Patel", email: "sneha@schemahub.dev", role: "Developer", status: "Active" as const },
-  { name: "Vikram Singh", email: "vikram@schemahub.dev", role: "Viewer", status: "Invited" as const },
-];
+function initialsOf(name: string): string {
+  return name
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "?";
+}
+
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const mins = Math.floor((Date.now() - then) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
 
 export default function ProjectMembersPage() {
   const params = useParams();
   const projectId = params.id as string;
+
+  const { data: members, isLoading, error } = useMembers(projectId);
+  const addMember = useAddMember(projectId);
+  const updateRole = useUpdateMemberRole(projectId);
+  const removeMember = useRemoveMember(projectId);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [userId, setUserId] = useState("");
+  const [role, setRole] = useState("developer");
+
+  const sendInvite = () => {
+    if (!userId.trim() || addMember.isPending) return;
+    addMember.mutate(
+      { userId: userId.trim(), role },
+      {
+        onSuccess: () => {
+          setInviteOpen(false);
+          setUserId("");
+          setRole("developer");
+        },
+      },
+    );
+  };
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <Tooltip delay={0}>
-            <SidebarTrigger className="-ml-1 size-9" />
-            <Tooltip.Content>
-              <p>Toggle sidebar</p>
-            </Tooltip.Content>
-          </Tooltip>
+          <SidebarTrigger className="-ml-1 size-9" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
@@ -116,48 +154,65 @@ export default function ProjectMembersPage() {
                   <Users className="size-6" />
                   Project Members
                 </h1>
-                <Badge variant="outline" className="text-[11px]">{members.length} members</Badge>
+                <Badge variant="outline" className="text-[11px]">{members?.length ?? 0} members</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">Who can view and change schemas in this project</p>
             </div>
-            <Dialog>
+            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
               <DialogTrigger asChild>
                 <Button className="h-10 gap-2 shrink-0">
                   <UserPlus className="size-4" />
-                  Invite Member
+                  Add Member
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Invite a member</DialogTitle>
+                  <DialogTitle>Add a member</DialogTitle>
                   <DialogDescription>
-                    They will receive an email to join this project.
+                    Add a registered SchemaHub user by their user ID and assign a role.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-1.5">
-                    <Label>Email address</Label>
+                    <Label>User ID</Label>
                     <div className="relative">
                       <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                      <Input placeholder="teammate@company.com" className="pl-8" />
+                      <Input
+                        placeholder="user id or email"
+                        className="pl-8 font-mono"
+                        value={userId}
+                        onChange={(e) => setUserId(e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label>Role</Label>
-                    <Select defaultValue="Developer">
+                    <Select value={role} onValueChange={setRole}>
                       <SelectTrigger className="h-9">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                        <SelectItem value="Developer">Developer</SelectItem>
-                        <SelectItem value="Viewer">Viewer</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="developer">Developer</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                  {addMember.isError && (
+                    <p className="text-sm text-red-500">{getApiErrorMessage(addMember.error)}</p>
+                  )}
                 </div>
                 <DialogFooter>
-                  <Button>Send Invite</Button>
+                  <Button onClick={sendInvite} disabled={!userId.trim() || addMember.isPending}>
+                    {addMember.isPending ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Adding…
+                      </>
+                    ) : (
+                      "Add Member"
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -171,54 +226,84 @@ export default function ProjectMembersPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Member</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((member) => (
-                    <TableRow key={member.email}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                            {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium">{member.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{member.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={member.status === "Active" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                          {member.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8">
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Change role</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500">Remove</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {isLoading ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Loading members...</p>
+              ) : error ? (
+                <p className="text-sm text-red-500 py-6 text-center">{getApiErrorMessage(error)}</p>
+              ) : !members || members.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  No members yet. Add your first member to collaborate.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40%]">Member</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="w-[50px] text-right"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => (
+                      <TableRow key={member.userId}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                              {initialsOf(member.displayName || member.email)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">{member.displayName || member.email}</p>
+                              <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{member.role}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {relativeTime(member.joinedAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8">
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {member.role !== "admin" && (
+                                <DropdownMenuItem
+                                  onClick={() => updateRole.mutate({ userId: member.userId, role: "admin" })}
+                                >
+                                  Make admin
+                                </DropdownMenuItem>
+                              )}
+                              {member.role !== "viewer" && (
+                                <DropdownMenuItem
+                                  onClick={() => updateRole.mutate({ userId: member.userId, role: "viewer" })}
+                                >
+                                  Make viewer
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-red-500"
+                                onClick={() => {
+                                  if (confirm(`Remove ${member.email} from this project?`)) {
+                                    removeMember.mutate(member.userId);
+                                  }
+                                }}
+                              >
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,24 +1,34 @@
 "use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
-import { Background } from "@/components/background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Background } from "@/components/background";
+import { useForgotPassword } from "@/lib/api/hooks/use-auth";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { CheckCircle2 } from "lucide-react";
 
 const ForgotPassword = () => {
-  const router = useRouter();
+  const forgotPassword = useForgotPassword();
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/forgot-password/otp");
+    setError(null);
+    try {
+      await forgotPassword.mutateAsync(email);
+      setSent(true);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
   };
 
   return (
@@ -35,35 +45,59 @@ const ForgotPassword = () => {
                   height={18}
                   className="mb-7 dark:invert"
                 />
-                <p className="mb-2 text-2xl font-bold">Forgot password?</p>
-                <p className="text-muted-foreground text-center">
-                  No worries. Enter your email and we&apos;ll send you a 6-digit
-                  OTP.
-                </p>
+                {sent ? (
+                  <>
+                    <CheckCircle2 className="size-10 text-emerald-500 mb-3" />
+                    <p className="mb-2 text-2xl font-bold">Check your email</p>
+                    <p className="text-muted-foreground text-center">
+                      We sent a password reset link to <span className="font-medium">{email}</span>.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2 text-2xl font-bold">Forgot password?</p>
+                    <p className="text-muted-foreground text-center">
+                      Enter your email and we&apos;ll send you a reset link.
+                    </p>
+                  </>
+                )}
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="grid gap-4">
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                  <Button type="submit" className="mt-2 w-full">
-                    Send OTP
-                  </Button>
-                </form>
-                <div className="text-muted-foreground mx-auto mt-8 flex justify-center gap-1 text-sm">
-                  <Link
-                    href="/login"
-                    className="flex items-center gap-1 text-primary font-medium"
-                  >
-                    <ArrowLeft className="size-4" />
-                    Back to sign in
-                  </Link>
-                </div>
-              </CardContent>
+              {!sent && (
+                <CardContent>
+                  <form onSubmit={submit} className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    {error && <p className="text-destructive text-sm">{error}</p>}
+                    <Button type="submit" className="mt-2 w-full" disabled={forgotPassword.isPending}>
+                      {forgotPassword.isPending ? "Sending..." : "Send reset link"}
+                    </Button>
+                    <div className="text-center">
+                      <Link href="/login" className="text-primary text-sm font-medium">
+                        Back to login
+                      </Link>
+                    </div>
+                  </form>
+                </CardContent>
+              )}
+              {sent && (
+                <CardContent className="grid gap-4">
+                  <div className="text-center">
+                    <Link href="/login" className="text-primary text-sm font-medium">
+                      Back to login
+                    </Link>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           </div>
         </div>

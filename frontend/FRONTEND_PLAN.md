@@ -20,9 +20,7 @@
 | `/dashboard` | `DashboardPage` | ✅ Built |
 | `/projects` | `ProjectsPage` | ✅ Built |
 | `/projects/[id]` | `ProjectDetailPage` | ✅ Built |
-| `/reviews` | `ReviewsPage` | ✅ Built |
-| `/reviews/[id]` | `ReviewDetailPage` | ✅ Built |
-| `/team` | `TeamPage` | ✅ Built |
+| `/team` | `TeamPage` — members aggregated across all projects (real data) | ✅ Built |
 | `/settings` | `SettingsPage` | ✅ Built |
 | `/schemas` | `SchemasPage` — database explorer (tree + table detail + SQL DDL) | ✅ Built |
 | `/projects/[id]/schemas/[schemaId]/erd` | `ErdPage` — React Flow entity relationship diagram | ✅ Built |
@@ -54,13 +52,9 @@ Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skelet
 
 ### 🔧 Shared Data Modules
 
-- `src/lib/reviews-data.ts` — review types + mock data for `/reviews` and `/reviews/[id]`
-- `src/lib/schemas-data.ts` — schema explorer types + mock data for `/schemas`, schema detail, ERD, compare
-- `src/lib/migrations-data.ts` — migration types + mock data for migration pages
-- `src/lib/connections-data.ts` — connection types + mock data for connections pages
-- `src/lib/drift-data.ts` — drift types + diff data for drift pages
-- `src/lib/audit-data.ts` — audit entry types + mock data for audit pages
-- `src/lib/events-data.ts` — event types + mock data for events pages
+### 🔧 Data Layer
+
+All pages are wired to real gRPC-Web clients (`src/lib/api/` + `src/lib/gen/`). No mock data modules remain — the former `src/lib/*-data.ts` files were deleted. Reviews pages were removed because no Reviews service exists in the backend contract. Notifications popover streams live events (Redis pub/sub) and seeds from the audit log.
 
 ---
 
@@ -69,9 +63,9 @@ Button, Input, Textarea, Label, Select, Card, Dialog, DropdownMenu, Tabs, Skelet
 | Category | Count | Progress |
 |---|---|---|
 | Auth Pages | 6 | ✅ Done |
-| Product Pages | 20 | ✅ Done |
+| Product Pages | 21 | ✅ Done |
 | Protected Pages | 0 | ✅ Done |
 | shadcn/ui Components | 28 | 📦 Installed |
 
-> Build passes with 36 routes. All frontend pages complete. Next: backend (Go + gRPC) and deploy.
+> Build passes with 34 routes. All frontend pages complete and wired to the real API.
 

@@ -3,6 +3,7 @@ package schemahub.auth.v1;
 option go_package = "github.com/schemahub/backend/proto/auth/v1;authv1";
 
 import "common/v1/common.proto";
+import "auth/v1/auth_messages.proto";
 
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
@@ -13,6 +14,13 @@ service AuthService {
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+
+  // Account recovery
+  rpc SendVerificationEmail(SendVerificationEmailRequest) returns (SendVerificationEmailResponse);
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
 
   // OAuth
   rpc GetOAuthURL(GetOAuthURLRequest) returns (GetOAuthURLResponse);

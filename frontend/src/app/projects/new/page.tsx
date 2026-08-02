@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
 import { Tooltip } from "@heroui/react";
+import { useCreateProject } from "@/lib/api/hooks/use-projects";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 const templates = [
   {
@@ -50,20 +52,30 @@ const templates = [
 
 export default function CreateProjectPage() {
   const router = useRouter();
+  const createProject = useCreateProject();
   const [template, setTemplate] = useState("starter");
-  const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState(false);
+  const [name, setName] = useState("SchemaHub");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
-  const create = () => {
-    if (creating) return;
-    setCreating(true);
-    setTimeout(() => {
-      setCreated(true);
-      setTimeout(() => router.push("/projects/prj-schemahub"), 1200);
-    }, 1800);
+  const create = async () => {
+    if (createProject.isPending) return;
+    setError(null);
+    try {
+      const project = await createProject.mutateAsync({
+        name: name.trim() || "Untitled project",
+        description: description.trim(),
+        visibility: "private",
+      });
+      setCreatedId(project.id);
+      setTimeout(() => router.push(`/projects/${project.id}`), 900);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
   };
 
-  if (created) {
+  if (createdId) {
     return (
       <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
         <AppSidebar />
@@ -74,7 +86,7 @@ export default function CreateProjectPage() {
             </div>
             <h2 className="text-xl font-semibold">Project created</h2>
             <p className="text-sm text-muted-foreground max-w-sm text-center">
-              Initial schema has been synced. Redirecting to your project…
+              Redirecting to your project…
             </p>
           </div>
         </SidebarInset>
@@ -128,16 +140,24 @@ export default function CreateProjectPage() {
             <CardContent className="pt-0 space-y-4">
               <div className="space-y-1.5">
                 <Label>Project name</Label>
-                <Input placeholder="e.g. SchemaHub" defaultValue="SchemaHub" />
+                <Input
+                  placeholder="e.g. SchemaHub"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Description</Label>
-                <Textarea placeholder="What is this database for?" className="min-h-[70px]" />
+                <Textarea
+                  placeholder="What is this database for?"
+                  className="min-h-[70px]"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
-              <div className="space-y-1.5">
-                <Label>Repository</Label>
-                <Input placeholder="github.com/org/repo (optional)" className="font-mono" />
-              </div>
+              {error && (
+                <p className="text-destructive text-sm">{error}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -201,8 +221,8 @@ export default function CreateProjectPage() {
             <Button variant="ghost" className="h-10" onClick={() => router.push("/projects")}>
               Cancel
             </Button>
-            <Button className="h-10 gap-2 ml-auto" onClick={create} disabled={creating}>
-              {creating ? (
+            <Button className="h-10 gap-2 ml-auto" onClick={create} disabled={createProject.isPending}>
+              {createProject.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
                   Creating…

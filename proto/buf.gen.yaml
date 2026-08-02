@@ -8,3 +8,8 @@ plugins:
   - plugin: go-grpc
     out: ../backend/proto
     opt: paths=source_relative
+  - plugin: es
+    out: ../frontend/src/lib/gen
+    opt:
+      - target=ts
+      - import_extension=none

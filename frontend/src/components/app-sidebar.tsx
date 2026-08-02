@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Database, FolderKanban, GitPullRequest, LayoutDashboard, Settings, Users, CheckCircle2, AlertCircle, Bell } from "lucide-react"
+import { Database, FolderKanban, LayoutDashboard, Settings, Users, CheckCircle2, AlertCircle, Bell } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
 import {
@@ -28,7 +28,6 @@ const data = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Projects", url: "/projects", icon: FolderKanban },
-    { title: "Reviews", url: "/reviews", icon: GitPullRequest },
     { title: "Schemas", url: "/schemas", icon: Database },
     { title: "Team", url: "/team", icon: Users },
     { title: "Settings", url: "/settings", icon: Settings },
@@ -45,11 +44,6 @@ const data = {
     migrations: 47,
     drift: 1,
   },
-  reviews: [
-    { title: "Add users table index", project: "User Service", author: "Alice", date: "1 hour ago" },
-    { title: "Update payment status enum", project: "Payment DB", author: "Bob", date: "3 hours ago" },
-    { title: "Drop legacy column", project: "CRM", author: "Charlie", date: "1 day ago" },
-  ],
   schemas: [
     { name: "users", tables: 12, lastUpdated: "2h ago" },
     { name: "payments", tables: 8, lastUpdated: "5h ago" },
@@ -65,7 +59,6 @@ const data = {
   recentActivity: [
     { action: "Migration v1.2 deployed", project: "User Service", time: "2h ago", icon: CheckCircle2, color: "text-green-500" },
     { action: "Schema drift detected", project: "Analytics", time: "5h ago", icon: AlertCircle, color: "text-amber-500" },
-    { action: "Review approved", project: "Payment DB", time: "1d ago", icon: CheckCircle2, color: "text-green-500" },
     { action: "New project created", project: "Search Index", time: "2d ago", icon: FolderKanban, color: "text-blue-500" },
   ],
 }
@@ -172,10 +165,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <p className="text-xs text-muted-foreground">Migrations</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">14</p>
-                    <p className="text-xs text-muted-foreground">Reviews</p>
-                  </div>
-                  <div className="rounded-lg bg-sidebar-accent/50 p-3">
                     <p className="text-lg font-semibold">24</p>
                     <p className="text-xs text-muted-foreground">Members</p>
                   </div>
@@ -223,32 +212,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className={`inline-block size-1.5 rounded-full ${project.status === "active" ? "bg-green-500" : project.status === "inProgress" ? "bg-yellow-500" : "bg-red-500"}`} />
                       <span>{project.updated}</span>
-                    </div>
-                  </a>
-                ))}
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
-
-          {/* Reviews sidebar content */}
-          {activeItem?.title === "Reviews" && (
-            <SidebarGroup className="px-0">
-              <SidebarGroupContent>
-                <div className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Pending Reviews
-                </div>
-                {data.reviews.map((review) => (
-                  <a
-                    key={review.title}
-                    href="#"
-                    className="flex flex-col gap-1 border-b p-4 text-sm leading-tight last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  >
-                    <div className="font-medium">{review.title}</div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{review.project}</span>
-                      <span>·</span>
-                      <span>{review.author}</span>
-                      <span className="ml-auto">{review.date}</span>
                     </div>
                   </a>
                 ))}

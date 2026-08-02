@@ -1,6 +1,23 @@
 "use client";
 
-import { ArrowDown, ArrowUp, MoreHorizontal, Pin, Settings, Share2, Trash, TriangleAlert, ListFilter, Columns, Plus, GitBranch, Database, UserPlus, Clock, CheckCircle2, GitPullRequest, AlertCircle, Search } from "lucide-react";
+import {
+  MoreHorizontal,
+  Pin,
+  Settings,
+  Share2,
+  Trash,
+  TriangleAlert,
+  ListFilter,
+  Columns,
+  Plus,
+  GitBranch,
+  Database,
+  UserPlus,
+  Clock,
+  AlertCircle,
+  Search,
+  Activity,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 
@@ -31,16 +48,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectDataTable, Project } from "@/components/ui/project-data-table";
 import { NotificationsPopover } from "@/components/notifications-popover";
-
-const stats = [
-  { title: "Total Schemas", value: 1248, delta: 12.5, lastMonth: 1109, positive: true, prefix: "", suffix: "" },
-  { title: "Active Projects", value: 36, delta: 8.3, lastMonth: 33, positive: true, prefix: "", suffix: "" },
-  { title: "Pending Reviews", value: 14, delta: -5.2, lastMonth: 19, positive: false, prefix: "", suffix: "" },
-  { title: "Team Members", value: 24, delta: 4.1, lastMonth: 23, positive: true, prefix: "", suffix: "" },
-];
+import { useProjects } from "@/lib/api/hooks/use-projects";
+import { useAuditEntries } from "@/lib/api/hooks/use-audit";
+import { useEventStream } from "@/lib/api/hooks/use-realtime";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 function formatNumber(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -48,14 +61,34 @@ function formatNumber(n: number) {
   return n.toString();
 }
 
-const mockProjects: Project[] = [
-  { id: "p1", name: "User Service Schema", repository: "https://github.com/mainline/user-service", team: "Platform", tech: "PostgreSQL", createdAt: "2026-07-15", contributors: [{ src: "https://i.pravatar.cc/150?u=a1", alt: "Alice", fallback: "AL" }, { src: "https://i.pravatar.cc/150?u=a2", alt: "Bob", fallback: "BO" }], status: { text: "Active", variant: "active" } },
-  { id: "p2", name: "Payment DB Migration", repository: "https://github.com/mainline/payment-db", team: "Payments", tech: "PostgreSQL", createdAt: "2026-07-10", contributors: [{ src: "https://i.pravatar.cc/150?u=a3", alt: "Charlie", fallback: "CH" }], status: { text: "In Progress", variant: "inProgress" } },
-  { id: "p3", name: "Analytics Warehouse", repository: "https://github.com/mainline/analytics-db", team: "Data", tech: "PostgreSQL", createdAt: "2026-06-28", contributors: [{ src: "https://i.pravatar.cc/150?u=a4", alt: "Diana", fallback: "DI" }, { src: "https://i.pravatar.cc/150?u=a5", alt: "Eve", fallback: "EV" }], status: { text: "Active", variant: "active" } },
-  { id: "p4", name: "Legacy CRM Schema", repository: "https://github.com/mainline/crm-migration", team: "Core", tech: "PostgreSQL", createdAt: "2026-06-20", contributors: [{ src: "https://i.pravatar.cc/150?u=a6", alt: "Frank", fallback: "FR" }, { src: "https://i.pravatar.cc/150?u=a7", alt: "Grace", fallback: "GR" }], status: { text: "On Hold", variant: "onHold" } },
-  { id: "p5", name: "Notification Queue", repository: "https://github.com/mainline/notif-db", team: "Infra", tech: "PostgreSQL", createdAt: "2026-06-15", contributors: [{ src: "https://i.pravatar.cc/150?u=a8", alt: "Hank", fallback: "HA" }], status: { text: "Active", variant: "active" } },
-  { id: "p6", name: "Search Index Schema", repository: "https://github.com/mainline/search-db", team: "Search", tech: "PostgreSQL", createdAt: "2026-06-01", contributors: [{ src: "https://i.pravatar.cc/150?u=a9", alt: "Ivy", fallback: "IV" }, { src: "https://i.pravatar.cc/150?u=a10", alt: "Jack", fallback: "JA" }], status: { text: "In Progress", variant: "inProgress" } },
-];
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "recently";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "recently";
+  const diffMs = Date.now() - then;
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+function toTableProject(
+  project: { id: string; name: string; createdAt: string; visibility: string },
+): Project {
+  return {
+    id: project.id,
+    name: project.name,
+    repository: "",
+    team: project.visibility,
+    tech: "PostgreSQL",
+    createdAt: project.createdAt.slice(0, 10),
+    contributors: [],
+    status: { text: "Active", variant: "active" },
+  };
+}
 
 const allColumns: (keyof Project)[] = ["name", "repository", "team", "tech", "createdAt", "contributors", "status"];
 
@@ -66,22 +99,21 @@ const quickActions = [
   { label: "Invite Team", icon: UserPlus, variant: "outline" as const },
 ];
 
-const activities = [
-  { type: "migration", icon: GitBranch, project: "User Service", description: "Migration v1.2.0 deployed to production", user: "Alice", time: "2 hours ago", color: "bg-blue-500" },
-  { type: "review", icon: CheckCircle2, project: "Payment DB", description: "Schema review approved update payment_status", user: "Bob", time: "3 hours ago", color: "bg-green-500" },
-  { type: "pr", icon: GitPullRequest, project: "CRM", description: "New pull request drop legacy zip_code column", user: "Charlie", time: "5 hours ago", color: "bg-purple-500" },
-  { type: "alert", icon: AlertCircle, project: "Analytics", description: "Schema drift detected warehouse.analytics differs from staging", user: "System", time: "1 day ago", color: "bg-amber-500" },
-  { type: "migration", icon: GitBranch, project: "Search Index", description: "Migration v0.8.0 rolled back due to index conflict", user: "Diana", time: "2 days ago", color: "bg-red-500" },
-];
-
-const pendingReviews = [
-  { title: "Add users table composite index", project: "User Service", author: "Alice", status: "changes", time: "1 hour ago", priority: "high" as const },
-  { title: "Update payment status enum values", project: "Payment DB", author: "Bob", status: "pending", time: "3 hours ago", priority: "medium" as const },
-  { title: "Drop legacy zip_code column", project: "CRM", author: "Charlie", status: "pending", time: "1 day ago", priority: "low" as const },
-  { title: "Add email verification column", project: "User Service", author: "Alice", status: "pending", time: "2 days ago", priority: "medium" as const },
-];
-
 export default function Page() {
+  const { data: projects, isLoading, error } = useProjects();
+  const { data: auditEntries } = useAuditEntries();
+  const { events, connected } = useEventStream({ maxEvents: 8 });
+
+  const activityCount = auditEntries?.length ?? 0;
+  const liveEventCount = events.length;
+
+  const stats = [
+    { title: "Total Projects", value: projects?.length ?? 0, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
+    { title: "Live Events", value: liveEventCount, delta: 0, lastMonth: 0, positive: connected, prefix: "", suffix: "" },
+    { title: "Audit Entries", value: activityCount, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
+    { title: "Team Members", value: projects?.reduce((sum, p) => sum + p.memberCount, 0) ?? 0, delta: 0, lastMonth: 0, positive: true, prefix: "", suffix: "" },
+  ];
+
   return (
     <SidebarProvider
       style={{ "--sidebar-width": "350px" } as React.CSSProperties}
@@ -135,16 +167,16 @@ export default function Page() {
                     <span className="text-2xl font-medium text-foreground tracking-tight">
                       {stat.prefix + formatNumber(stat.value) + stat.suffix}
                     </span>
-                    <Badge variant={stat.positive ? "default" : "destructive"}>
-                      {stat.delta > 0 ? <ArrowUp /> : <ArrowDown />}
-                      {Math.abs(stat.delta)}%
-                    </Badge>
+                    {stat.title === "Live Events" && (
+                      <Badge variant={connected ? "default" : "secondary"} className="text-[10px]">
+                        {connected ? "LIVE" : "OFFLINE"}
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-2 border-t pt-2.5">
-                    Vs last month:{" "}
-                    <span className="font-medium text-foreground">
-                      {stat.prefix + formatNumber(stat.lastMonth) + stat.suffix}
-                    </span>
+                    {stat.title === "Live Events"
+                      ? (connected ? "Real-time stream connected" : "Connecting to event stream...")
+                      : `From your ${stat.title === "Audit Entries" ? "activity log" : stat.title.toLowerCase()}`}
                   </div>
                 </CardContent>
               </Card>
@@ -175,9 +207,55 @@ export default function Page() {
             ))}
           </div>
 
-          {/* Activity + Reviews row */}
+          {/* Live events + Audit row */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Activity Feed */}
+            {/* Live Events */}
+            <Card>
+              <CardHeader className="border-0">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="size-4" />
+                  Live Events
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {events.length === 0 ? (
+                  <p className="text-muted-foreground text-sm py-6 text-center">
+                    {connected
+                      ? "Waiting for schema events... (migrations, drift, connections)"
+                      : "Event stream disconnected — reconnecting..."}
+                  </p>
+                ) : (
+                  <div className="space-y-0">
+                    {events.map((event) => (
+                      <div key={event.id} className="flex gap-3 py-3 border-b last:border-b-0">
+                        <div className="bg-primary/10 mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-primary">
+                          <GitBranch className="size-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate capitalize">
+                            {event.type.replace(/_/g, " ")}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground">
+                              {event.actor?.email ?? "system"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <span className="text-xs text-muted-foreground">
+                              {event.resource?.type ?? "schema"} {event.resource?.id ?? ""}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {relativeTime(event.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Audit Activity */}
             <Card>
               <CardHeader className="border-0">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -186,61 +264,35 @@ export default function Page() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-0">
-                  {activities.map((activity, i) => (
-                    <div key={i} className="flex gap-3 py-3 border-b last:border-b-0">
-                      <div className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${activity.color} text-white`}>
-                        <activity.icon className="size-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{activity.description}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{activity.project}</span>
-                          <span className="text-xs text-muted-foreground">·</span>
-                          <span className="text-xs text-muted-foreground">{activity.user}</span>
-                          <span className="text-xs text-muted-foreground ml-auto">{activity.time}</span>
+                {!auditEntries || auditEntries.length === 0 ? (
+                  <p className="text-muted-foreground text-sm py-6 text-center">
+                    No audit activity yet. Actions like migrations and schema changes will appear here.
+                  </p>
+                ) : (
+                  <div className="space-y-0">
+                    {auditEntries.slice(0, 6).map((entry) => (
+                      <div key={entry.id} className="flex gap-3 py-3 border-b last:border-b-0">
+                        <div className="bg-primary/10 mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-primary">
+                          <AlertCircle className="size-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {entry.action} {entry.resourceType} {entry.resourceId}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground">
+                              {entry.actorEmail || entry.actorId || "system"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {relativeTime(entry.createdAt)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pending Reviews */}
-            <Card>
-              <CardHeader className="border-0">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <GitPullRequest className="size-4" />
-                  Pending Reviews
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-0">
-                  {pendingReviews.map((review, i) => (
-                    <div key={i} className="flex items-start gap-3 py-3 border-b last:border-b-0">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-xs">{review.author.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{review.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{review.project}</span>
-                          <span className="text-xs text-muted-foreground">·</span>
-                          <span className="text-xs text-muted-foreground">{review.author}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <Badge variant={review.priority === "high" ? "destructive" : review.priority === "medium" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                          {review.priority}
-                        </Badge>
-                        {review.status === "changes" && (
-                          <span className="text-[10px] text-amber-500 font-medium">Changes requested</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -249,8 +301,14 @@ export default function Page() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold tracking-tight">All Projects</h2>
+              {error && (
+                <span className="text-destructive text-sm">{getApiErrorMessage(error)}</span>
+              )}
             </div>
-            <FilterableProjectTable />
+            <FilterableProjectTable
+              projects={(projects ?? []).map(toTableProject)}
+              isLoading={isLoading}
+            />
           </div>
         </div>
       </SidebarInset>
@@ -258,18 +316,24 @@ export default function Page() {
   );
 }
 
-function FilterableProjectTable() {
+function FilterableProjectTable({
+  projects,
+  isLoading,
+}: {
+  projects: Project[];
+  isLoading: boolean;
+}) {
   const [techFilter, setTechFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visibleColumns, setVisibleColumns] = useState<Set<keyof Project>>(new Set(allColumns));
 
   const filteredProjects = useMemo(() => {
-    return mockProjects.filter((project) => {
+    return projects.filter((project) => {
       const techMatch = techFilter === "" || project.tech.toLowerCase().includes(techFilter.toLowerCase());
       const statusMatch = statusFilter === "all" || project.status.variant === statusFilter;
       return techMatch && statusMatch;
     });
-  }, [techFilter, statusFilter]);
+  }, [projects, techFilter, statusFilter]);
 
   const toggleColumn = (column: keyof Project) => {
     setVisibleColumns((prev) => {
@@ -320,7 +384,22 @@ function FilterableProjectTable() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <ProjectDataTable projects={filteredProjects} visibleColumns={visibleColumns} />
+      {isLoading ? (
+        <div className="border-border flex h-40 items-center justify-center rounded-lg border">
+          <p className="text-muted-foreground text-sm">Loading projects...</p>
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="border-border flex h-40 flex-col items-center justify-center gap-3 rounded-lg border">
+          <p className="text-muted-foreground text-sm">
+            No projects yet.
+          </p>
+          <Button asChild variant="outline" className="gap-2">
+            <Link href="/projects/new"><Plus className="size-4" /> Create your first project</Link>
+          </Button>
+        </div>
+      ) : (
+        <ProjectDataTable projects={filteredProjects} visibleColumns={visibleColumns} />
+      )}
     </div>
   );
 }

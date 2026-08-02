@@ -15,7 +15,7 @@
 | **Scripts** | 100% | 7 PowerShell scripts |
 | **Documentation** | 90% | 20 .md files (missing LICENSE, .editorconfig) |
 | **Infrastructure** | 0% | No infra/ directory at all |
-| **Frontend** | 100% | 36 routes, 20/20 product pages (see FRONTEND_PLAN.md) |
+| **Frontend** | 100% | 34 routes, 21/21 product pages (see FRONTEND_PLAN.md) |
 | **Testing** | 50% | 15 unit test files across domain + pkg layers (see below) |
 | **Tooling** | 50% | Missing Makefile, .golangci.yml, tools.go |
 
@@ -27,7 +27,7 @@
 
 | Service | Domain | Repository (Postgres) | Handler | Notes |
 |---|---|---|---|---|
-| Auth | user.go, service.go, oauth.go, repositories.go | user_repo, oauth_repo, refresh_token_repo, verification_token_repo | grpc.go, errors.go | Register/Login/Logout/RefreshToken/UpdateUser/ChangePassword/DeleteAccount/ForgotPassword/ResetPassword/SendVerificationEmail/VerifyEmail + OAuth (Google/GitHub/Slack) + PKCE + account linking |
+| Auth | user.go, service.go, oauth.go, repositories.go | user_repo, oauth_repo, refresh_token_repo, verification_token_repo | grpc.go, errors.go | Register/Login/Logout/RefreshToken/UpdateUser/ChangePassword/DeleteAccount/ForgotPassword/ResetPassword/SendVerificationEmail/VerifyEmail + OAuth (Google/GitHub/Slack) + PKCE + account linking. All recovery RPCs exposed via gRPC and wired in frontend (`/forgot-password`, `/forgot-password/reset`) |
 | Project | project.go, connection.go, service.go, connection_service.go | project_repo.go, connection_repo.go | grpc.go | Full CRUD + members + roles + slug generation + connection encryption (AES-256-GCM) + async connection test |
 | Schema | schema.go, introspection.go, differ.go, cache.go, service.go | schema_repo.go | grpc.go | Introspection (information_schema + pg_catalog), versioning (SHA-256 content-addressed), diff engine, diagram data (nodes/edges), Redis cache |
 | Migration | migration.go, service.go, executor.go, validator.go | migration_repo.go | grpc.go | Full CRUD + async execution + transaction management + per-statement logging + streaming progress + rollback + dry-run + SQL validation |
@@ -114,9 +114,9 @@
 | Monitoring/alerting | No alert rules configured |
 | Backup/DR procedures | Not implemented |
 
-### 4. Frontend — DONE (20/20 product pages)
+### 4. Frontend — DONE (21/21 product pages)
 
-36 routes built, lint+build clean, every page wired. Details in `frontend/FRONTEND_PLAN.md`.
+34 routes built, lint+build clean, every page wired to gRPC-Web real data — zero mock data files remain (`src/lib/*-data.ts` deleted). Notifications popover is real-time (Redis pub/sub event stream). Reviews feature removed (no RPCs in the backend contract). Details in `frontend/FRONTEND_PLAN.md`.
 
 ---
 
@@ -158,5 +158,5 @@ A comprehensive `.gitignore` already exists at root. Here's what it covers:
 | Backend polish (Makefile, linter, tools.go) | **NEEDED** | Medium |
 | Documentation (LICENSE, .editorconfig) | **NEEDED** | Low |
 | Infrastructure (infra/, monitoring) | **NEEDED** | Low (post-MVP) |
-| **Frontend** | **100% DONE (36 routes)** | - |
+| **Frontend** | **100% DONE (34 routes)** | - |
 | **Tests** | **~50% (unit layer done; handler + integration pending)** | **High** |

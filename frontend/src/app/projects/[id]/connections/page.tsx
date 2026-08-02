@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Search, Plus, Database, Globe, Server, User, Shield, Clock, PlugZap } from "lucide-react";
+import { ArrowLeft, Search, Plus, Database, Globe, Server, User, Shield, Clock, PlugZap, Trash2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -24,27 +24,57 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { connectionStatusConfig, dbConnections } from "@/lib/connections-data";
+import {
+  useConnections,
+  useTestConnection,
+  useDeleteConnection,
+} from "@/lib/api/hooks/use-connections";
+import { getApiErrorMessage } from "@/lib/api/errors";
+
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "Never";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "Never";
+  const mins = Math.floor((Date.now() - then) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function sslLabel(sslMode: string): string {
+  switch (sslMode.toLowerCase()) {
+    case "required":
+      return "SSL required";
+    case "prefer":
+      return "SSL preferred";
+    case "disabled":
+    case "disable":
+    case "":
+      return "SSL disabled";
+    default:
+      return `SSL ${sslMode}`;
+  }
+}
 
 export default function ConnectionsPage() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const connected = dbConnections.filter((c) => c.status === "connected").length;
-  const withError = dbConnections.filter((c) => c.status === "error").length;
+  const { data: connections, isLoading, error } = useConnections(projectId);
+  const testConnection = useTestConnection();
+  const deleteConnection = useDeleteConnection(projectId);
+
+  const connected = (connections ?? []).filter((c) => c.connectionStatus === "connected").length;
+  const withError = (connections ?? []).filter((c) => c.connectionStatus === "error").length;
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <Tooltip delay={0}>
-            <SidebarTrigger className="-ml-1 size-9" />
-            <Tooltip.Content>
-              <p>Toggle sidebar</p>
-            </Tooltip.Content>
-          </Tooltip>
+          <SidebarTrigger className="-ml-1 size-9" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
@@ -78,11 +108,17 @@ export default function ConnectionsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-semibold tracking-tight">Connections</h1>
-                  <Badge variant="outline" className="text-[11px]">{dbConnections.length} linked</Badge>
+                  <Badge variant="outline" className="text-[11px]">{(connections ?? []).length} linked</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {connected} connected · {withError > 0 && <span className="text-red-500 font-medium">{withError} failing · </span>}
-                  PostgreSQL databases linked to this project
+                  {isLoading ? "Loading connections..." : error ? (
+                    <span className="text-red-500">{getApiErrorMessage(error)}</span>
+                  ) : (
+                    <>
+                      {connected} connected · {withError > 0 && <span className="text-red-500 font-medium">{withError} failing · </span>}
+                      PostgreSQL databases linked to this project
+                    </>
+                  )}
                 </p>
               </div>
               <Link href={`/projects/${projectId}/connections/new`}>
@@ -95,10 +131,26 @@ export default function ConnectionsPage() {
           </div>
 
           {/* Connection cards */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {dbConnections.map((conn) => {
-              const status = connectionStatusConfig[conn.status];
-              return (
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading connections...</p>
+          ) : !connections || connections.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <Database className="size-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  No connections yet. Link a PostgreSQL database to start tracking schemas.
+                </p>
+                <Link href={`/projects/${projectId}/connections/new`} className="inline-block mt-4">
+                  <Button variant="outline" className="gap-2">
+                    <Plus className="size-4" />
+                    Add Connection
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {connections.map((conn) => (
                 <Card key={conn.id}>
                   <CardHeader className="border-0 pb-0">
                     <div className="flex items-start justify-between gap-3">
@@ -108,16 +160,24 @@ export default function ConnectionsPage() {
                         </div>
                         <div>
                           <CardTitle className="text-base">{conn.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{conn.version}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{conn.databaseName}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{conn.env}</Badge>
-                        <Badge variant={status.badge} className="text-[10px] px-1.5 py-0 gap-1">
-                          <span className={`size-1.5 rounded-full ${status.dot}`} />
-                          {status.label}
-                        </Badge>
-                      </div>
+                      <Badge
+                        variant={conn.connectionStatus === "connected" ? "default" : conn.connectionStatus === "error" ? "destructive" : "secondary"}
+                        className="text-[10px] px-1.5 py-0 gap-1"
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            conn.connectionStatus === "connected"
+                              ? "bg-green-500"
+                              : conn.connectionStatus === "error"
+                                ? "bg-red-500"
+                                : "bg-muted-foreground/50"
+                          }`}
+                        />
+                        {conn.connectionStatus}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-4">
@@ -128,37 +188,81 @@ export default function ConnectionsPage() {
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Server className="size-4 shrink-0" />
-                        <span className="truncate font-mono text-xs">{conn.database}</span>
+                        <span className="truncate font-mono text-xs">{conn.databaseName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="size-4 shrink-0" />
-                        <span className="truncate font-mono text-xs">{conn.user}</span>
+                        <span className="truncate font-mono text-xs">{conn.username}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Shield className="size-4 shrink-0" />
-                        <span className="text-xs">{conn.ssl === "required" ? "SSL required" : conn.ssl === "prefer" ? "SSL preferred" : "SSL disabled"}</span>
+                        <span className="text-xs">{sslLabel(conn.sslMode)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <PlugZap className="size-4 shrink-0" />
-                        <span className="text-xs">{conn.latency} latency</span>
+                        <span className="text-xs">Last test {relativeTime(conn.lastConnectedAt)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="size-4 shrink-0" />
-                        <span className="text-xs">Synced {conn.lastSync}</span>
+                        <span className="text-xs">Created {relativeTime(conn.createdAt)}</span>
                       </div>
                     </div>
+                    {testConnection.isPending && testConnection.variables?.connectionId === conn.id && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" />
+                        Testing connection...
+                      </div>
+                    )}
+                    {testConnection.data && testConnection.variables?.connectionId === conn.id && (
+                      <div className={`mt-3 flex items-center gap-2 text-xs ${testConnection.data.success ? "text-green-500" : "text-red-500"}`}>
+                        {testConnection.data.success ? <CheckCircle2 className="size-3.5" /> : <XCircle className="size-3.5" />}
+                        {testConnection.data.success
+                          ? `Connected · ${testConnection.data.serverVersion || testConnection.data.databaseName} · ${testConnection.data.latencyMs}ms`
+                          : testConnection.data.error || "Connection failed"}
+                      </div>
+                    )}
+                    {testConnection.isError && testConnection.variables?.connectionId === conn.id && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-red-500">
+                        <XCircle className="size-3.5" />
+                        {getApiErrorMessage(testConnection.error)}
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 mt-4 pt-4 border-t">
-                      <Button variant="outline" size="sm" className="h-8 text-xs">Test</Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">Sync Schema</Button>
-                      <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground ml-auto">
-                        Edit
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1.5"
+                        disabled={testConnection.isPending}
+                        onClick={() => testConnection.mutate({ projectId, connectionId: conn.id })}
+                      >
+                        <PlugZap className="size-3" />
+                        Test
+                      </Button>
+                      <Link href={`/projects/${projectId}/schemas`}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          Sync Schema
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-muted-foreground gap-1.5 ml-auto"
+                        disabled={deleteConnection.isPending}
+                        onClick={() => {
+                          if (confirm(`Delete connection "${conn.name}"?`)) {
+                            deleteConnection.mutate(conn.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-3" />
+                        Delete
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

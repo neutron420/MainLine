@@ -3,8 +3,8 @@
 import { useState, useMemo } from "react";
 import {
   Search, Plus, ChevronRight, Database, Table2, FolderKanban,
-  KeyRound, Link2, ShieldCheck, Clock, TriangleAlert, Columns3, Hash,
-  FileCode2, Copy, Check,
+  KeyRound, Link2, ShieldCheck, Columns3, Copy, Check,
+  Loader2, RefreshCw,
 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -41,14 +40,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -60,38 +51,11 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { schemaProjects, schemaStatusConfig, projectOptions, type SchemaTable, type SchemaColumn } from "@/lib/schemas-data";
-
-function generateColumnDDL(table: SchemaTable, schema: string, column: SchemaColumn): string {
-  const parts = [`ALTER TABLE ${schema}.${table.name} ADD COLUMN ${column.name} ${column.type}`];
-  if (!column.nullable) parts.push("NOT NULL");
-  if (column.default) parts.push(`DEFAULT ${column.default}`);
-  return parts.join(" ") + ";";
-}
-
-function generateTableDDL(table: SchemaTable, schema: string): string {
-  const lines: string[] = [];
-  lines.push(`CREATE TABLE ${schema}.${table.name} (`);
-  table.columns.forEach((column, i) => {
-    const parts = [`  ${column.name} ${column.type}`];
-    if (column.key === "PK") parts.push("PRIMARY KEY");
-    if (!column.nullable) parts.push("NOT NULL");
-    if (column.default) parts.push(`DEFAULT ${column.default}`);
-    lines.push(parts.join(" ") + (i < table.columns.length - 1 ? "," : ""));
-  });
-  lines.push(");");
-  if (table.indexes.length > 0) lines.push("");
-  for (const index of table.indexes) {
-    lines.push(`CREATE ${index.unique ? "UNIQUE " : ""}INDEX ${index.name} ON ${schema}.${table.name} (${index.columns.join(", ")});`);
-  }
-  if (table.relations.length > 0) lines.push("");
-  for (const relation of table.relations) {
-    const fromCol = relation.from.split(".")[1];
-    lines.push(`ALTER TABLE ${schema}.${table.name} ADD CONSTRAINT ${relation.name} FOREIGN KEY (${fromCol}) REFERENCES ${relation.to};`);
-  }
-  return lines.join("\n");
-}
+import { useProjects } from "@/lib/api/hooks/use-projects";
+import { useSchemas, useSchemaDiagram, useIntrospectSchema } from "@/lib/api/hooks/use-schemas";
+import { useConnections } from "@/lib/api/hooks/use-connections";
+import type { ColumnInfo } from "@/lib/gen/schema/v1/schema_messages_pb";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -112,77 +76,127 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export default function SchemasPage() {
-  const [search, setSearch] = useState("");
-  const [projectFilter, setProjectFilter] = useState("all");
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(["p1"]));
-  const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set(["s1"]));
-  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set(["t-users"]));
-  const [selectedTableId, setSelectedTableId] = useState<string>("t-users");
-  const [selectedColumn, setSelectedColumn] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+function generateTableDDL(schemaName: string, label: string, columns: ColumnInfo[]): string {
+  const lines: string[] = [];
+  lines.push(`CREATE TABLE ${schemaName}.${label} (`);
+  columns.forEach((column, i) => {
+    const parts = [`  ${column.name} ${column.type}`];
+    if (column.isPk) parts.push("PRIMARY KEY");
+    if (!column.nullable) parts.push("NOT NULL");
+    if (column.default) parts.push(`DEFAULT ${column.default}`);
+    lines.push(parts.join(" ") + (i < columns.length - 1 ? "," : ""));
+  });
+  lines.push(");");
+  return lines.join("\n");
+}
 
-  const toggle = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) => {
-    setter((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+function ProjectSchemas({
+  projectId,
+  projectName,
+  onSelectSchema,
+  selectedSchemaId,
+}: {
+  projectId: string;
+  projectName: string;
+  onSelectSchema: (projectId: string, schemaId: string) => void;
+  selectedSchemaId: string | null;
+}) {
+  const { data: schemas } = useSchemas(projectId);
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div key={projectId}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted text-left"
+      >
+        <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+        <FolderKanban className="size-4 text-muted-foreground" />
+        <span className="font-medium truncate">{projectName}</span>
+        <span className="ml-auto text-xs text-muted-foreground">{schemas?.length ?? 0}</span>
+      </button>
+      {open && (
+        <div className="ml-4 border-l pl-2">
+          {!schemas || schemas.length === 0 ? (
+            <p className="px-2 py-1 text-xs text-muted-foreground">No schemas</p>
+          ) : (
+            schemas.map((schema) => (
+              <button
+                key={schema.id}
+                onClick={() => onSelectSchema(projectId, schema.id)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left ${
+                  selectedSchemaId === schema.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                }`}
+              >
+                <Database className="size-4 text-muted-foreground" />
+                <span className="font-mono text-sm truncate">{schema.schemaName}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{schema.currentVersionId.slice(0, 6)}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SchemasPage() {
+  const { data: projects, isLoading } = useProjects();
+  const introspect = useIntrospectSchema();
+
+  const [selection, setSelection] = useState<{ projectId: string; schemaId: string } | null>(null);
+  const [search, setSearch] = useState("");
+
+  const { data: projectSchemas } = useSchemas(selection?.projectId);
+  const selectedSchema =
+    projectSchemas?.find((s) => s.id === selection?.schemaId) ?? null;
+
+  const { data: diagram, isLoading: diagramLoading } = useSchemaDiagram(
+    selectedSchema?.currentVersionId,
+  );
+
+  const [introspectOpen, setIntrospectOpen] = useState(false);
+  const [projectId, setProjectId] = useState("");
+  const [connectionId, setConnectionId] = useState("");
+  const [schemaNames, setSchemaNames] = useState("");
+  const { data: connections } = useConnections(projectId || undefined);
+
+  const doIntrospect = () => {
+    if (!connectionId || !schemaNames.trim() || introspect.isPending) return;
+    introspect.mutate(
+      {
+        connectionId,
+        schemaNames: schemaNames.split(",").map((s) => s.trim()).filter(Boolean),
+      },
+      {
+        onSuccess: (result) => {
+          setIntrospectOpen(false);
+          setSchemaNames("");
+          setSelection({ projectId, schemaId: result.schema.id });
+        },
+      },
+    );
   };
 
-  const filteredProjects = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return schemaProjects
-      .filter((p) => projectFilter === "all" || p.name === projectFilter)
-      .map((p) => ({
-        ...p,
-        schemas: p.schemas
-          .map((s) => ({
-            ...s,
-            tables: s.tables.filter((t) =>
-              q === "" ||
-              t.name.toLowerCase().includes(q) ||
-              t.columns.some((c) => c.name.toLowerCase().includes(q))
-            ),
-          }))
-          .filter((s) => s.tables.length > 0),
-      }))
-      .filter((p) => p.schemas.length > 0);
-  }, [search, projectFilter]);
-
-  const isSearching = search.trim().length > 0;
-
-  const driftCount = useMemo(
-    () => schemaProjects.flatMap((p) => p.schemas).flatMap((s) => s.tables).filter((t) => t.status === "drift").length,
-    []
-  );
-  const pendingCount = useMemo(
-    () => schemaProjects.flatMap((p) => p.schemas).flatMap((s) => s.tables).filter((t) => t.status === "pending").length,
-    []
+  const tables = useMemo(
+    () =>
+      (diagram?.nodes ?? []).map((node) => ({
+        id: node.id,
+        name: (node.data as { label?: string } | undefined)?.label ?? node.id,
+        columns: (node.data as { columns?: ColumnInfo[] } | undefined)?.columns ?? [],
+      })),
+    [diagram],
   );
 
-  const selectedTable = useMemo(() => {
-    for (const p of schemaProjects) {
-      for (const s of p.schemas) {
-        const t = s.tables.find((t) => t.id === selectedTableId);
-        if (t) return { table: t, project: p.name, schema: s.name };
-      }
-    }
-    return null;
-  }, [selectedTableId]);
+  const q = search.trim().toLowerCase();
+  const filteredTables = q ? tables.filter((t) => t.name.toLowerCase().includes(q)) : tables;
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <Tooltip delay={0}>
-            <SidebarTrigger className="-ml-1 size-9" />
-            <Tooltip.Content>
-              <p>Toggle sidebar</p>
-            </Tooltip.Content>
-          </Tooltip>
+          <SidebarTrigger className="-ml-1 size-9" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
@@ -201,88 +215,100 @@ export default function SchemasPage() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-6 p-6">
-          {/* Header + New Schema */}
+          {/* Header + Introspect */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">Schemas</h1>
               <p className="text-sm text-muted-foreground mt-1">Explore database schemas across projects</p>
             </div>
-            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <Dialog open={introspectOpen} onOpenChange={setIntrospectOpen}>
               <DialogTrigger asChild>
-                <Tooltip delay={0}>
-                  <Button className="h-11 gap-2">
-                    <Plus className="size-4" />
-                    New Schema
-                  </Button>
-                  <Tooltip.Content>
-                    <p>Create a new schema</p>
-                  </Tooltip.Content>
-                </Tooltip>
+                <Button className="h-11 gap-2">
+                  <Plus className="size-4" />
+                  Track Schema
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>
-                  <DialogTitle>New Schema</DialogTitle>
+                  <DialogTitle>Track a Schema</DialogTitle>
                   <DialogDescription>
-                    Create a new schema in one of your projects.
+                    Introspect a connection to create a tracked schema version.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-5 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="sname">Schema Name</Label>
-                    <Input id="sname" placeholder="e.g. auth" className="h-11 font-mono" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sproject">Project</Label>
-                    <Select>
-                      <SelectTrigger id="sproject" className="h-11">
+                    <Label htmlFor="proj">Project</Label>
+                    <Select value={projectId} onValueChange={setProjectId}>
+                      <SelectTrigger id="proj" className="h-11">
                         <SelectValue placeholder="Select project" />
                       </SelectTrigger>
                       <SelectContent>
-                        {projectOptions.map((p) => (
-                          <SelectItem key={p} value={p.toLowerCase().replace(/ /g, "-")}>{p}</SelectItem>
+                        {(projects ?? []).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="sdesc">Description (optional)</Label>
-                    <Textarea id="sdesc" placeholder="Purpose of this schema..." className="min-h-[80px]" />
+                    <Label htmlFor="conn">Connection</Label>
+                    <Select value={connectionId} onValueChange={setConnectionId} disabled={!projectId}>
+                      <SelectTrigger id="conn" className="h-11">
+                        <SelectValue placeholder={projectId ? "Select connection" : "Select a project first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(connections ?? []).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.databaseName})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="sn">Schema names (comma separated)</Label>
+                    <Input
+                      id="sn"
+                      placeholder="public, auth"
+                      className="h-11 font-mono"
+                      value={schemaNames}
+                      onChange={(e) => setSchemaNames(e.target.value)}
+                    />
+                  </div>
+                  {introspect.isError && (
+                    <p className="text-sm text-red-500">{getApiErrorMessage(introspect.error)}</p>
+                  )}
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button onClick={() => setCreateOpen(false)}>Create Schema</Button>
+                  <Button variant="outline" onClick={() => setIntrospectOpen(false)}>Cancel</Button>
+                  <Button
+                    onClick={doIntrospect}
+                    disabled={!connectionId || !schemaNames.trim() || introspect.isPending}
+                  >
+                    {introspect.isPending ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Introspecting…
+                      </>
+                    ) : (
+                      "Introspect"
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
-          {/* Search + Project filter */}
+          {/* Search */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search tables or columns..."
+                placeholder="Search tables..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-11"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-11">
-                  {projectFilter === "all" ? "Project" : projectFilter}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel>Filter by Project</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem checked={projectFilter === "all"} onCheckedChange={() => setProjectFilter("all")}>All Projects</DropdownMenuCheckboxItem>
-                {projectOptions.map((p) => (
-                  <DropdownMenuCheckboxItem key={p} checked={projectFilter === p} onCheckedChange={() => setProjectFilter(p)}>{p}</DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {/* Explorer */}
@@ -294,306 +320,210 @@ export default function SchemasPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="max-h-[520px] overflow-y-auto pr-1 flex flex-col text-sm">
-                  {filteredProjects.map((project) => {
-                    const projectOpen = expandedProjects.has(project.id) || isSearching;
-                    const tableCount = project.schemas.reduce((acc, s) => acc + s.tables.length, 0);
-                    return (
-                      <div key={project.id}>
-                        <button
-                          onClick={() => toggle(setExpandedProjects, project.id)}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted text-left"
-                        >
-                          <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${projectOpen ? "rotate-90" : ""}`} />
-                          <FolderKanban className="size-4 text-muted-foreground" />
-                          <span className="font-medium">{project.name}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">{tableCount}</span>
-                        </button>
-                        {projectOpen && (
-                          <div className="ml-4 border-l pl-2">
-                            {project.schemas.map((schema) => {
-                              const schemaOpen = expandedSchemas.has(schema.id) || isSearching;
-                              return (
-                                <div key={schema.id}>
-                                  <button
-                                    onClick={() => toggle(setExpandedSchemas, schema.id)}
-                                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted text-left"
-                                  >
-                                    <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${schemaOpen ? "rotate-90" : ""}`} />
-                                    <Database className="size-4 text-muted-foreground" />
-                                    <span>{schema.name}</span>
-                                    <span className="ml-auto text-xs text-muted-foreground">{schema.tables.length}</span>
-                                  </button>
-                                  {schemaOpen && (
-                                    <div className="ml-4 border-l pl-2">
-                                      {schema.tables.map((table) => {
-                                        const tableOpen = expandedTables.has(table.id) || isSearching;
-                                        const selected = selectedTableId === table.id;
-                                        return (
-                                          <div key={table.id}>
-                                            <button
-                                              onClick={() => {
-                                                setSelectedTableId(table.id);
-                                                setSelectedColumn(null);
-                                                toggle(setExpandedTables, table.id);
-                                              }}
-                                              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left ${
-                                                selected ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                                              }`}
-                                            >
-                                              <ChevronRight className={`size-3.5 text-muted-foreground transition-transform ${tableOpen ? "rotate-90" : ""}`} />
-                                              <Table2 className={`size-4 ${selected ? "text-primary" : "text-muted-foreground"}`} />
-                                              <span className="font-medium">{table.name}</span>
-                                              <span className={`ml-auto size-1.5 rounded-full ${schemaStatusConfig[table.status].dot}`} />
-                                            </button>
-                                            {tableOpen && (
-                                              <div className="ml-4 border-l pl-2">
-                                                {table.columns.map((column) => (
-                                                  <button
-                                                    key={column.name}
-                                                    onClick={() => {
-                                                      setSelectedTableId(table.id);
-                                                      setSelectedColumn(column.name);
-                                                      toggle(setExpandedTables, table.id);
-                                                    }}
-                                                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-left ${
-                                                      selectedTableId === table.id && selectedColumn === column.name
-                                                        ? "bg-primary/10 text-primary"
-                                                        : "hover:bg-muted"
-                                                    }`}
-                                                  >
-                                                    {column.key === "PK" ? (
-                                                      <KeyRound className="size-3 text-amber-500 shrink-0" />
-                                                    ) : column.key === "FK" ? (
-                                                      <Link2 className="size-3 text-blue-500 shrink-0" />
-                                                    ) : (
-                                                      <span className="size-1 shrink-0 rounded-full bg-muted-foreground/40" />
-                                                    )}
-                                                    <span className="font-mono truncate">{column.name}</span>
-                                                    <span className="ml-auto font-mono text-[10px] text-muted-foreground truncate">{column.type}</span>
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {isLoading ? (
+                    <p className="px-2 py-2 text-xs text-muted-foreground">Loading projects...</p>
+                  ) : !projects || projects.length === 0 ? (
+                    <p className="px-2 py-2 text-xs text-muted-foreground">No projects yet.</p>
+                  ) : (
+                    projects.map((project) => (
+                      <ProjectSchemas
+                        key={project.id}
+                        projectId={project.id}
+                        projectName={project.name}
+                        selectedSchemaId={selection?.schemaId ?? null}
+                        onSelectSchema={(pid, sid) => setSelection({ projectId: pid, schemaId: sid })}
+                      />
+                    ))
+                  )}
                 </div>
-                {filteredProjects.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Database className="size-10 text-muted-foreground/40 mb-3" />
-                    <h3 className="text-sm font-medium">No schemas found</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Try adjusting your search or filters</p>
-                  </div>
-                )}
                 <Separator className="my-4" />
                 <div className="flex items-center gap-4 px-1 pb-1">
-                  {driftCount > 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
-                      <TriangleAlert className="size-3.5" />
-                      {driftCount} with drift
-                    </span>
-                  )}
-                  {pendingCount > 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-yellow-500 font-medium">
-                      <Clock className="size-3.5" />
-                      {pendingCount} pending review
-                    </span>
-                  )}
-                  {driftCount === 0 && pendingCount === 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
-                      <ShieldCheck className="size-3.5" />
-                      All schemas healthy
-                    </span>
-                  )}
+                  <span className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                    <ShieldCheck className="size-3.5" />
+                    Schemas tracked per project
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Detail */}
-            {selectedTable ? (
+            {selection && selectedSchema ? (
               <Card className="h-fit">
                 <CardHeader className="border-0">
                   <div className="flex flex-wrap items-center gap-3">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <Table2 className="size-4 text-muted-foreground" />
-                      {selectedTable.table.name}
+                      <Database className="size-4 text-muted-foreground" />
+                      <span className="font-mono">{selectedSchema.schemaName}</span>
                     </CardTitle>
-                    <Badge variant={schemaStatusConfig[selectedTable.table.status].badge} className="text-[10px] px-1.5 py-0">
-                      {schemaStatusConfig[selectedTable.table.status].label}
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {selectedSchema.currentVersionId.slice(0, 8)}
                     </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs ml-auto"
+                      disabled={introspect.isPending}
+                      onClick={() => {
+                        if (selectedSchema.connectionId) {
+                          introspect.mutate({
+                            connectionId: selectedSchema.connectionId,
+                            schemaNames: [selectedSchema.schemaName],
+                          });
+                        }
+                      }}
+                    >
+                      <RefreshCw className={`size-3 ${introspect.isPending ? "animate-spin" : ""}`} />
+                      Re-introspect
+                    </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {selectedTable.project} · {selectedTable.schema} · {selectedTable.table.columns.length} columns · {selectedTable.table.indexes.length} indexes
+                    Connection {selectedSchema.connectionId.slice(0, 8)} · last introspected{" "}
+                    {selectedSchema.lastIntrospectedAt
+                      ? new Date(selectedSchema.lastIntrospectedAt).toLocaleString()
+                      : "—"}
                   </p>
+                  {introspect.isSuccess && (
+                    <p className="text-sm text-green-500">Schema re-introspected successfully.</p>
+                  )}
+                  {introspect.isError && (
+                    <p className="text-sm text-red-500">{getApiErrorMessage(introspect.error)}</p>
+                  )}
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Tabs defaultValue="columns" key={selectedTable.table.id}>
-                    <TabsList variant="line" className="w-full justify-start gap-4">
-                      <TabsTrigger value="columns" className="gap-1.5">
-                        <Columns3 className="size-4" />
-                        Columns
-                        <span className="text-xs text-muted-foreground">{selectedTable.table.columns.length}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="indexes" className="gap-1.5">
-                        <Hash className="size-4" />
-                        Indexes
-                        <span className="text-xs text-muted-foreground">{selectedTable.table.indexes.length}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="relations" className="gap-1.5">
-                        <Link2 className="size-4" />
-                        Relations
-                        <span className="text-xs text-muted-foreground">{selectedTable.table.relations.length}</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="sql" className="gap-1.5">
-                        <FileCode2 className="size-4" />
-                        SQL
-                      </TabsTrigger>
-                    </TabsList>
+                  {diagramLoading ? (
+                    <p className="text-sm text-muted-foreground py-8 text-center">Loading schema structure...</p>
+                  ) : filteredTables.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-8 text-center">
+                      No tables {q ? "matching the search" : "in this schema version"}.
+                    </p>
+                  ) : (
+                    <Tabs defaultValue="tables">
+                      <TabsList variant="line" className="w-full justify-start gap-4">
+                        <TabsTrigger value="tables" className="gap-1.5">
+                          <Columns3 className="size-4" />
+                          Tables
+                          <span className="text-xs text-muted-foreground">{filteredTables.length}</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="relations" className="gap-1.5">
+                          <Link2 className="size-4" />
+                          Relations
+                          <span className="text-xs text-muted-foreground">{diagram?.edges.length ?? 0}</span>
+                        </TabsTrigger>
+                      </TabsList>
 
-                    <TabsContent value="columns" className="mt-4 space-y-4">
-                      {selectedColumn && (
-                        <div className="rounded-md border">
-                          <div className="flex items-center justify-between border-b px-3 py-2">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Column DDL · <span className="font-mono">{selectedColumn}</span>
-                            </span>
-                            <CopyButton text={generateColumnDDL(selectedTable.table, selectedTable.schema, selectedTable.table.columns.find((c) => c.name === selectedColumn)!)} />
-                          </div>
-                          <pre className="bg-muted/50 px-3 py-2.5 overflow-x-auto font-mono text-xs leading-relaxed">
-                            {generateColumnDDL(selectedTable.table, selectedTable.schema, selectedTable.table.columns.find((c) => c.name === selectedColumn)!)}
-                          </pre>
-                        </div>
-                      )}
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[30%]">Column</TableHead>
-                            <TableHead className="w-[25%]">Type</TableHead>
-                            <TableHead>Key</TableHead>
-                            <TableHead>Nullable</TableHead>
-                            <TableHead className="text-right">Default</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedTable.table.columns.map((column) => (
-                            <TableRow
-                              key={column.name}
-                              onClick={() => setSelectedColumn(column.name)}
-                              className={`cursor-pointer ${selectedColumn === column.name ? "bg-primary/5" : ""}`}
-                            >
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  {column.key === "PK" && <KeyRound className="size-3 text-amber-500 shrink-0" />}
-                                  {column.key === "FK" && <Link2 className="size-3 text-blue-500 shrink-0" />}
-                                  <span className="font-mono text-sm">{column.name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell><span className="font-mono text-xs text-muted-foreground">{column.type}</span></TableCell>
-                              <TableCell>
-                                {column.key && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{column.key}</Badge>
+                      <TabsContent value="tables" className="mt-4 space-y-6">
+                        {filteredTables.map((table) => (
+                          <div key={table.id} className="rounded-md border">
+                            <div className="flex items-center justify-between border-b bg-muted/50 px-3 py-2">
+                              <span className="flex items-center gap-2 font-mono text-xs font-semibold">
+                                <Table2 className="size-3.5 text-muted-foreground" />
+                                {table.name}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-muted-foreground">{table.columns.length} columns</span>
+                                <CopyButton text={generateTableDDL(selectedSchema.schemaName, table.name, table.columns)} />
+                              </div>
+                            </div>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-[30%]">Column</TableHead>
+                                  <TableHead className="w-[25%]">Type</TableHead>
+                                  <TableHead>Key</TableHead>
+                                  <TableHead>Nullable</TableHead>
+                                  <TableHead className="text-right">Default</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {table.columns.length === 0 ? (
+                                  <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-4">
+                                      No columns
+                                    </TableCell>
+                                  </TableRow>
+                                ) : (
+                                  table.columns.map((column) => (
+                                    <TableRow key={column.name}>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          {column.isPk && <KeyRound className="size-3 text-amber-500 shrink-0" />}
+                                          {column.isFk && <Link2 className="size-3 text-blue-500 shrink-0" />}
+                                          <span className="font-mono text-sm">{column.name}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <span className="font-mono text-xs text-muted-foreground">{column.type}</span>
+                                      </TableCell>
+                                      <TableCell>
+                                        {column.isPk && (
+                                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">PK</Badge>
+                                        )}
+                                        {column.isFk && (
+                                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">FK</Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground">
+                                        {column.nullable ? "YES" : "NO"}
+                                      </TableCell>
+                                      <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                        {column.default ?? "—"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
                                 )}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{column.nullable ? "YES" : "NO"}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                                {column.default ?? "—"}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TabsContent>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ))}
+                      </TabsContent>
 
-                    <TabsContent value="indexes" className="mt-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[35%]">Index</TableHead>
-                            <TableHead>Columns</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead className="text-right">Unique</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedTable.table.indexes.map((index) => (
-                            <TableRow key={index.name}>
-                              <TableCell><span className="font-mono text-sm">{index.name}</span></TableCell>
-                              <TableCell>
-                                <span className="font-mono text-xs text-muted-foreground">{index.columns.join(", ")}</span>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">{index.type}</Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {index.unique && <Badge variant="default" className="text-[10px] px-1.5 py-0">Unique</Badge>}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TabsContent>
-
-                    <TabsContent value="relations" className="mt-4">
-                      {selectedTable.table.relations.length > 0 ? (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[40%]">Constraint</TableHead>
-                              <TableHead>From</TableHead>
-                              <TableHead>To</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedTable.table.relations.map((relation) => (
-                              <TableRow key={relation.name}>
-                                <TableCell><span className="font-mono text-sm">{relation.name}</span></TableCell>
-                                <TableCell><span className="font-mono text-xs text-blue-500">{relation.from}</span></TableCell>
-                                <TableCell><span className="font-mono text-xs text-muted-foreground">{relation.to}</span></TableCell>
+                      <TabsContent value="relations" className="mt-4">
+                        {!diagram?.edges || diagram.edges.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <Link2 className="size-10 text-muted-foreground/40 mb-3" />
+                            <h3 className="text-sm font-medium">No relations</h3>
+                            <p className="text-xs text-muted-foreground mt-1">This schema has no foreign keys</p>
+                          </div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[35%]">From</TableHead>
+                                <TableHead className="w-[15%]"></TableHead>
+                                <TableHead className="w-[35%]">To</TableHead>
+                                <TableHead className="text-right">Label</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <Link2 className="size-10 text-muted-foreground/40 mb-3" />
-                          <h3 className="text-sm font-medium">No relations</h3>
-                          <p className="text-xs text-muted-foreground mt-1">This table has no foreign keys</p>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="sql" className="mt-4">
-                      <div className="rounded-md border">
-                        <div className="flex items-center justify-between border-b px-3 py-2">
-                          <span className="font-mono text-xs font-medium text-muted-foreground">
-                            CREATE TABLE {selectedTable.schema}.{selectedTable.table.name}
-                          </span>
-                          <CopyButton text={generateTableDDL(selectedTable.table, selectedTable.schema)} />
-                        </div>
-                        <pre className="bg-muted/50 px-3 py-2.5 overflow-x-auto font-mono text-xs leading-relaxed">
-                          {generateTableDDL(selectedTable.table, selectedTable.schema)}
-                        </pre>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+                            </TableHeader>
+                            <TableBody>
+                              {diagram.edges.map((edge) => (
+                                <TableRow key={edge.id}>
+                                  <TableCell>
+                                    <span className="font-mono text-xs text-blue-500">{edge.source}</span>
+                                    <span className="text-xs text-muted-foreground">.{edge.sourceHandle}</span>
+                                  </TableCell>
+                                  <TableCell className="text-center text-muted-foreground">→</TableCell>
+                                  <TableCell>
+                                    <span className="font-mono text-xs">{edge.target}</span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="font-mono text-[10px] text-muted-foreground">{edge.label}</span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  )}
                 </CardContent>
               </Card>
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-20 text-center">
                   <Database className="size-12 text-muted-foreground/40 mb-4" />
-                  <h3 className="text-lg font-medium">Select a table</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Choose a table from the explorer to see its details</p>
+                  <h3 className="text-lg font-medium">Select a schema</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Choose a schema from the explorer to see its structure</p>
                 </CardContent>
               </Card>
             )}

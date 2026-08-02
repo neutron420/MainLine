@@ -2,7 +2,24 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Database, GitBranch, GitPullRequest, AlertTriangle, FileText, Calendar, Users, Settings, ExternalLink, Clock, CheckCircle2, XCircle, Search, RotateCcw, GitCompareArrows } from "lucide-react";
+import {
+  ArrowLeft,
+  Database,
+  GitBranch,
+  AlertTriangle,
+  FileText,
+  Calendar,
+  Users,
+  Settings,
+  ExternalLink,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search,
+  RotateCcw,
+  GitCompareArrows,
+  Activity,
+} from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -34,136 +51,89 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationsPopover } from "@/components/notifications-popover";
-
-const mockDetail = {
-  p1: {
-    name: "User Service Schema",
-    repo: "github.com/mainline/user-service",
-    description: "User authentication and profile data models with Row-Level Security policies",
-    team: "Platform",
-    status: "active" as const,
-    tech: "PostgreSQL",
-    created: "2026-03-15",
-    members: [
-      { name: "Alice", initials: "AL", role: "Lead" },
-      { name: "Bob", initials: "BO", role: "Contributor" },
-    ],
-  },
-  p2: {
-    name: "Payment DB Migration",
-    repo: "github.com/mainline/payment-db",
-    description: "Payment transaction tables, ledger entries, and reconciliation views",
-    team: "Payments",
-    status: "inProgress" as const,
-    tech: "PostgreSQL",
-    created: "2026-04-10",
-    members: [
-      { name: "Charlie", initials: "CH", role: "Lead" },
-    ],
-  },
-};
-
-const statusConfig = {
-  active: { label: "Active", dot: "bg-green-500" },
-  inProgress: { label: "In Progress", dot: "bg-yellow-500" },
-  onHold: { label: "On Hold", dot: "bg-red-500" },
-};
+import { useProject, useMembers } from "@/lib/api/hooks/use-projects";
+import { useSchemas } from "@/lib/api/hooks/use-schemas";
+import { useMigrations } from "@/lib/api/hooks/use-migrations";
+import { useAuditEntries } from "@/lib/api/hooks/use-audit";
+import { useEventStream } from "@/lib/api/hooks/use-realtime";
+import { getApiErrorMessage } from "@/lib/api/errors";
 
 const tabs = [
   { value: "overview", label: "Overview" },
   { value: "schemas", label: "Schemas" },
   { value: "migrations", label: "Migrations" },
-  { value: "drift", label: "Drift" },
   { value: "audit", label: "Audit" },
   { value: "events", label: "Events" },
   { value: "settings", label: "Settings" },
 ];
 
-const tableStatusConfig = {
-  verified: { label: "Verified", dot: "bg-green-500", badge: "default" as const },
-  pending: { label: "Pending Review", dot: "bg-yellow-500", badge: "secondary" as const },
-  drift: { label: "Drift", dot: "bg-red-500", badge: "destructive" as const },
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const mins = Math.floor((Date.now() - then) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "?";
+}
+
+const migrationStatusConfig: Record<
+  string,
+  { label: string; badge: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }
+> = {
+  draft: { label: "Draft", badge: "outline", icon: FileText },
+  pending: { label: "Pending", badge: "secondary", icon: Clock },
+  running: { label: "Running", badge: "secondary", icon: Clock },
+  completed: { label: "Completed", badge: "default", icon: CheckCircle2 },
+  failed: { label: "Failed", badge: "destructive", icon: XCircle },
+  rolled_back: { label: "Rolled Back", badge: "outline", icon: RotateCcw },
 };
 
-const projectTables = {
-  p1: [
-    { name: "users", schema: "public", columns: 6, indexes: 3, status: "verified" as const, updated: "2h ago" },
-    { name: "teams", schema: "public", columns: 4, indexes: 1, status: "verified" as const, updated: "1d ago" },
-    { name: "memberships", schema: "public", columns: 5, indexes: 2, status: "pending" as const, updated: "5h ago" },
-    { name: "sessions", schema: "auth", columns: 6, indexes: 2, status: "drift" as const, updated: "3h ago" },
-    { name: "oauth_tokens", schema: "auth", columns: 6, indexes: 1, status: "verified" as const, updated: "2d ago" },
-  ],
-  p2: [
-    { name: "payments", schema: "public", columns: 6, indexes: 2, status: "pending" as const, updated: "4h ago" },
-    { name: "invoices", schema: "public", columns: 6, indexes: 2, status: "verified" as const, updated: "1d ago" },
-    { name: "ledger_entries", schema: "public", columns: 5, indexes: 2, status: "verified" as const, updated: "2d ago" },
-    { name: "events", schema: "analytics", columns: 5, indexes: 2, status: "drift" as const, updated: "3h ago" },
-    { name: "daily_metrics", schema: "analytics", columns: 4, indexes: 1, status: "verified" as const, updated: "1w ago" },
-  ],
+const auditBadgeConfig: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  migration: "default",
+  drift: "destructive",
+  review: "secondary",
+  auth: "outline",
+  team: "outline",
 };
-
-const migrationStatusConfig = {
-  deployed: { label: "Deployed", badge: "default" as const, icon: CheckCircle2 },
-  inReview: { label: "In Review", badge: "secondary" as const, icon: Clock },
-  inProgress: { label: "In Progress", badge: "secondary" as const, icon: Clock },
-  failed: { label: "Failed", badge: "destructive" as const, icon: XCircle },
-  rolledBack: { label: "Rolled Back", badge: "outline" as const, icon: RotateCcw },
-};
-
-const migrations = [
-  { id: "m1", version: "v1.2.0", name: "Add users table composite index", author: "Alice", status: "deployed" as const, duration: "42s", applied: "2 hours ago" },
-  { id: "m2", version: "v1.1.0", name: "Add email verification columns", author: "Alice", status: "inReview" as const, duration: "—", applied: "3 days ago" },
-  { id: "m3", version: "v1.0.3", name: "Rename stock_level column", author: "Diana", status: "rolledBack" as const, duration: "1m 05s", applied: "5 days ago" },
-  { id: "m4", version: "v1.1.1", name: "Drop legacy zip_code column", author: "Charlie", status: "failed" as const, duration: "—", applied: "2 days ago" },
-  { id: "m5", version: "v1.0.2", name: "Add notification_preferences jsonb", author: "Eve", status: "deployed" as const, duration: "28s", applied: "1 week ago" },
-];
-
-const driftStatusConfig = {
-  unresolved: { label: "Unresolved", badge: "destructive" as const },
-  acknowledged: { label: "Acknowledged", badge: "secondary" as const },
-  resolved: { label: "Resolved", badge: "default" as const },
-};
-
-const severityConfig = {
-  critical: { label: "Critical", badge: "destructive" as const },
-  warning: { label: "Warning", badge: "secondary" as const },
-};
-
-const driftEvents = [
-  { id: "d1", table: "sessions", schema: "auth", env: "Staging", kind: "Column added", detail: "sessions.user_agent added in staging but missing in production", severity: "critical" as const, status: "unresolved" as const, detected: "3 hours ago" },
-  { id: "d2", table: "events", schema: "analytics", env: "Production", kind: "Index missing", detail: "idx_events_occurred missing in production", severity: "warning" as const, status: "acknowledged" as const, detected: "1 day ago" },
-  { id: "d3", table: "users", schema: "public", env: "Development", kind: "Type mismatch", detail: "users.status is varchar(20) in dev vs enum in prod", severity: "warning" as const, status: "resolved" as const, detected: "3 days ago" },
-];
-
-const auditCategoryConfig = {
-  auth: { label: "Auth", badge: "outline" as const },
-  migration: { label: "Migration", badge: "default" as const },
-  review: { label: "Review", badge: "secondary" as const },
-  drift: { label: "Drift", badge: "destructive" as const },
-  team: { label: "Team", badge: "outline" as const },
-};
-
-const auditLog = [
-  { actor: "Alice", initials: "AL", action: "Migration deployed", category: "migration" as const, resource: "users · v1.2.0", time: "2 hours ago" },
-  { actor: "Bob", initials: "BO", action: "Review approved", category: "review" as const, resource: "payments · update status enum", time: "3 hours ago" },
-  { actor: "System", initials: "SY", action: "Drift detected", category: "drift" as const, resource: "auth.sessions", time: "3 hours ago" },
-  { actor: "Alice", initials: "AL", action: "Signed in", category: "auth" as const, resource: "rk@mainline.dev", time: "4 hours ago" },
-  { actor: "Charlie", initials: "CH", action: "Migration failed", category: "migration" as const, resource: "customers · v1.1.1", time: "2 days ago" },
-  { actor: "Diana", initials: "DI", action: "Member invited", category: "team" as const, resource: "eve@mainline.dev", time: "3 days ago" },
-];
-
-const eventHistory = [
-  { title: "Migration v1.2.0 deployed", detail: "User Service · production", icon: CheckCircle2, color: "bg-green-500", time: "2 hours ago" },
-  { title: "Review approved update payment status", detail: "Payment DB", icon: GitPullRequest, color: "bg-purple-500", time: "3 hours ago" },
-  { title: "Schema drift detected", detail: "auth.sessions differs from staging", icon: AlertTriangle, color: "bg-amber-500", time: "3 hours ago" },
-  { title: "Migration v1.0.3 rolled back", detail: "inventory.products", icon: RotateCcw, color: "bg-red-500", time: "5 days ago" },
-  { title: "Eve joined the team", detail: "Invited by Diana", icon: Users, color: "bg-blue-500", time: "3 days ago" },
-];
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const project = mockDetail[id as keyof typeof mockDetail];
+
+  const { data: project, isLoading, error } = useProject(id);
+  const { data: schemas } = useSchemas(id);
+  const { data: migrations } = useMigrations(id);
+  const { data: members } = useMembers(id);
+  const { data: auditEntries } = useAuditEntries();
+  const { events, connected } = useEventStream({ projectIds: [id], maxEvents: 8 });
+
+  if (isLoading) {
+    return (
+      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+            <Database className="size-12 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">Loading project...</p>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
 
   if (!project) {
     return (
@@ -173,7 +143,9 @@ export default function ProjectDetailPage() {
           <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
             <Database className="size-12 text-muted-foreground/40" />
             <h2 className="text-xl font-semibold">Project not found</h2>
-            <p className="text-sm text-muted-foreground">The project you are looking for does not exist.</p>
+            <p className="text-sm text-muted-foreground">
+              {error ? getApiErrorMessage(error) : "The project you are looking for does not exist."}
+            </p>
             <Link href="/projects">
               <Button variant="outline">Back to Projects</Button>
             </Link>
@@ -182,9 +154,6 @@ export default function ProjectDetailPage() {
       </SidebarProvider>
     );
   }
-
-  const status = statusConfig[project.status];
-  const tables = projectTables[id as keyof typeof projectTables] ?? projectTables.p1;
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -223,22 +192,31 @@ export default function ProjectDetailPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
-                  <div className={`size-2.5 rounded-full ${status.dot}`} />
-                  <Badge variant="outline" className="text-[11px]">{project.tech}</Badge>
+                  <div className="bg-green-500 size-2.5 rounded-full" />
+                  <Badge variant="outline" className="text-[11px]">PostgreSQL</Badge>
+                  <Badge variant="secondary" className="text-[11px] capitalize">{project.visibility}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {project.description || "No description provided."}
+                </p>
                 <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-                  <a href={`https://${project.repo}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground transition-colors">
+                  <span className="flex items-center gap-1">
                     <ExternalLink className="size-3" />
-                    {project.repo}
-                  </a>
+                    {project.slug}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="size-3" />
+                    Created {relativeTime(project.createdAt)}
+                  </span>
                 </div>
               </div>
             </div>
-            <Button variant="outline" className="h-11 gap-2 shrink-0">
-              <Settings className="size-4" />
-              Project Settings
-            </Button>
+            <Link href={`/projects/${id}/settings`}>
+              <Button variant="outline" className="h-11 gap-2 shrink-0">
+                <Settings className="size-4" />
+                Project Settings
+              </Button>
+            </Link>
           </div>
 
           {/* Tabs */}
@@ -260,8 +238,8 @@ export default function ProjectDetailPage() {
                     <CardTitle className="text-sm font-medium">Schemas</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-semibold">12</p>
-                    <p className="text-xs text-muted-foreground mt-1">3 pending review</p>
+                    <p className="text-2xl font-semibold">{schemas?.length ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">tracked in this project</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -270,33 +248,37 @@ export default function ProjectDetailPage() {
                     <CardTitle className="text-sm font-medium">Migrations</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-semibold">47</p>
-                    <p className="text-xs text-muted-foreground mt-1">2 in progress</p>
+                    <p className="text-2xl font-semibold">{migrations?.length ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {migrations?.filter((m) => m.status === "completed").length ?? 0} completed
+                    </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-3 pb-2 border-0">
-                    <GitPullRequest className="size-4 text-muted-foreground" />
-                    <CardTitle className="text-sm font-medium">Reviews</CardTitle>
+                    <Users className="size-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Members</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-semibold">5</p>
-                    <p className="text-xs text-muted-foreground mt-1">2 pending approval</p>
+                    <p className="text-2xl font-semibold">{members?.length ?? project.memberCount}</p>
+                    <p className="text-xs text-muted-foreground mt-1">collaborators</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center gap-3 pb-2 border-0">
-                    <AlertTriangle className="size-4 text-muted-foreground" />
-                    <CardTitle className="text-sm font-medium">Drift Events</CardTitle>
+                    <Activity className="size-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Live Events</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-semibold">1</p>
-                    <p className="text-xs text-amber-500 font-medium mt-1">Requires attention</p>
+                    <p className="text-2xl font-semibold">{events.length}</p>
+                    <p className="text-xs font-medium mt-1">
+                      {connected ? <span className="text-green-500">Stream connected</span> : <span className="text-amber-500">Connecting...</span>}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Team + Info */}
+              {/* Team + Activity */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Card>
                   <CardHeader className="border-0">
@@ -306,48 +288,55 @@ export default function ProjectDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {project.members.map((member, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <Avatar className="size-8">
-                            <AvatarFallback className="text-xs">{member.initials}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-sm font-medium">{member.name}</p>
-                            <p className="text-xs text-muted-foreground">{member.role}</p>
+                    {!members || members.length === 0 ? (
+                      <p className="text-muted-foreground text-sm py-4">No members yet. Invite your team to collaborate.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {members.map((member) => (
+                          <div key={member.userId || member.email} className="flex items-center gap-3">
+                            <Avatar className="size-8">
+                              <AvatarFallback className="text-xs">{initialsOf(member.email || member.userId)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{member.email || member.userId}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="border-0">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Clock className="size-4" />
-                      Recent Activity
+                      <Activity className="size-4" />
+                      Live Events
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {[
-                        { action: "Migration v1.2.0 deployed", user: "Alice", time: "2 hours ago", icon: CheckCircle2, color: "text-green-500" },
-                        { action: "Schema review approved", user: "Bob", time: "5 hours ago", icon: CheckCircle2, color: "text-green-500" },
-                        { action: "Migration v1.1.0 rolled back", user: "System", time: "1 day ago", icon: XCircle, color: "text-red-500" },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3 pb-3 border-b last:border-b-0">
-                          <item.icon className={`size-4 mt-0.5 shrink-0 ${item.color}`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm">{item.action}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                              <span>{item.user}</span>
-                              <span>{item.time}</span>
+                    {events.length === 0 ? (
+                      <p className="text-muted-foreground text-sm py-4">
+                        {connected ? "Waiting for schema events..." : "Event stream disconnected — reconnecting..."}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {events.map((event) => (
+                          <div key={event.id} className="flex items-start gap-3 pb-3 border-b last:border-b-0">
+                            <CheckCircle2 className="bg-primary/10 text-primary size-7 shrink-0 rounded-full p-1.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium capitalize">{event.type.replace(/_/g, " ")}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                <span>{event.actor?.email ?? "system"}</span>
+                                <span>·</span>
+                                <span>{relativeTime(event.timestamp)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -359,71 +348,58 @@ export default function ProjectDetailPage() {
                   <div className="flex items-center justify-between gap-4">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Database className="size-4" />
-                      Tables
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tables.length}</Badge>
+                      Schemas
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{schemas?.length ?? 0}</Badge>
                     </CardTitle>
-                    <Link href="/schemas">
-                      <Button variant="outline" size="sm" className="h-9 gap-2">
-                        <Database className="size-4" />
-                        Open Explorer
-                      </Button>
-                    </Link>
-                    <Link href={`/projects/${id}/schemas/public/erd`}>
-                      <Button variant="outline" size="sm" className="h-9 gap-2">
-                        <GitBranch className="size-4" />
-                        View ERD
-                      </Button>
-                    </Link>
-                    <Link href={`/projects/${id}/schemas/public/compare`}>
-                      <Button size="sm" className="h-9 gap-2">
-                        <GitCompareArrows className="size-4" />
-                        Compare
-                      </Button>
-                    </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[35%]">Table</TableHead>
-                        <TableHead>Schema</TableHead>
-                        <TableHead>Columns</TableHead>
-                        <TableHead>Indexes</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Updated</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tables.map((table) => {
-                        const status = tableStatusConfig[table.status];
-                        return (
-                          <TableRow key={table.name}>
+                  {!schemas || schemas.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-6 text-center">
+                      No schemas tracked yet. Connect a database to start introspecting.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[30%]">Schema</TableHead>
+                          <TableHead>Connection</TableHead>
+                          <TableHead>Version</TableHead>
+                          <TableHead className="text-right">Last Introspected</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {schemas.map((schema) => (
+                          <TableRow key={schema.id}>
                             <TableCell>
                               <div className="flex items-center gap-2.5">
-                                <div className={`size-1.5 rounded-full ${status.dot}`} />
-                                <span className="font-mono text-sm">{table.name}</span>
+                                <div className="bg-green-500 size-1.5 rounded-full" />
+                                <Link
+                                  href={`/projects/${id}/schemas/${schema.id}`}
+                                  className="font-mono text-sm hover:underline"
+                                >
+                                  {schema.schemaName}
+                                </Link>
                               </div>
                             </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{schema.connectionId}</TableCell>
                             <TableCell>
                               <Link
-                                href={`/projects/${id}/schemas/${table.schema}`}
-                                className="font-mono text-xs text-muted-foreground hover:text-primary hover:underline"
+                                href={`/projects/${id}/schemas/${schema.id}/compare`}
+                                className="flex items-center gap-1.5 text-sm hover:underline"
                               >
-                                {table.schema}
+                                <GitCompareArrows className="size-3.5" />
+                                <span className="font-mono text-xs">{schema.currentVersionId?.slice(0, 8)}</span>
                               </Link>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{table.columns}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{table.indexes}</TableCell>
-                            <TableCell>
-                              <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {relativeTime(schema.lastIntrospectedAt)}
                             </TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">{table.updated}</TableCell>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -435,93 +411,58 @@ export default function ProjectDetailPage() {
                     <CardTitle className="text-base flex items-center gap-2">
                       <GitBranch className="size-4" />
                       Migration History
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{migrations.length}</Badge>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{migrations?.length ?? 0}</Badge>
                     </CardTitle>
                     <Link href={`/projects/${id}/migrations/new`}>
                       <Button size="sm" className="h-9 gap-2">
                         <GitBranch className="size-4" />
-                        Run Migration
+                        New Migration
                       </Button>
                     </Link>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[15%]">Version</TableHead>
-                        <TableHead className="w-[35%]">Migration</TableHead>
-                        <TableHead>Author</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead className="text-right">Applied</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {migrations.map((migration) => {
-                        const status = migrationStatusConfig[migration.status];
-                        return (
-                          <TableRow key={migration.id}>
-                            <TableCell><span className="font-mono text-sm">{migration.version}</span></TableCell>
-                            <TableCell>
-                              <Link href={`/projects/${id}/migrations/${migration.id}`} className="flex items-center gap-2.5 hover:underline">
-                                <status.icon className="size-4 text-muted-foreground" />
-                                <span className="text-sm truncate">{migration.name}</span>
-                              </Link>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{migration.author}</TableCell>
-                            <TableCell>
-                              <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{migration.duration}</TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">{migration.applied}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="drift" className="mt-6">
-              <Card>
-                <CardHeader className="border-0">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="size-4" />
-                    Drift Events
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{driftEvents.length}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {driftEvents.map((drift) => {
-                    const status = driftStatusConfig[drift.status];
-                    const severity = severityConfig[drift.severity];
-                    return (
-                      <div key={drift.id} className="flex items-start gap-3 py-4 border-b last:border-b-0">
-                        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <AlertTriangle className="size-4 text-amber-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Link href={`/projects/${id}/drift/${drift.id}`} className="block rounded-lg hover:bg-muted/40 p-2 -m-2 transition-colors">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-medium">{drift.kind}</p>
-                              <Badge variant={severity.badge} className="text-[10px] px-1.5 py-0">{severity.label}</Badge>
-                              <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-1">{drift.detail}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              <span className="font-mono">{drift.schema}.{drift.table}</span>
-                              <span>·</span>
-                              <span>{drift.env}</span>
-                              <span>·</span>
-                              <span>{drift.detected}</span>
-                            </div>
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {!migrations || migrations.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-6 text-center">
+                      No migrations yet. Create your first migration to start versioning schema changes.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[12%]">Version</TableHead>
+                          <TableHead className="w-[35%]">Migration</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Updated</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {migrations.map((migration) => {
+                          const status = migrationStatusConfig[migration.status] ?? migrationStatusConfig.draft;
+                          return (
+                            <TableRow key={migration.id}>
+                              <TableCell><span className="font-mono text-sm">{migration.version}</span></TableCell>
+                              <TableCell>
+                                <Link
+                                  href={`/projects/${id}/migrations/${migration.id}`}
+                                  className="flex items-center gap-2.5 hover:underline"
+                                >
+                                  <status.icon className="size-4 text-muted-foreground" />
+                                  <span className="text-sm truncate">{migration.title}</span>
+                                </Link>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={status.badge} className="text-[10px] px-1.5 py-0">{status.label}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">
+                                {relativeTime(migration.updatedAt || migration.createdAt)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -532,44 +473,53 @@ export default function ProjectDetailPage() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="size-4" />
                     Audit Log
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{auditLog.length}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{auditEntries?.length ?? 0}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[25%]">Actor</TableHead>
-                        <TableHead className="w-[25%]">Action</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead className="w-[30%]">Resource</TableHead>
-                        <TableHead className="text-right">Time</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {auditLog.map((entry, i) => {
-                        const category = auditCategoryConfig[entry.category];
-                        return (
-                          <TableRow key={i}>
+                  {!auditEntries || auditEntries.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-6 text-center">
+                      No audit activity yet.
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[25%]">Actor</TableHead>
+                          <TableHead className="w-[25%]">Action</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="w-[30%]">Resource</TableHead>
+                          <TableHead className="text-right">Time</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {auditEntries.slice(0, 10).map((entry) => (
+                          <TableRow key={entry.id}>
                             <TableCell>
                               <div className="flex items-center gap-2.5">
                                 <Avatar className="size-7">
-                                  <AvatarFallback className="text-[9px]">{entry.initials}</AvatarFallback>
+                                  <AvatarFallback className="text-[9px]">{initialsOf(entry.actorEmail || entry.actorId)}</AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm">{entry.actor}</span>
+                                <span className="text-sm">{entry.actorEmail || entry.actorId || "system"}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-sm">{entry.action}</TableCell>
                             <TableCell>
-                              <Badge variant={category.badge} className="text-[10px] px-1.5 py-0">{category.label}</Badge>
+                              <Badge variant={auditBadgeConfig[entry.eventType] ?? "outline"} className="text-[10px] px-1.5 py-0">
+                                {entry.eventType}
+                              </Badge>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground truncate">{entry.resource}</TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">{entry.time}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground truncate">
+                              {entry.resourceType} {entry.resourceId}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {relativeTime(entry.createdAt)}
+                            </TableCell>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -579,25 +529,35 @@ export default function ProjectDetailPage() {
                 <CardHeader className="border-0">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Calendar className="size-4" />
-                    Event History
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{eventHistory.length}</Badge>
+                    Live Events
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{events.length}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  {eventHistory.map((event, i) => (
-                    <div key={i} className="flex gap-3 py-3.5 border-b last:border-b-0">
-                      <div className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${event.color} text-white`}>
-                        <event.icon className="size-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{event.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{event.detail}</span>
-                          <span className="text-xs text-muted-foreground ml-auto">{event.time}</span>
+                  {events.length === 0 ? (
+                    <p className="text-muted-foreground text-sm py-6 text-center">
+                      {connected ? "Waiting for schema events..." : "Event stream disconnected — reconnecting..."}
+                    </p>
+                  ) : (
+                    events.map((event) => (
+                      <div key={event.id} className="flex gap-3 py-3.5 border-b last:border-b-0">
+                        <div className="bg-primary/10 mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-primary">
+                          <AlertTriangle className="size-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate capitalize">{event.type.replace(/_/g, " ")}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground">{event.actor?.email ?? "system"}</span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <span className="text-xs text-muted-foreground">
+                              {event.resource?.type ?? ""} {event.resource?.id ?? ""}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-auto">{relativeTime(event.timestamp)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

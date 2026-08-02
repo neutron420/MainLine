@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { Search, Github, Globe, MessageSquare, Link2, Database } from "lucide-react";
+import Link from "next/link";
+import { Search, Link2, Database, Loader2 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub, FaSlack } from "react-icons/fa";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import {
   SidebarInset,
   SidebarProvider,
@@ -18,20 +19,42 @@ import {
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
 import { Tooltip } from "@heroui/react";
-import { dbConnections, connectionStatusConfig } from "@/lib/connections-data";
+import { ProjectConnectionsCard } from "@/components/project-connections-card";
+import {
+  useGetOAuthUrl,
+  useListLinkedIdentities,
+  useUnlinkOAuthIdentity,
+} from "@/lib/api/hooks/use-auth";
+import { useProjects } from "@/lib/api/hooks/use-projects";
 
-type AccountState = "connected" | "disconnected";
+type Provider = "github" | "google" | "slack";
 
-const accounts = [
-  { id: "github", name: "GitHub", description: "Sign in and link repositories", icon: Github, state: "connected" as AccountState, email: "aarav@schemahub.dev" },
-  { id: "google", name: "Google", description: "Sign in with your Google account", icon: Globe, state: "connected" as AccountState, email: "aarav@gmail.com" },
-  { id: "slack", name: "Slack", description: "Get schema alerts in Slack", icon: MessageSquare, state: "disconnected" as AccountState, email: "" },
+const providers: { id: Provider; name: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "github", name: "GitHub", icon: FaGithub },
+  { id: "google", name: "Google", icon: FcGoogle },
+  { id: "slack", name: "Slack", icon: FaSlack },
 ];
 
 export default function LinkedAccountsPage() {
-  const [linked, setLinked] = useState<Record<string, AccountState>>(
-    Object.fromEntries(accounts.map((a) => [a.id, a.state]))
-  );
+  const { data: projects } = useProjects();
+  const { data: identities } = useListLinkedIdentities();
+  const unlinkIdentity = useUnlinkOAuthIdentity();
+  const getOAuthUrl = useGetOAuthUrl();
+  const [linking, setLinking] = useState<Provider | null>(null);
+
+  const linkAccount = async (provider: Provider) => {
+    setLinking(provider);
+    try {
+      const url = await getOAuthUrl.mutateAsync({
+        provider,
+        redirectTo: window.location.origin,
+        linking: true,
+      });
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setLinking(null);
+    }
+  };
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -73,33 +96,49 @@ export default function LinkedAccountsPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="divide-y">
-                {accounts.map((account) => {
-                  const isLinked = linked[account.id] === "connected";
+                {providers.map((provider) => {
+                  const identity = (identities ?? []).find((i) => i.provider === provider.id);
+                  const isLinked = Boolean(identity);
+                  const isLinking = linking === provider.id;
                   return (
-                    <div key={account.id} className="flex items-center gap-4 py-4">
+                    <div key={provider.id} className="flex items-center gap-4 py-4">
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <account.icon className="size-5 text-muted-foreground" />
+                        <provider.icon className="size-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{account.name}</p>
+                        <p className="text-sm font-medium">{provider.name}</p>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {isLinked ? account.email : account.description}
+                          {isLinked ? identity?.providerEmail : "Not linked"}
                         </p>
                       </div>
                       {isLinked ? (
-                        <Badge variant="default" className="text-[10px] px-1.5 py-0 gap-1">
-                          <span className="size-1.5 rounded-full bg-emerald-500" />
-                          Connected
-                        </Badge>
+                        <>
+                          <Badge variant="default" className="text-[10px] px-1.5 py-0 gap-1">
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            Connected
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            disabled={unlinkIdentity.isPending}
+                            onClick={() => unlinkIdentity.mutate(provider.id)}
+                          >
+                            Unlink
+                          </Button>
+                        </>
                       ) : (
-                        <Button variant="outline" size="sm" className="h-8 text-xs">
-                          Connect
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs gap-1.5"
+                          disabled={isLinking}
+                          onClick={() => linkAccount(provider.id)}
+                        >
+                          {isLinking && <Loader2 className="size-3.5 animate-spin" />}
+                          {isLinking ? "Opening..." : "Link"}
                         </Button>
                       )}
-                      <Switch
-                        checked={isLinked}
-                        onCheckedChange={(v) => setLinked((prev) => ({ ...prev, [account.id]: v ? "connected" : "disconnected" }))}
-                      />
                     </div>
                   );
                 })}
@@ -115,28 +154,16 @@ export default function LinkedAccountsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="divide-y">
-                {dbConnections.map((conn) => {
-                  const status = connectionStatusConfig[conn.status];
-                  return (
-                    <div key={conn.id} className="flex items-center gap-4 py-3.5">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <Database className="size-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{conn.name}</p>
-                        <p className="text-xs text-muted-foreground truncate font-mono mt-0.5">{conn.host}</p>
-                      </div>
-                      <Badge variant={status.badge} className="text-[10px] px-1.5 py-0 gap-1">
-                        <span className={`size-1.5 rounded-full ${status.dot}`} />
-                        {status.label}
-                      </Badge>
-                    </div>
-                  );
-                })}
+              <div className="space-y-6">
+                {projects?.map((project) => (
+                  <ProjectConnectionsCard key={project.id} project={project} />
+                ))}
+                {(!projects || projects.length === 0) && (
+                  <p className="text-sm text-muted-foreground">No projects yet.</p>
+                )}
               </div>
               <Separator className="my-4" />
-              <Link href="/projects/prj-schemahub/connections/new">
+              <Link href="/projects">
                 <Button variant="outline" size="sm" className="h-9">
                   Add Connection
                 </Button>

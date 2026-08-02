@@ -1,24 +1,44 @@
 "use client";
 
 import { useState } from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-
-import { Background } from "@/components/background";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Background } from "@/components/background";
+import { useResetPassword } from "@/lib/api/hooks/use-auth";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { CheckCircle2 } from "lucide-react";
 
 const ResetPassword = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const resetPassword = useResetPassword();
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+    try {
+      await resetPassword.mutateAsync({ token: token.trim(), password });
+      setDone(true);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
   };
 
   return (
@@ -35,69 +55,79 @@ const ResetPassword = () => {
                   height={18}
                   className="mb-7 dark:invert"
                 />
-                <p className="mb-2 text-2xl font-bold">Set new password</p>
-                <p className="text-muted-foreground text-center">
-                  Your new password must be at least 8 characters.
-                </p>
+                {done ? (
+                  <>
+                    <CheckCircle2 className="size-10 text-emerald-500 mb-3" />
+                    <p className="mb-2 text-2xl font-bold">Password reset</p>
+                    <p className="text-muted-foreground text-center">
+                      Your password has been updated. You can now log in.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2 text-2xl font-bold">Set a new password</p>
+                    <p className="text-muted-foreground text-center">
+                      Enter the token from your email and choose a new password.
+                    </p>
+                  </>
+                )}
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="grid gap-4">
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="New password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-muted-foreground hover:text-foreground absolute right-1 top-1/2 -translate-y-1/2 grid size-11 place-items-center cursor-pointer bg-transparent border-none"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      type={showConfirm ? "text" : "password"}
-                      placeholder="Confirm password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm(!showConfirm)}
-                      className="text-muted-foreground hover:text-foreground absolute right-1 top-1/2 -translate-y-1/2 grid size-11 place-items-center cursor-pointer bg-transparent border-none"
-                    >
-                      {showConfirm ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                  <Button type="submit" className="mt-2 w-full">
-                    Reset password
-                  </Button>
-                </form>
-                <div className="text-muted-foreground mx-auto mt-8 flex justify-center gap-1 text-sm">
-                  <Link
-                    href="/login"
-                    className="flex items-center gap-1 text-primary font-medium"
-                  >
-                    <ArrowLeft className="size-4" />
-                    Back to sign in
+              {!done && (
+                <CardContent>
+                  <form onSubmit={submit} className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="token">Reset Token</Label>
+                      <Input
+                        id="token"
+                        placeholder="Paste the token from your email"
+                        required
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">New Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="At least 6 characters"
+                        required
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="confirm">Confirm Password</Label>
+                      <Input
+                        id="confirm"
+                        type="password"
+                        placeholder="Repeat your new password"
+                        required
+                        autoComplete="new-password"
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                      />
+                    </div>
+                    {error && <p className="text-destructive text-sm">{error}</p>}
+                    <Button type="submit" className="mt-2 w-full" disabled={resetPassword.isPending}>
+                      {resetPassword.isPending ? "Resetting..." : "Reset password"}
+                    </Button>
+                    <div className="text-center">
+                      <Link href="/login" className="text-primary text-sm font-medium">
+                        Back to login
+                      </Link>
+                    </div>
+                  </form>
+                </CardContent>
+              )}
+              {done && (
+                <CardContent className="grid gap-4">
+                  <Link href="/login">
+                    <Button className="w-full">Log in</Button>
                   </Link>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           </div>
         </div>

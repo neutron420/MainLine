@@ -11,6 +11,9 @@
     "format": "prettier -w ."
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.13.0",
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-web": "^2.1.2",
     "@heroui/react": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@mdx-js/loader": "^3.1.1",
@@ -25,6 +28,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@styleglide/kit-view-provider": "^0.0.8",
+    "@tanstack/react-query": "^5.101.4",
     "@types/mdx": "^2.0.13",
     "@xyflow/react": "^12.11.2",
     "class-variance-authority": "^0.7.1",
@@ -45,6 +49,8 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.72.0",
+    "@bufbuild/protoc-gen-es": "^2.13.0",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.14",
     "@tailwindcss/typography": "^0.5.19",

@@ -19,18 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Register_FullMethodName             = "/schemahub.auth.v1.AuthService/Register"
-	AuthService_Login_FullMethodName                = "/schemahub.auth.v1.AuthService/Login"
-	AuthService_RefreshToken_FullMethodName         = "/schemahub.auth.v1.AuthService/RefreshToken"
-	AuthService_Logout_FullMethodName               = "/schemahub.auth.v1.AuthService/Logout"
-	AuthService_GetCurrentUser_FullMethodName       = "/schemahub.auth.v1.AuthService/GetCurrentUser"
-	AuthService_UpdateUser_FullMethodName           = "/schemahub.auth.v1.AuthService/UpdateUser"
-	AuthService_ChangePassword_FullMethodName       = "/schemahub.auth.v1.AuthService/ChangePassword"
-	AuthService_GetOAuthURL_FullMethodName          = "/schemahub.auth.v1.AuthService/GetOAuthURL"
-	AuthService_HandleOAuthCallback_FullMethodName  = "/schemahub.auth.v1.AuthService/HandleOAuthCallback"
-	AuthService_LinkOAuthIdentity_FullMethodName    = "/schemahub.auth.v1.AuthService/LinkOAuthIdentity"
-	AuthService_UnlinkOAuthIdentity_FullMethodName  = "/schemahub.auth.v1.AuthService/UnlinkOAuthIdentity"
-	AuthService_ListLinkedIdentities_FullMethodName = "/schemahub.auth.v1.AuthService/ListLinkedIdentities"
+	AuthService_Register_FullMethodName              = "/schemahub.auth.v1.AuthService/Register"
+	AuthService_Login_FullMethodName                 = "/schemahub.auth.v1.AuthService/Login"
+	AuthService_RefreshToken_FullMethodName          = "/schemahub.auth.v1.AuthService/RefreshToken"
+	AuthService_Logout_FullMethodName                = "/schemahub.auth.v1.AuthService/Logout"
+	AuthService_GetCurrentUser_FullMethodName        = "/schemahub.auth.v1.AuthService/GetCurrentUser"
+	AuthService_UpdateUser_FullMethodName            = "/schemahub.auth.v1.AuthService/UpdateUser"
+	AuthService_ChangePassword_FullMethodName        = "/schemahub.auth.v1.AuthService/ChangePassword"
+	AuthService_DeleteAccount_FullMethodName         = "/schemahub.auth.v1.AuthService/DeleteAccount"
+	AuthService_SendVerificationEmail_FullMethodName = "/schemahub.auth.v1.AuthService/SendVerificationEmail"
+	AuthService_VerifyEmail_FullMethodName           = "/schemahub.auth.v1.AuthService/VerifyEmail"
+	AuthService_ForgotPassword_FullMethodName        = "/schemahub.auth.v1.AuthService/ForgotPassword"
+	AuthService_ResetPassword_FullMethodName         = "/schemahub.auth.v1.AuthService/ResetPassword"
+	AuthService_GetOAuthURL_FullMethodName           = "/schemahub.auth.v1.AuthService/GetOAuthURL"
+	AuthService_HandleOAuthCallback_FullMethodName   = "/schemahub.auth.v1.AuthService/HandleOAuthCallback"
+	AuthService_LinkOAuthIdentity_FullMethodName     = "/schemahub.auth.v1.AuthService/LinkOAuthIdentity"
+	AuthService_UnlinkOAuthIdentity_FullMethodName   = "/schemahub.auth.v1.AuthService/UnlinkOAuthIdentity"
+	AuthService_ListLinkedIdentities_FullMethodName  = "/schemahub.auth.v1.AuthService/ListLinkedIdentities"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -44,6 +49,12 @@ type AuthServiceClient interface {
 	GetCurrentUser(ctx context.Context, in *GetCurrentUserRequest, opts ...grpc.CallOption) (*GetCurrentUserResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
+	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
+	// Account recovery
+	SendVerificationEmail(ctx context.Context, in *SendVerificationEmailRequest, opts ...grpc.CallOption) (*SendVerificationEmailResponse, error)
+	VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error)
+	ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error)
+	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	// OAuth
 	GetOAuthURL(ctx context.Context, in *GetOAuthURLRequest, opts ...grpc.CallOption) (*GetOAuthURLResponse, error)
 	HandleOAuthCallback(ctx context.Context, in *HandleOAuthCallbackRequest, opts ...grpc.CallOption) (*HandleOAuthCallbackResponse, error)
@@ -130,6 +141,56 @@ func (c *authServiceClient) ChangePassword(ctx context.Context, in *ChangePasswo
 	return out, nil
 }
 
+func (c *authServiceClient) DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteAccountResponse)
+	err := c.cc.Invoke(ctx, AuthService_DeleteAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) SendVerificationEmail(ctx context.Context, in *SendVerificationEmailRequest, opts ...grpc.CallOption) (*SendVerificationEmailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendVerificationEmailResponse)
+	err := c.cc.Invoke(ctx, AuthService_SendVerificationEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*VerifyEmailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyEmailResponse)
+	err := c.cc.Invoke(ctx, AuthService_VerifyEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForgotPasswordResponse)
+	err := c.cc.Invoke(ctx, AuthService_ForgotPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetPasswordResponse)
+	err := c.cc.Invoke(ctx, AuthService_ResetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) GetOAuthURL(ctx context.Context, in *GetOAuthURLRequest, opts ...grpc.CallOption) (*GetOAuthURLResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetOAuthURLResponse)
@@ -191,6 +252,12 @@ type AuthServiceServer interface {
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
+	// Account recovery
+	SendVerificationEmail(context.Context, *SendVerificationEmailRequest) (*SendVerificationEmailResponse, error)
+	VerifyEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error)
+	ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
+	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	// OAuth
 	GetOAuthURL(context.Context, *GetOAuthURLRequest) (*GetOAuthURLResponse, error)
 	HandleOAuthCallback(context.Context, *HandleOAuthCallbackRequest) (*HandleOAuthCallbackResponse, error)
@@ -227,6 +294,21 @@ func (UnimplementedAuthServiceServer) UpdateUser(context.Context, *UpdateUserReq
 }
 func (UnimplementedAuthServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ChangePassword not implemented")
+}
+func (UnimplementedAuthServiceServer) DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteAccount not implemented")
+}
+func (UnimplementedAuthServiceServer) SendVerificationEmail(context.Context, *SendVerificationEmailRequest) (*SendVerificationEmailResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendVerificationEmail not implemented")
+}
+func (UnimplementedAuthServiceServer) VerifyEmail(context.Context, *VerifyEmailRequest) (*VerifyEmailResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyEmail not implemented")
+}
+func (UnimplementedAuthServiceServer) ForgotPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ForgotPassword not implemented")
+}
+func (UnimplementedAuthServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedAuthServiceServer) GetOAuthURL(context.Context, *GetOAuthURLRequest) (*GetOAuthURLResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOAuthURL not implemented")
@@ -390,6 +472,96 @@ func _AuthService_ChangePassword_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_DeleteAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).DeleteAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_DeleteAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).DeleteAccount(ctx, req.(*DeleteAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_SendVerificationEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendVerificationEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SendVerificationEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SendVerificationEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SendVerificationEmail(ctx, req.(*SendVerificationEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).VerifyEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_VerifyEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).VerifyEmail(ctx, req.(*VerifyEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ForgotPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgotPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ForgotPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ForgotPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ForgotPassword(ctx, req.(*ForgotPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ResetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_GetOAuthURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetOAuthURLRequest)
 	if err := dec(in); err != nil {
@@ -514,6 +686,26 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangePassword",
 			Handler:    _AuthService_ChangePassword_Handler,
+		},
+		{
+			MethodName: "DeleteAccount",
+			Handler:    _AuthService_DeleteAccount_Handler,
+		},
+		{
+			MethodName: "SendVerificationEmail",
+			Handler:    _AuthService_SendVerificationEmail_Handler,
+		},
+		{
+			MethodName: "VerifyEmail",
+			Handler:    _AuthService_VerifyEmail_Handler,
+		},
+		{
+			MethodName: "ForgotPassword",
+			Handler:    _AuthService_ForgotPassword_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _AuthService_ResetPassword_Handler,
 		},
 		{
 			MethodName: "GetOAuthURL",

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { StyleGlideProvider } from "@/components/styleglide-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/components/providers";
 import "@/styles/globals.css";
 
 const dmSans = localFont({
@@ -131,8 +132,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <StyleGlideProvider />
-          {children}
+          <Providers>
+            <StyleGlideProvider />
+            {children}
+          </Providers>
         </ThemeProvider>
       </body>
     </html>
