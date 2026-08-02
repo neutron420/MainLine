@@ -108,5 +108,3 @@ func (r *oauthIdentityRepo) UpdateTokens(ctx context.Context, id, accessTokenEnc
 		accessTokenEncrypted, refreshTokenEncrypted, expiresAt, id)
 	return err
 }
-
-

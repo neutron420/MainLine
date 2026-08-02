@@ -8,15 +8,15 @@
 
 | Area | Completion | Lines of Code |
 |---|---|---|
-| **Backend** | 100% | 87 Go files, build+vets pass |
+| **Backend** | 100% | 87 Go files, build+vet pass, gofmt clean |
 | **Proto** | 100% | 16 canonical .proto files + buf config |
 | **Docker** | 100% | compose + Dockerfiles + envoy + redis |
 | **CI/CD** | 100% | 4 GitHub Actions workflows + dependabot |
 | **Scripts** | 100% | 7 PowerShell scripts |
 | **Documentation** | 90% | 20 .md files (missing LICENSE, .editorconfig) |
 | **Infrastructure** | 0% | No infra/ directory at all |
-| **Frontend** | 0% | No source code exists |
-| **Testing** | 0% | No test files anywhere |
+| **Frontend** | 100% | 36 routes, 20/20 product pages (see FRONTEND_PLAN.md) |
+| **Testing** | 50% | 15 unit test files across domain + pkg layers (see below) |
 | **Tooling** | 50% | Missing Makefile, .golangci.yml, tools.go |
 
 ---
@@ -68,14 +68,33 @@
 
 ## What's Left To Do
 
-### 1. Backend Polish (4 items)
+### 1. Backend Polish (3 items)
 
 | Item | Location | Why Needed |
 |---|---|---|
 | `.golangci.yml` | `backend/.golangci.yml` | Linter configuration for CI. Docs say `golangci-lint run` but no config exists |
 | `backend/tools.go` | `backend/tools.go` | Go tool dependency tracking (air, buf, golangci-lint). Docs mention it in FOLDER_STRUCTURE.md |
 | `Makefile` x3 | `./Makefile`, `backend/Makefile`, `proto/Makefile` | Build orchestration. Docs mention them but none exist |
-| Tests | `*_test.go` throughout | 0 test files exist. Minimum 80% coverage required per docs. Need unit + integration + gRPC tests |
+
+### 2. Testing — In Progress (unit layer done, ~50%)
+
+`go test ./...` passes for all packages; gofmt clean; go vet clean. Coverage per package:
+
+| Package | Coverage |
+|---|---|
+| internal/pkg/config | 100% |
+| internal/pkg/errors | 100% |
+| internal/pkg/rbac | 100% |
+| internal/pkg/interceptor | 62.5% (redis-backed paths need integration) |
+| internal/pkg/jwt | 89.6% |
+| pkg/encryption | 85.7% |
+| internal/audit/domain | 95.7% |
+| internal/drift/domain | 83.3% |
+| internal/migration/domain | 57.9% (executor paths need integration) |
+| internal/project/domain | 36.1% (handlers + repo thin, domain covered by focused tests) |
+| internal/schema/domain | 27.2% (introspection/service need integration) |
+
+**Remaining test work:** handler layer (gRPC unit tests per service), repository layer (integration tests against real Postgres via docker-compose), executor + introspection integration tests, CI coverage gate.
 
 ### 2. Documentation Gaps (2 items)
 
@@ -95,64 +114,9 @@
 | Monitoring/alerting | No alert rules configured |
 | Backup/DR procedures | Not implemented |
 
-### 4. Frontend — 0% (Everything)
+### 4. Frontend — DONE (20/20 product pages)
 
-The docs describe 14 features, each with frontend behavior. **Zero frontend code exists.**
-
-#### Pages & Routes Needed
-
-| Route | Component | Description |
-|---|---|---|
-| `/login` | Login page | Email/password form + Google/GitHub/Slack OAuth buttons |
-| `/register` | Register page | Email/password + display name + OAuth options |
-| `/auth/callback` | OAuth callback | Handles provider redirect, state validation, token storage |
-| `/` | Dashboard | Project list, recent activity |
-| `/projects/new` | Create project | Name, description, visibility form |
-| `/projects/[slug]` | Project page | Tabs: overview, schemas, migrations, settings |
-| `/projects/[slug]/schemas` | Schema explorer | Tree view, detail panels, search |
-| `/projects/[slug]/migrations` | Migration list | Filterable list, create button |
-| `/projects/[slug]/migrations/new` | Migration form | SQL editor, validation, version input |
-| `/projects/[slug]/migrations/[id]` | Migration detail | Execute/rollback, progress streaming, logs |
-| `/projects/[slug]/schemas/versions` | Version timeline | Visual history, compare selector |
-| `/projects/[slug]/schemas/diff` | Diff viewer | Side-by-side or unified diff |
-| `/projects/[slug]/settings` | Settings | Name, members, connections, audit log |
-| `/projects/[slug]/diagram` | Schema diagram | React Flow ERD |
-
-#### Component Library Needed
-
-| Group | Components |
-|---|---|
-| **UI primitives** | Button, Dialog, Input, Select, Table, Tabs, Toast (shadcn/ui) |
-| **Layout** | Sidebar, Navbar, ProjectNav |
-| **Schema** | SchemaTree, SchemaDetail, ColumnList, VersionTimeline |
-| **Migration** | MigrationForm, MigrationList, MigrationRunner, MigrationStatus, RollbackButton |
-| **Diff** | DiffViewer, DiffLine |
-| **Audit** | AuditLog, AuditEntry |
-| **Shared** | LoadingSpinner, EmptyState, ErrorState, ConfirmDialog, Pagination, ConnectionStatus |
-
-#### Hooks & API Layer Needed
-
-| Category | Items |
-|---|---|
-| **gRPC-Web client** | Client initialization, auth interceptor |
-| **API modules** | auth.ts, project.ts, schema.ts, migration.ts, audit.ts |
-| **React hooks** | useAuth, useProject, useSchema, useMigration, useRealtime, useDebounce |
-| **Providers** | AuthProvider, QueryProvider (TanStack Query), ThemeProvider |
-| **Utils** | cn (clsx+tw-merge), format (date/numbers), validation (form rules) |
-
-#### Dependencies Required
-
-```
-next, react, react-dom, typescript, tailwindcss
-@radix-ui/* (accordion, dialog, dropdown, select, tabs, toast, tooltip)
-@tanstack/react-query
-lucide-react (icons)
-react-flow (diagrams)
-clsx, tailwind-merge
-class-variance-authority
-protobuf-ts (gRPC-Web client)
-react-hook-form + zod (forms)
-```
+36 routes built, lint+build clean, every page wired. Details in `frontend/FRONTEND_PLAN.md`.
 
 ---
 
@@ -191,8 +155,8 @@ A comprehensive `.gitignore` already exists at root. Here's what it covers:
 | Scripts | **100% DONE** | - |
 | .gitignore | **EXISTS** | - |
 | .env.example | **EXISTS** | - |
-| Backend polish (Makefile, linter, tools.go, tests) | **NEEDED** | Medium |
+| Backend polish (Makefile, linter, tools.go) | **NEEDED** | Medium |
 | Documentation (LICENSE, .editorconfig) | **NEEDED** | Low |
 | Infrastructure (infra/, monitoring) | **NEEDED** | Low (post-MVP) |
-| **Frontend** | **NEEDED (100%)** | **Critical** |
-| **Tests** | **NEEDED (100%)** | **Critical** |
+| **Frontend** | **100% DONE (36 routes)** | - |
+| **Tests** | **~50% (unit layer done; handler + integration pending)** | **High** |

@@ -16,7 +16,7 @@ import (
 
 type SchemaHandler struct {
 	schemav1.UnimplementedSchemaServiceServer
-	svc *domain.SchemaService
+	svc        *domain.SchemaService
 	connString func(ctx context.Context, connID string) (string, error)
 }
 
@@ -117,10 +117,10 @@ func (h *SchemaHandler) GetSchemaDiagram(ctx context.Context, req *schemav1.GetS
 			})
 		}
 		nodes = append(nodes, &schemav1.DiagramNode{
-			Id:   n.ID,
-			Type: n.Type,
+			Id:       n.ID,
+			Type:     n.Type,
 			Position: &schemav1.DiagramPosition{X: n.Position.X, Y: n.Position.Y},
-			Data: &schemav1.DiagramNodeData{Label: n.Data.Label, Columns: cols},
+			Data:     &schemav1.DiagramNodeData{Label: n.Data.Label, Columns: cols},
 		})
 	}
 
@@ -187,7 +187,7 @@ func toDiffObjects(in []domain.DiffObject) []*schemav1.DiffObject {
 		d := &schemav1.DiffObject{Type: o.Type, Name: o.Name, Definition: string(o.Definition)}
 		for _, c := range o.Changes {
 			d.Changes = append(d.Changes, &schemav1.FieldChange{
-				Field: c.Field,
+				Field:  c.Field,
 				Before: fmt.Sprintf("%v", c.Before),
 				After:  fmt.Sprintf("%v", c.After),
 			})

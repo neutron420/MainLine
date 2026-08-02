@@ -14,11 +14,11 @@ import (
 )
 
 type MigrationService struct {
-	repo        MigrationRepository
-	validator   *SQLValidator
-	connString  func(ctx context.Context, connID string) (string, error)
-	watchMu     sync.RWMutex
-	watchers    map[string][]chan *MigrationStatusMessage
+	repo       MigrationRepository
+	validator  *SQLValidator
+	connString func(ctx context.Context, connID string) (string, error)
+	watchMu    sync.RWMutex
+	watchers   map[string][]chan *MigrationStatusMessage
 }
 
 func NewMigrationService(repo MigrationRepository, connString func(ctx context.Context, connID string) (string, error)) *MigrationService {

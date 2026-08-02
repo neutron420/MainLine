@@ -13,11 +13,11 @@ import (
 )
 
 type AuthService struct {
-	userRepo    UserRepository
-	tokenRepo   RefreshTokenRepository
-	oauthRepo   OAuthIdentityRepository
-	verifyRepo  VerificationTokenRepository
-	jwtManager  *jwt.Manager
+	userRepo     UserRepository
+	tokenRepo    RefreshTokenRepository
+	oauthRepo    OAuthIdentityRepository
+	verifyRepo   VerificationTokenRepository
+	jwtManager   *jwt.Manager
 	oauthConfigs *OAuthProviderConfig
 }
 
@@ -395,6 +395,3 @@ func (s *AuthService) generateRefreshToken(ctx context.Context, userID, family s
 
 	return rawToken, nil
 }
-
-
-

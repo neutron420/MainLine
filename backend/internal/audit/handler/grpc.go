@@ -118,4 +118,3 @@ func toProtoEntry(e *domain.AuditEntry) *auditv1.AuditEntry {
 }
 
 var _ = fmt.Sprintf
-

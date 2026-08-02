@@ -16,12 +16,12 @@ type TableInfo struct {
 }
 
 type ColumnInfo struct {
-	Name              string      `json:"name"`
-	DataType          string      `json:"data_type"`
-	IsNullable        bool        `json:"is_nullable"`
-	Default           interface{} `json:"default"`
-	CharMaxLength     *int        `json:"character_maximum_length,omitempty"`
-	OrdinalPosition   int         `json:"ordinal_position"`
+	Name            string      `json:"name"`
+	DataType        string      `json:"data_type"`
+	IsNullable      bool        `json:"is_nullable"`
+	Default         interface{} `json:"default"`
+	CharMaxLength   *int        `json:"character_maximum_length,omitempty"`
+	OrdinalPosition int         `json:"ordinal_position"`
 }
 
 type IndexInfo struct {

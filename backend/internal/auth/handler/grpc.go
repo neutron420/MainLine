@@ -7,8 +7,8 @@ import (
 
 	"github.com/schemahub/backend/internal/auth/domain"
 	"github.com/schemahub/backend/internal/pkg/interceptor"
-	commonv1 "github.com/schemahub/backend/proto/common/v1"
 	authv1 "github.com/schemahub/backend/proto/auth/v1"
+	commonv1 "github.com/schemahub/backend/proto/common/v1"
 )
 
 func userIDFromContext(ctx context.Context) string {
@@ -225,4 +225,3 @@ func mapError(err error) error {
 		return grpcInternal("internal server error")
 	}
 }
-

@@ -224,9 +224,9 @@ func (r *AuditRepository) ListEventsAfter(ctx context.Context, afterID string, p
 	for rows.Next() {
 		var (
 			id, eventType, action, resourceType, resourceID string
-			createdAt                                        time.Time
-			actorID, actorEmail                              *string
-			metadata                                         []byte
+			createdAt                                       time.Time
+			actorID, actorEmail                             *string
+			metadata                                        []byte
 		)
 		if err := rows.Scan(&id, &eventType, &actorID, &actorEmail, &action, &resourceType, &resourceID, &metadata, &createdAt); err != nil {
 			return nil, fmt.Errorf("scanning event: %w", err)
@@ -317,7 +317,9 @@ func (r *AuditRepository) GetStats(ctx context.Context, dateFrom, dateTo time.Ti
 	return stats, nil
 }
 
-func scanEntry(row interface{ Scan(dest ...interface{}) error }) (*domain.AuditEntry, error) {
+func scanEntry(row interface {
+	Scan(dest ...interface{}) error
+}) (*domain.AuditEntry, error) {
 	var (
 		id, eventType, action, resourceType, resourceID, traceID string
 		createdAt                                                time.Time

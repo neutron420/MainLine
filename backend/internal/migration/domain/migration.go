@@ -66,14 +66,14 @@ type MigrationRun struct {
 }
 
 type MigrationLogEntry struct {
-	ID           string
+	ID             string
 	MigrationRunID string
-	Sequence     int
-	SQL          string
-	DurationMs   *int32
-	RowsAffected *int32
-	ErrorMessage string
-	CreatedAt    time.Time
+	Sequence       int
+	SQL            string
+	DurationMs     *int32
+	RowsAffected   *int32
+	ErrorMessage   string
+	CreatedAt      time.Time
 }
 
 type MigrationStatusMessage struct {

@@ -13,10 +13,10 @@ type DiffResult struct {
 }
 
 type DiffObject struct {
-	Type       string         `json:"type"`
-	Name       string         `json:"name"`
+	Type       string          `json:"type"`
+	Name       string          `json:"name"`
 	Definition json.RawMessage `json:"definition,omitempty"`
-	Changes    []FieldChange  `json:"changes,omitempty"`
+	Changes    []FieldChange   `json:"changes,omitempty"`
 }
 
 type FieldChange struct {

@@ -102,4 +102,3 @@ func toProtoEvent(e *domain.SchemaEvent) *eventv1.SchemaEvent {
 }
 
 var _ = fmt.Sprintf
-

@@ -12,9 +12,9 @@ import (
 )
 
 type MetricsCollector struct {
-	mu                 sync.RWMutex
-	requestsTotal      map[string]int64
-	requestDuration    map[string]float64
+	mu                  sync.RWMutex
+	requestsTotal       map[string]int64
+	requestDuration     map[string]float64
 	activeSubscriptions int64
 }
 

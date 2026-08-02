@@ -12,13 +12,13 @@ import (
 )
 
 type methodLimit struct {
-	limit int
+	limit  int
 	window time.Duration
 }
 
 var endpointLimits = map[string]methodLimit{
-	"/schemahub.auth.v1.AuthService/Login":         {limit: 5, window: time.Minute},
-	"/schemahub.auth.v1.AuthService/Register":      {limit: 3, window: time.Minute},
+	"/schemahub.auth.v1.AuthService/Login":          {limit: 5, window: time.Minute},
+	"/schemahub.auth.v1.AuthService/Register":       {limit: 3, window: time.Minute},
 	"/schemahub.auth.v1.AuthService/ForgotPassword": {limit: 3, window: time.Minute},
 }
 
@@ -58,5 +58,3 @@ func RateLimitInterceptor(rdb *redis.Client, defaultLimit int) grpc.UnaryServerI
 		return handler(ctx, req)
 	}
 }
-
-

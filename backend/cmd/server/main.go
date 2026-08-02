@@ -11,12 +11,20 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	auditDomain "github.com/schemahub/backend/internal/audit/domain"
+	auditHandler "github.com/schemahub/backend/internal/audit/handler"
+	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
 	authDomain "github.com/schemahub/backend/internal/auth/domain"
 	authHandler "github.com/schemahub/backend/internal/auth/handler"
 	authRepo "github.com/schemahub/backend/internal/auth/repository/postgres"
-	projectDomain "github.com/schemahub/backend/internal/project/domain"
-	projectHandler "github.com/schemahub/backend/internal/project/handler"
-	projectRepo "github.com/schemahub/backend/internal/project/repository/postgres"
+	driftDomain "github.com/schemahub/backend/internal/drift/domain"
+	driftHandler "github.com/schemahub/backend/internal/drift/handler"
+	driftRepo "github.com/schemahub/backend/internal/drift/repository/postgres"
+	eventDomain "github.com/schemahub/backend/internal/event/domain"
+	eventHandler "github.com/schemahub/backend/internal/event/handler"
+	migrationDomain "github.com/schemahub/backend/internal/migration/domain"
+	migrationHandler "github.com/schemahub/backend/internal/migration/handler"
+	migrationRepo "github.com/schemahub/backend/internal/migration/repository/postgres"
 	"github.com/schemahub/backend/internal/pkg/config"
 	"github.com/schemahub/backend/internal/pkg/database"
 	"github.com/schemahub/backend/internal/pkg/interceptor"
@@ -24,17 +32,9 @@ import (
 	"github.com/schemahub/backend/internal/pkg/logger"
 	"github.com/schemahub/backend/internal/pkg/redis"
 	"github.com/schemahub/backend/internal/pkg/worker"
-	auditDomain "github.com/schemahub/backend/internal/audit/domain"
-	auditHandler "github.com/schemahub/backend/internal/audit/handler"
-	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
-	eventDomain "github.com/schemahub/backend/internal/event/domain"
-	eventHandler "github.com/schemahub/backend/internal/event/handler"
-	driftDomain "github.com/schemahub/backend/internal/drift/domain"
-	driftHandler "github.com/schemahub/backend/internal/drift/handler"
-	driftRepo "github.com/schemahub/backend/internal/drift/repository/postgres"
-	migrationDomain "github.com/schemahub/backend/internal/migration/domain"
-	migrationHandler "github.com/schemahub/backend/internal/migration/handler"
-	migrationRepo "github.com/schemahub/backend/internal/migration/repository/postgres"
+	projectDomain "github.com/schemahub/backend/internal/project/domain"
+	projectHandler "github.com/schemahub/backend/internal/project/handler"
+	projectRepo "github.com/schemahub/backend/internal/project/repository/postgres"
 	schemaDomain "github.com/schemahub/backend/internal/schema/domain"
 	schemaHandler "github.com/schemahub/backend/internal/schema/handler"
 	schemaRepo "github.com/schemahub/backend/internal/schema/repository/postgres"
@@ -98,11 +98,11 @@ func main() {
 	oauthRepo := authRepo.NewOAuthIdentityRepository(db)
 	oauthCfg := &authDomain.OAuthProviderConfig{
 		Google: authDomain.OAuthConfig{
-			ClientID:     cfg.GoogleClientID,
-			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
-			TokenURL:     "https://oauth2.googleapis.com/token",
-			CallbackURL:  cfg.GoogleCallbackURL,
-			Scopes:       "openid profile email",
+			ClientID:    cfg.GoogleClientID,
+			AuthURL:     "https://accounts.google.com/o/oauth2/v2/auth",
+			TokenURL:    "https://oauth2.googleapis.com/token",
+			CallbackURL: cfg.GoogleCallbackURL,
+			Scopes:      "openid profile email",
 		},
 		GitHub: authDomain.OAuthConfig{
 			ClientID:     cfg.GitHubClientID,
@@ -169,7 +169,7 @@ func main() {
 	// ── Drift Service ──
 	driftRepoInstance := driftRepo.NewDriftRepository(db)
 	driftComparator := &schemaDriftComparator{
-		svc:  schemaSvc,
+		svc:        schemaSvc,
 		connString: connStringResolver,
 	}
 	driftSvc := driftDomain.NewDriftService(driftRepoInstance, driftComparator)
@@ -282,14 +282,14 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 	}
 	for _, o := range diff.RemovedObjects {
 		events = append(events, &driftDomain.DriftEvent{
-			SchemaID:           schema.ID,
-			ExpectedVersionID:  schemaVersionID,
-			DriftType:          driftDomain.DriftTypeExtraObject,
-			ObjectType:         o.Type,
-			ObjectName:         o.Name,
-			ActualDefinition:   defToString(o.Definition),
-			Severity:           classifySeverity(o.Type),
-			Status:             driftDomain.DriftStatusOpen,
+			SchemaID:          schema.ID,
+			ExpectedVersionID: schemaVersionID,
+			DriftType:         driftDomain.DriftTypeExtraObject,
+			ObjectType:        o.Type,
+			ObjectName:        o.Name,
+			ActualDefinition:  defToString(o.Definition),
+			Severity:          classifySeverity(o.Type),
+			Status:            driftDomain.DriftStatusOpen,
 		})
 	}
 	for _, o := range diff.ModifiedObjects {

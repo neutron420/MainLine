@@ -61,7 +61,9 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 		args = append(args, cursor)
 	}
 
-	if limit <= 0 { limit = 20 }
+	if limit <= 0 {
+		limit = 20
+	}
 	query += fmt.Sprintf(" LIMIT %d", limit+1)
 
 	rows, err := r.db.Query(ctx, query, args...)
@@ -151,7 +153,9 @@ func (r *SchemaRepository) ListVersionsBySchemaID(ctx context.Context, schemaID,
 		args = append(args, cursor)
 	}
 
-	if limit <= 0 { limit = 20 }
+	if limit <= 0 {
+		limit = 20
+	}
 	query += fmt.Sprintf(" LIMIT %d", limit+1)
 
 	rows, err := r.db.Query(ctx, query, args...)
@@ -232,7 +236,9 @@ func (r *SchemaRepository) ListObjectsByVersionID(ctx context.Context, versionID
 
 	query += " ORDER BY object_type, object_name"
 
-	if limit <= 0 { limit = 20 }
+	if limit <= 0 {
+		limit = 20
+	}
 	query += fmt.Sprintf(" LIMIT %d", limit+1)
 
 	rows, err := r.db.Query(ctx, query, args...)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/schemahub/backend/internal/pkg/interceptor"
 	"github.com/schemahub/backend/internal/pkg/errors"
+	"github.com/schemahub/backend/internal/pkg/interceptor"
 	"github.com/schemahub/backend/internal/project/domain"
 	projectv1 "github.com/schemahub/backend/proto/project/v1"
 	"google.golang.org/grpc/codes"
@@ -14,8 +14,8 @@ import (
 
 type ProjectHandler struct {
 	projectv1.UnimplementedProjectServiceServer
-	svc       *domain.ProjectService
-	connSvc   *domain.ConnectionService
+	svc     *domain.ProjectService
+	connSvc *domain.ConnectionService
 }
 
 func NewProjectHandler(svc *domain.ProjectService, connSvc *domain.ConnectionService) *ProjectHandler {

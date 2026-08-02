@@ -16,14 +16,14 @@ import (
 type OAuthRefreshWorker struct {
 	oauthRepo     domain.OAuthIdentityRepository
 	userRepo      domain.UserRepository
-	encryptionKey  []byte
-	clientSecrets  map[string]string
+	encryptionKey []byte
+	clientSecrets map[string]string
 }
 
 func NewOAuthRefreshWorker(oauthRepo domain.OAuthIdentityRepository, userRepo domain.UserRepository, encryptionKey []byte) *OAuthRefreshWorker {
 	return &OAuthRefreshWorker{
-		oauthRepo:    oauthRepo,
-		userRepo:     userRepo,
+		oauthRepo:     oauthRepo,
+		userRepo:      userRepo,
 		encryptionKey: encryptionKey,
 		clientSecrets: make(map[string]string),
 	}

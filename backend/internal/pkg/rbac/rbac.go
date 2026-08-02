@@ -50,7 +50,7 @@ type ResourceProjectResolver interface {
 }
 
 type Checker struct {
-	memberGetter   ProjectMemberGetter
+	memberGetter    ProjectMemberGetter
 	projectResolver ResourceProjectResolver
 }
 

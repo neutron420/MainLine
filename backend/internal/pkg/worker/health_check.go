@@ -12,7 +12,7 @@ import (
 
 type ConnectionHealthWorker struct {
 	connRepo      domain.ConnectionRepository
-	encryptionKey  []byte
+	encryptionKey []byte
 }
 
 func NewConnectionHealthWorker(connRepo domain.ConnectionRepository, encryptionKey []byte) *ConnectionHealthWorker {

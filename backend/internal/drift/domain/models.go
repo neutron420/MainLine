@@ -29,21 +29,21 @@ const (
 )
 
 type DriftEvent struct {
-	ID                string
-	ConnectionID      string
-	SchemaID          string
-	ExpectedVersionID string
-	DriftType         DriftType
-	ObjectType        string
-	ObjectName        string
+	ID                 string
+	ConnectionID       string
+	SchemaID           string
+	ExpectedVersionID  string
+	DriftType          DriftType
+	ObjectType         string
+	ObjectName         string
 	ExpectedDefinition string
-	ActualDefinition  string
-	DiffSummary       string
-	Severity          Severity
-	Status            DriftStatus
-	DetectedAt        time.Time
-	ResolvedAt        *time.Time
-	ResolvedBy        string
+	ActualDefinition   string
+	DiffSummary        string
+	Severity           Severity
+	Status             DriftStatus
+	DetectedAt         time.Time
+	ResolvedAt         *time.Time
+	ResolvedBy         string
 }
 
 type DriftStats struct {

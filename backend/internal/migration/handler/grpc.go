@@ -276,5 +276,3 @@ func toProtoLogEntry(e *domain.MigrationLogEntry) *migrationv1.MigrationLogEntry
 }
 
 var _ = fmt.Sprintf
-
-

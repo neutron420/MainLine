@@ -13,8 +13,8 @@ import (
 
 type DriftHandler struct {
 	driftv1.UnimplementedDriftServiceServer
-	svc          *domain.DriftService
-	connString   func(ctx context.Context, connID string) (string, error)
+	svc        *domain.DriftService
+	connString func(ctx context.Context, connID string) (string, error)
 }
 
 func NewDriftHandler(svc *domain.DriftService, connString func(ctx context.Context, connID string) (string, error)) *DriftHandler {

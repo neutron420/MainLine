@@ -7,18 +7,18 @@ import (
 )
 
 type Config struct {
-	DatabaseURL    string
-	RedisURL       string
-	JWTPrivateKey  string
-	JWTPublicKey   string
-	EncryptionKey  string
-	Port           int
-	LogLevel       string
-	LogFormat      string
-	DBPoolMin      int
-	DBPoolMax      int
-	RateLimit      int
-	BufferSize     int
+	DatabaseURL   string
+	RedisURL      string
+	JWTPrivateKey string
+	JWTPublicKey  string
+	EncryptionKey string
+	Port          int
+	LogLevel      string
+	LogFormat     string
+	DBPoolMin     int
+	DBPoolMax     int
+	RateLimit     int
+	BufferSize    int
 
 	GitHubClientID     string
 	GitHubClientSecret string

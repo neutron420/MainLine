@@ -29,9 +29,9 @@ type OAuthConfig struct {
 }
 
 type OAuthProviderConfig struct {
-	Google OAuthConfig
-	GitHub OAuthConfig
-	Slack  OAuthConfig
+	Google          OAuthConfig
+	GitHub          OAuthConfig
+	Slack           OAuthConfig
 	StateSigningKey []byte
 }
 
@@ -190,11 +190,11 @@ func (s *AuthService) HandleOAuthCallback(ctx context.Context, provider, code, s
 	}
 
 	user := &User{
-		Email:        email,
-		DisplayName:  displayName,
-		AvatarURL:    avatarURL,
-		Role:         "user",
-		IsActive:     true,
+		Email:       email,
+		DisplayName: displayName,
+		AvatarURL:   avatarURL,
+		Role:        "user",
+		IsActive:    true,
 	}
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, "", "", false, false, fmt.Errorf("creating user: %w", err)
@@ -206,11 +206,11 @@ func (s *AuthService) HandleOAuthCallback(ctx context.Context, provider, code, s
 	}
 
 	identity := &OAuthIdentity{
-		UserID:              created.ID,
-		Provider:            provider,
-		ProviderUserID:      providerUserID,
-		ProviderEmail:       email,
-		AccessTokenEncrypted: tokens.AccessToken,
+		UserID:                created.ID,
+		Provider:              provider,
+		ProviderUserID:        providerUserID,
+		ProviderEmail:         email,
+		AccessTokenEncrypted:  tokens.AccessToken,
 		RefreshTokenEncrypted: tokens.RefreshToken,
 	}
 	if tokens.ExpiresIn > 0 {
@@ -265,11 +265,11 @@ func (s *AuthService) LinkOAuthIdentity(ctx context.Context, userID, provider, c
 	}
 
 	identity := &OAuthIdentity{
-		UserID:              userID,
-		Provider:            provider,
-		ProviderUserID:      providerUserID,
-		ProviderEmail:       email,
-		AccessTokenEncrypted: tokens.AccessToken,
+		UserID:                userID,
+		Provider:              provider,
+		ProviderUserID:        providerUserID,
+		ProviderEmail:         email,
+		AccessTokenEncrypted:  tokens.AccessToken,
 		RefreshTokenEncrypted: tokens.RefreshToken,
 	}
 	if tokens.ExpiresIn > 0 {
@@ -405,8 +405,8 @@ func fetchGitHubUserInfo(accessToken string) (string, string, bool, string, stri
 
 func fetchSlackUserInfo(accessToken string) (string, string, bool, string, string, error) {
 	type slackResponse struct {
-		OK   bool           `json:"ok"`
-		User slackUserInfo  `json:"user,omitempty"`
+		OK    bool          `json:"ok"`
+		User  slackUserInfo `json:"user,omitempty"`
 		Error string        `json:"error,omitempty"`
 	}
 

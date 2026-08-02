@@ -20,13 +20,13 @@ const (
 )
 
 var publicMethods = map[string]bool{
-	"/schemahub.auth.v1.AuthService/Register":               true,
-	"/schemahub.auth.v1.AuthService/Login":                  true,
-	"/schemahub.auth.v1.AuthService/RefreshToken":           true,
-	"/schemahub.auth.v1.AuthService/GetOAuthURL":            true,
-	"/schemahub.auth.v1.AuthService/HandleOAuthCallback":    true,
-	"/schemahub.auth.v1.AuthService/ForgotPassword":         true,
-	"/schemahub.auth.v1.AuthService/ResetPassword":          true,
+	"/schemahub.auth.v1.AuthService/Register":            true,
+	"/schemahub.auth.v1.AuthService/Login":               true,
+	"/schemahub.auth.v1.AuthService/RefreshToken":        true,
+	"/schemahub.auth.v1.AuthService/GetOAuthURL":         true,
+	"/schemahub.auth.v1.AuthService/HandleOAuthCallback": true,
+	"/schemahub.auth.v1.AuthService/ForgotPassword":      true,
+	"/schemahub.auth.v1.AuthService/ResetPassword":       true,
 }
 
 func AuthInterceptor(jwtManager *jwt.Manager) grpc.UnaryServerInterceptor {

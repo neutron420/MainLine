@@ -14,8 +14,8 @@ type Job interface {
 }
 
 type Runner struct {
-	jobs  []Job
-	log   *slog.Logger
+	jobs []Job
+	log  *slog.Logger
 }
 
 func NewRunner(log *slog.Logger) *Runner {

@@ -38,13 +38,13 @@ type Project struct {
 }
 
 type ProjectMember struct {
-	ID          string
-	ProjectID   string
-	UserID      string
-	Role        ProjectRole
-	InvitedBy   *string
-	JoinedAt    *time.Time
-	CreatedAt   time.Time
+	ID        string
+	ProjectID string
+	UserID    string
+	Role      ProjectRole
+	InvitedBy *string
+	JoinedAt  *time.Time
+	CreatedAt time.Time
 }
 
 type ProjectRepository interface {

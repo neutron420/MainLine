@@ -5,15 +5,19 @@ import (
 	"fmt"
 )
 
-type ErrProjectNotFound     struct{ ID string }
+type ErrProjectNotFound struct{ ID string }
 type ErrProjectSlugConflict struct{ Slug string }
-type ErrMemberNotFound      struct{ ProjectID, UserID string }
-type ErrLastOwner           struct{}
+type ErrMemberNotFound struct{ ProjectID, UserID string }
+type ErrLastOwner struct{}
 
-func (e ErrProjectNotFound) Error() string     { return fmt.Sprintf("project %s not found", e.ID) }
-func (e ErrProjectSlugConflict) Error() string  { return fmt.Sprintf("project slug %s already exists", e.Slug) }
-func (e ErrMemberNotFound) Error() string       { return fmt.Sprintf("member %s not found in project %s", e.UserID, e.ProjectID) }
-func (e ErrLastOwner) Error() string            { return "cannot remove the last owner from a project" }
+func (e ErrProjectNotFound) Error() string { return fmt.Sprintf("project %s not found", e.ID) }
+func (e ErrProjectSlugConflict) Error() string {
+	return fmt.Sprintf("project slug %s already exists", e.Slug)
+}
+func (e ErrMemberNotFound) Error() string {
+	return fmt.Sprintf("member %s not found in project %s", e.UserID, e.ProjectID)
+}
+func (e ErrLastOwner) Error() string { return "cannot remove the last owner from a project" }
 
 type ProjectService struct {
 	projRepo ProjectRepository

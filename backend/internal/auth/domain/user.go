@@ -6,19 +6,19 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists    = errors.New("email already registered")
-	ErrInvalidCredentials    = errors.New("invalid email or password")
-	ErrUserNotFound          = errors.New("user not found")
-	ErrInvalidRefreshToken   = errors.New("invalid or expired refresh token")
-	ErrTokenRevoked          = errors.New("token has been revoked")
-	ErrPasswordMismatch      = errors.New("current password is incorrect")
-	ErrWeakPassword          = errors.New("password does not meet strength requirements")
-	ErrEmailNotVerified      = errors.New("email not verified")
-	ErrProviderAlreadyLinked = errors.New("provider already linked to another account")
-	ErrLastAuthMethod        = errors.New("cannot remove last authentication method")
-	ErrOAuthStateMismatch    = errors.New("OAuth state mismatch — possible CSRF")
+	ErrEmailAlreadyExists        = errors.New("email already registered")
+	ErrInvalidCredentials        = errors.New("invalid email or password")
+	ErrUserNotFound              = errors.New("user not found")
+	ErrInvalidRefreshToken       = errors.New("invalid or expired refresh token")
+	ErrTokenRevoked              = errors.New("token has been revoked")
+	ErrPasswordMismatch          = errors.New("current password is incorrect")
+	ErrWeakPassword              = errors.New("password does not meet strength requirements")
+	ErrEmailNotVerified          = errors.New("email not verified")
+	ErrProviderAlreadyLinked     = errors.New("provider already linked to another account")
+	ErrLastAuthMethod            = errors.New("cannot remove last authentication method")
+	ErrOAuthStateMismatch        = errors.New("OAuth state mismatch — possible CSRF")
 	ErrEmailVerificationRequired = errors.New("email verification required")
-	ErrPermissionDenied         = errors.New("permission denied")
+	ErrPermissionDenied          = errors.New("permission denied")
 )
 
 type User struct {
@@ -47,26 +47,26 @@ type RefreshToken struct {
 }
 
 type VerificationToken struct {
-	ID        string
-	UserID    string
-	Email     string
-	TokenHash string
-	ExpiresAt time.Time
+	ID         string
+	UserID     string
+	Email      string
+	TokenHash  string
+	ExpiresAt  time.Time
 	ConsumedAt *time.Time
-	CreatedAt time.Time
+	CreatedAt  time.Time
 }
 
 type OAuthIdentity struct {
-	ID                  string
-	UserID              string
-	Provider            string
-	ProviderUserID      string
-	ProviderEmail       string
-	AccessTokenEncrypted string
+	ID                    string
+	UserID                string
+	Provider              string
+	ProviderUserID        string
+	ProviderEmail         string
+	AccessTokenEncrypted  string
 	RefreshTokenEncrypted string
-	ExpiresAt           *time.Time
-	CreatedAt           time.Time
-	LastUsedAt          *time.Time
+	ExpiresAt             *time.Time
+	CreatedAt             time.Time
+	LastUsedAt            *time.Time
 }
 
 func ValidatePassword(password string) error {

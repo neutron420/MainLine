@@ -9,9 +9,9 @@ import (
 type ConnectionStatus string
 
 const (
-	ConnStatusUnknown  ConnectionStatus = "unknown"
+	ConnStatusUnknown   ConnectionStatus = "unknown"
 	ConnStatusConnected ConnectionStatus = "connected"
-	ConnStatusFailed   ConnectionStatus = "failed"
+	ConnStatusFailed    ConnectionStatus = "failed"
 )
 
 type SSLMode string

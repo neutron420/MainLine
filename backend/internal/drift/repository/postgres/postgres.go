@@ -177,12 +177,14 @@ func (r *DriftRepository) GetStats(ctx context.Context, connectionID string) (*d
 	return stats, nil
 }
 
-func scanEvent(row interface{ Scan(dest ...interface{}) error }) (*domain.DriftEvent, error) {
+func scanEvent(row interface {
+	Scan(dest ...interface{}) error
+}) (*domain.DriftEvent, error) {
 	var (
-		id, driftType, objType, objName, severity, status string
-		detectedAt                                        time.Time
+		id, driftType, objType, objName, severity, status                   string
+		detectedAt                                                          time.Time
 		connID, schemaID, expVerID, expDef, actDef, diffSummary, resolvedBy *string
-		resolvedAt                                        *time.Time
+		resolvedAt                                                          *time.Time
 	)
 	err := row.Scan(&id, &connID, &schemaID, &expVerID, &driftType, &objType, &objName,
 		&expDef, &actDef, &diffSummary, &severity, &status, &detectedAt, &resolvedAt, &resolvedBy)
@@ -194,12 +196,12 @@ func scanEvent(row interface{ Scan(dest ...interface{}) error }) (*domain.DriftE
 	}
 
 	event := &domain.DriftEvent{
-		ID:        id,
-		DriftType: domain.DriftType(driftType),
+		ID:         id,
+		DriftType:  domain.DriftType(driftType),
 		ObjectType: objType,
 		ObjectName: objName,
-		Severity:  domain.Severity(severity),
-		Status:    domain.DriftStatus(status),
+		Severity:   domain.Severity(severity),
+		Status:     domain.DriftStatus(status),
 		DetectedAt: detectedAt,
 	}
 	if connID != nil {

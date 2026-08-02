@@ -18,17 +18,17 @@ type AuditLogger interface {
 }
 
 type EventService struct {
-	rdb          *redis.Client
-	audit        AuditLogger
-	subMu        sync.RWMutex
-	subscribers  map[string]*Subscriber
-	channelSubs  map[string]map[string]bool
+	rdb         *redis.Client
+	audit       AuditLogger
+	subMu       sync.RWMutex
+	subscribers map[string]*Subscriber
+	channelSubs map[string]map[string]bool
 
-	pubsub       *redis.PubSub
-	psMu         sync.Mutex
-	psStarted    bool
-	psCtx        context.Context
-	psCancel     context.CancelFunc
+	pubsub    *redis.PubSub
+	psMu      sync.Mutex
+	psStarted bool
+	psCtx     context.Context
+	psCancel  context.CancelFunc
 }
 
 func NewEventService(rdb *redis.Client, audit AuditLogger) *EventService {
