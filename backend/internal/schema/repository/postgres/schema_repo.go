@@ -271,4 +271,3 @@ func (r *SchemaRepository) ListObjectsByVersionID(ctx context.Context, versionID
 	}
 	return objects, nextCursor, count, nil
 }
-

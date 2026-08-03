@@ -317,4 +317,3 @@ func (s *SchemaService) GetDiagram(ctx context.Context, versionID string, includ
 
 	return diagram, nil
 }
-

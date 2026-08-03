@@ -376,4 +376,3 @@ func nullIfEmpty(s string) *string {
 	}
 	return &s
 }
-

@@ -14,15 +14,15 @@ import (
 )
 
 type fakeAuditRepo struct {
-	entries      []*domain.AuditEntry
-	stats        *domain.AuditStats
-	lastFilter   *domain.AuditFilter
-	lastAfterID  string
+	entries       []*domain.AuditEntry
+	stats         *domain.AuditStats
+	lastFilter    *domain.AuditFilter
+	lastAfterID   string
 	lastEventType string
-	listErr      error
-	getErr       error
-	afterEntries []*domain.AuditEntry
-	afterErr     error
+	listErr       error
+	getErr        error
+	afterEntries  []*domain.AuditEntry
+	afterErr      error
 }
 
 func (f *fakeAuditRepo) Insert(ctx context.Context, entry *domain.AuditEntry) error { return nil }
@@ -80,12 +80,12 @@ func (f *fakeAuditStream) Send(e *auditv1.AuditEntry) error {
 	return nil
 }
 
-func (f *fakeAuditStream) Context() context.Context          { return f.ctx }
-func (f *fakeAuditStream) SetHeader(metadata.MD) error       { return nil }
-func (f *fakeAuditStream) SendHeader(metadata.MD) error      { return nil }
-func (f *fakeAuditStream) SetTrailer(metadata.MD)            {}
-func (f *fakeAuditStream) SendMsg(m any) error               { return nil }
-func (f *fakeAuditStream) RecvMsg(m any) error               { return nil }
+func (f *fakeAuditStream) Context() context.Context     { return f.ctx }
+func (f *fakeAuditStream) SetHeader(metadata.MD) error  { return nil }
+func (f *fakeAuditStream) SendHeader(metadata.MD) error { return nil }
+func (f *fakeAuditStream) SetTrailer(metadata.MD)       {}
+func (f *fakeAuditStream) SendMsg(m any) error          { return nil }
+func (f *fakeAuditStream) RecvMsg(m any) error          { return nil }
 
 func TestAuditHandler_ListAuditEntries(t *testing.T) {
 	t.Parallel()

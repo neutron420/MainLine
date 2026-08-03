@@ -195,4 +195,3 @@ func toDiffObjects(in []domain.DiffObject) []*schemav1.DiffObject {
 	}
 	return out
 }
-

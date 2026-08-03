@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	schemadomain "github.com/schemahub/backend/internal/schema/domain"
 	"github.com/schemahub/backend/internal/pkg/testdb"
+	schemadomain "github.com/schemahub/backend/internal/schema/domain"
 )
 
 func TestIntrospection_RealDatabase(t *testing.T) {

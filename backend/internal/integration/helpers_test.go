@@ -14,9 +14,9 @@ import (
 	authpg "github.com/schemahub/backend/internal/auth/repository/postgres"
 	migdomain "github.com/schemahub/backend/internal/migration/domain"
 	migpg "github.com/schemahub/backend/internal/migration/repository/postgres"
+	"github.com/schemahub/backend/internal/pkg/testdb"
 	projectdomain "github.com/schemahub/backend/internal/project/domain"
 	projectpg "github.com/schemahub/backend/internal/project/repository/postgres"
-	"github.com/schemahub/backend/internal/pkg/testdb"
 	schemadomain "github.com/schemahub/backend/internal/schema/domain"
 	schemapg "github.com/schemahub/backend/internal/schema/repository/postgres"
 )

@@ -120,4 +120,3 @@ func toProtoEvent(e *domain.DriftEvent) *driftv1.DriftEvent {
 	pe.ResolvedBy = e.ResolvedBy
 	return pe
 }
-

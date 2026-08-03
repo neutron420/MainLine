@@ -115,4 +115,3 @@ func toProtoEntry(e *domain.AuditEntry) *auditv1.AuditEntry {
 		CreatedAt:       e.CreatedAt.Format(time.RFC3339),
 	}
 }
-

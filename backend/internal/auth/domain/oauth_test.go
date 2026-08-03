@@ -1033,4 +1033,3 @@ func TestListLinkedIdentities(t *testing.T) {
 		t.Errorf("ghost identities = %d, want 0", len(none))
 	}
 }
-
