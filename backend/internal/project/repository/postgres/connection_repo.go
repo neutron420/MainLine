@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 	"github.com/schemahub/backend/internal/project/domain"
 )
 
@@ -60,9 +61,14 @@ func (r *ConnectionRepository) ListByProjectID(ctx context.Context, projectID, c
 	args = append(args, projectID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid connection cursor")
+		}
 		query = `SELECT id, project_id, name, host, port, database_name, username, password_encrypted, ssl_mode, connection_status, last_connected_at, created_by, created_at, updated_at, deleted_at
-			FROM connections WHERE project_id = $1 AND deleted_at IS NULL AND created_at < $2 ORDER BY created_at DESC`
-		args = append(args, cursor)
+			FROM connections WHERE project_id = $1 AND deleted_at IS NULL AND (created_at, id) < ($2::timestamptz, $3)
+			ORDER BY created_at DESC, id DESC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -90,8 +96,8 @@ func (r *ConnectionRepository) ListByProjectID(ctx context.Context, projectID, c
 
 	var nextCursor string
 	if int32(len(conns)) > limit {
-		nextCursor = conns[len(conns)-1].CreatedAt.Format(time.RFC3339Nano)
 		conns = conns[:len(conns)-1]
+		nextCursor = pagination.Encode(conns[len(conns)-1].CreatedAt, conns[len(conns)-1].ID)
 	}
 
 	return conns, nextCursor, count, nil

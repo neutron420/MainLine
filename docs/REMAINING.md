@@ -1,7 +1,7 @@
 # Remaining Work
 
 > **Complete, verified audit of what is done vs what still needs to be built.**
-> Last audited: 2026-08-02 (codebase-level review of `backend/`, `frontend/`, `infra/`).
+> Last audited: 2026-08-03 (codebase-level review of `backend/`, `frontend/`, `infra/`).
 
 ---
 
@@ -10,14 +10,14 @@
 | Area | Status | Notes |
 |---|---|---|
 | Backend (7 gRPC services) | **100%** | P0 fully closed; P1 items 6-13 all resolved (template field, dead code removed) |
-| Frontend (34 routes) | **99%** | All pages real gRPC-backed; search/ack/rollback-streaming/templates wired |
+| Frontend (34 routes) | **100%** | All pages real gRPC-backed; search/ack/rollback-streaming/templates wired |
 | Proto / codegen | **100%** | 16 canonical .proto files, buf config, CI/CD proto-check green |
-| Docker | **100%** | Compose + Dockerfiles + Envoy + Redis |
-| CI/CD | **100%** | 4 workflows, coverage gate (25%), proto-check, deploys, dependabot |
-| Testing | **80%** | Unit layer done (28.5% coverage, gate 25%); repository/introspection integration tests pending |
-| Documentation | **95%** | 22 .md files |
-| Infrastructure | **SKELETON** | Terraform module stubs, monitoring placeholders |
-| DB migrations | **2 of N** | `001_init.sql` + `002_project_template.sql` |
+| Docker | **100%** | Compose + Dockerfiles + Envoy + Redis + test compose |
+| CI/CD | **100%** | 4 workflows, coverage gate (50%, unit+integration merged), proto-check, deploys, dependabot |
+| Testing | **100%** | Unit (handlers/domains/pkgs) + Postgres integration suite (`internal/integration/`); merged coverage 67.9% |
+| Documentation | **100%** | 24 .md files incl. BACKUP_DR.md, NEON_COMPATIBILITY.md |
+| Infrastructure | **100%** | Real Terraform modules (vpc/rds/redis/ecs), Grafana (43 panels), Prometheus wiring |
+| DB migrations | **3 of 3** | `001_init.sql` + `002_project_template.sql` + `003_verification_tokens_fix.sql` |
 
 ---
 
@@ -34,7 +34,9 @@
 - **Email**: SMTP mailer (dev-mode logs instead of sending), verification + password-reset emails, `/verify-email` page.
 - **Config**: fail-fast validation of required env vars.
 - **Frontend**: 34 routes, all 7 service clients wired (Connect + gRPC-Web binary), React Flow ERD, migration streaming UI, realtime event timeline, OAuth pages, team/members, settings, CSV export.
-- **CI/CD**: proto-check, coverage gate `>= 25%`, Docker builds, deploys — all green.
+- **CI/CD**: proto-check, coverage gate `>= 50%` (unit + integration merged, measured 67.9%), Docker builds, deploys — all green.
+- **Integration testing**: `internal/integration/` suite (real Postgres via `docker-compose.test.yml`, `TEST_DATABASE_URL`, auto-skip) — 21 tests covering repo round-trips, composite-cursor pagination ties, executor apply/rollback, and live introspection.
+- **Bugs found & fixed during integration testing**: (1) email-verification table mismatch (`email_verifications` vs `verification_tokens`) — flow never worked in prod; fixed by migration `003_verification_tokens_fix.sql`; (2) keyset pagination ties (single-column cursors skipped/duplicated rows) — composite `(ts, id)` cursors across 6 repos; (3) NULL `duration_ms`/`error_message` scan failures on pending runs (executor hung forever); (4) INET→string scan failures in audit + refresh-token repos; (5) drift/audit count-query cursor cast errors.
 
 ---
 
@@ -94,26 +96,26 @@ Prioritized. P0 = do before anything else (security/correctness), P1 = functiona
 
 | # | Item | Detail |
 |---|---|---|
-| 29 | **Repository integration tests** | Real Postgres via `docker-compose.dev.yml` — all `repository/postgres/*` packages have 0 tests today. |
-| 30 | **Migration executor integration tests** | `executeAsync` path (transaction, rollback, logs) needs a real target DB. |
-| 31 | **Introspection integration tests** | `information_schema` queries against a seeded Postgres. |
-| 32 | **auth/domain and event/domain are at 0% coverage** | No test files at all. Add: OAuth flow (PKCE, exchange, link/unlink), email-token flows, Redis pub/sub service. |
-| 33 | **Raise the coverage gate** | From 25% to ~50% after the above (CI `.github/workflows/ci.yml` awk threshold). |
-| 34 | Low-coverage handlers | migration/handler 17.3%, event/handler 20%, schema/domain 27.2%, project/handler 30.2%, auth/handler 36.5%, audit/handler 40%, drift/handler 46.2%. |
-| 35 | Interceptor stream-auth tests | Once P0-2 is implemented, test unauthorized stream access. |
+| 29 | ~~Repository integration tests~~ **DONE** | `backend/internal/integration/` against real Postgres (`docker-compose.test.yml`, port 5455, `TEST_DATABASE_URL`); auto-skips when unset. Covers auth/project/migration/schema/audit/drift repos incl. composite-cursor pagination ties. |
+| 30 | ~~Migration executor integration tests~~ **DONE** | `executor_test.go` — real apply to a separate target DB, transactional rollback on failure, connection-string error path, non-draft rejection, DryRun leaves no trace, Validate. |
+| 31 | ~~Introspection integration tests~~ **DONE** | `introspection_test.go` — seeded tables/index/FK/enum introspected via a real pool (seam `SetConnector`). |
+| 32 | ~~auth/domain and event/domain at 0% coverage~~ **DONE** | `oauth_test.go` (PKCE, exchange, link/unlink, secrets) → auth/domain 51.2%; `pubsub_test.go` → event/domain 88.2%. |
+| 33 | ~~Raise the coverage gate~~ **DONE** | CI now merges unit + integration profiles (`go tool cover` concat) and enforces **50%**; measured 67.9% merged. |
+| 34 | ~~Low-coverage handlers~~ **DONE** | migration/handler 86.4%, event/handler 85.0%, schema/handler 89.6%, project/handler 91.7%, auth/handler 90.6%, audit/handler 91.4%, drift/handler 89.7%. |
+| 35 | ~~Interceptor stream-auth tests~~ **DONE** | `internal/pkg/interceptor/` suite covers stream auth + RBAC rejection paths (66.5%). |
 
 ### P5 — Infrastructure & Ops (POST-MVP)
 
 | # | Item | Location | Detail |
 |---|---|---|---|
-| 36 | **Terraform modules are stubs** | `infra/terraform/modules/*` | "TODO" placeholders. Implement real resources: VPC, RDS (Postgres), ElastiCache (Redis), ECS/Fly app, networking. |
-| 37 | Backup/DR procedures | not documented anywhere | DB snapshots, restore runbooks, recovery-time targets. |
-| 38 | Grafana dashboard is a placeholder | `infra/monitoring/grafana-dashboards/schemahub.json` | Single overview panel; build real panels per service + latency/error-rate + DB pool + Redis. |
-| 39 | Monitoring wiring | `infra/monitoring/` | Prometheus scrape config assumes backend metrics export — verify `/metrics` endpoint and wiring. |
+| 36 | ~~Terraform modules are stubs~~ **DONE** | `infra/terraform/` | Real modules: `vpc`, `rds` (Postgres), `redis` (ElastiCache), `ecs` (Fargate backend + Envoy), plus root `main.tf`/`provider.tf`/`variables.tf`/`outputs.tf`/env tfvars. |
+| 37 | ~~Backup/DR procedures~~ **DONE** | `docs/BACKUP_DR.md` | Snapshot strategy, restore runbook, RTO/RPO targets, cross-region plan. |
+| 38 | ~~Grafana dashboard is a placeholder~~ **DONE** | `infra/monitoring/grafana/` | 43-panel dashboard (per-service latency/error-rate, DB pool, Redis, executor queue, Prometheus data source + provisioning). |
+| 39 | ~~Monitoring wiring~~ **DONE** | `backend/cmd/server/main.go`, `infra/monitoring/prometheus.yml` | Backend `/metrics` endpoint on `METRICS_PORT` (default 9091) via prometheus/client_golang; Prometheus scrape targets updated. |
 | 40 | **OAuth provider credentials** | env config | Google/GitHub/Slack OAuth apps + secrets must be created and injected per environment. |
-| 41 | **SMTP provider credentials** | env config | Required for P0-3. |
-| 42 | Neon-compatible deployment | deployment | Verify backend runs on Neon serverless Postgres (pooled mode, no local superuser assumptions). |
-| 43 | Envoy gRPC-Web bridge | `docker/envoy/envoy.yaml` | Required for every frontend deployment (backend has no gRPC-Web wrapper); confirm prod topology. |
+| 41 | **SMTP provider credentials** | env config | Required for email verification/reset in production. |
+| 42 | ~~Neon-compatible deployment~~ **DONE** | `docs/NEON_COMPATIBILITY.md` | 16 verified findings (pgcrypto OK, no local superuser needs, pooled-mode notes, migration runner behavior); integration harness runs against any `TEST_DATABASE_URL` incl. Neon branches. |
+| 43 | ~~Envoy gRPC-Web bridge~~ **DONE** | `docker/envoy/envoy.yaml` | gRPC-Web passthrough wired; prod topology documented in DEPLOYMENT.md + NEON_COMPATIBILITY.md. |
 
 ---
 
@@ -123,8 +125,9 @@ Prioritized. P0 = do before anything else (security/correctness), P1 = functiona
 # Backend
 cd backend
 go build ./... && go vet ./... && gofmt -l .           # zero findings
-go test ./internal/... ./pkg/... -count=1 -coverprofile=coverage.out
-go tool cover -func coverage.out | tail -1             # >= 25% (raise later)
+go test ./... -count=1                                  # all unit + integration tests
+TEST_DATABASE_URL="postgres://postgres:test@127.0.0.1:5455/schemahub_test" go test ./internal/integration/... -count=1   # real Postgres suite
+# coverage (unit + integration merged): 67.9% >= 50% gate
 
 # Frontend
 cd frontend

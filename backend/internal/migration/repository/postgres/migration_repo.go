@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/schemahub/backend/internal/migration/domain"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 )
 
 type MigrationRepository struct {
@@ -59,9 +60,14 @@ func (r *MigrationRepository) ListByProjectID(ctx context.Context, projectID, cu
 	args = append(args, projectID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid migration cursor")
+		}
 		query = `SELECT id, project_id, title, description, version, up_sql, down_sql, checksum, status, created_by, created_at, updated_at, deleted_at
-			FROM migrations WHERE project_id = $1 AND deleted_at IS NULL AND created_at < $2 ORDER BY created_at DESC`
-		args = append(args, cursor)
+			FROM migrations WHERE project_id = $1 AND deleted_at IS NULL AND (created_at, id) < ($2::timestamptz, $3)
+			ORDER BY created_at DESC, id DESC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -90,8 +96,8 @@ func (r *MigrationRepository) ListByProjectID(ctx context.Context, projectID, cu
 
 	var nextCursor string
 	if int32(len(migrations)) > limit {
-		nextCursor = migrations[len(migrations)-1].CreatedAt.Format(time.RFC3339Nano)
 		migrations = migrations[:len(migrations)-1]
+		nextCursor = pagination.Encode(migrations[len(migrations)-1].CreatedAt, migrations[len(migrations)-1].ID)
 	}
 	return migrations, nextCursor, int32(len(migrations)), nil
 }
@@ -142,23 +148,46 @@ func (r *MigrationRepository) CreateRun(ctx context.Context, run *domain.Migrati
 	return err
 }
 
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanRun(r rowScanner) (*domain.MigrationRun, error) {
+	run := &domain.MigrationRun{}
+	var status, direction string
+	var startedAt, completedAt *time.Time
+	var durationMs *int32
+	var errorMessage *string
+	if err := r.Scan(&run.ID, &run.MigrationID, &run.ConnectionID, &direction, &status,
+		&startedAt, &completedAt, &durationMs, &errorMessage,
+		&run.ExecutedBy, &run.CreatedAt); err != nil {
+		return nil, err
+	}
+	run.StartedAt = startedAt
+	run.CompletedAt = completedAt
+	if durationMs != nil {
+		run.DurationMs = *durationMs
+	}
+	if errorMessage != nil {
+		run.ErrorMessage = *errorMessage
+	}
+	run.Status = domain.RunStatus(status)
+	run.Direction = domain.MigrationDirection(direction)
+	return run, nil
+}
+
 func (r *MigrationRepository) GetRunByID(ctx context.Context, id string) (*domain.MigrationRun, error) {
 	row := r.db.QueryRow(ctx,
 		`SELECT id, migration_id, connection_id, direction, status, started_at, completed_at, duration_ms, error_message, executed_by, created_at
 		 FROM migration_runs WHERE id = $1`, id)
 
-	run := &domain.MigrationRun{}
-	var status, direction string
-	if err := row.Scan(&run.ID, &run.MigrationID, &run.ConnectionID, &direction, &status,
-		&run.StartedAt, &run.CompletedAt, &run.DurationMs, &run.ErrorMessage,
-		&run.ExecutedBy, &run.CreatedAt); err != nil {
+	run, err := scanRun(row)
+	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("run not found")
 		}
 		return nil, err
 	}
-	run.Status = domain.RunStatus(status)
-	run.Direction = domain.MigrationDirection(direction)
 	return run, nil
 }
 
@@ -178,9 +207,14 @@ func (r *MigrationRepository) ListRunsByMigrationID(ctx context.Context, migrati
 	args = append(args, migrationID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid migration run cursor")
+		}
 		query = `SELECT id, migration_id, connection_id, direction, status, started_at, completed_at, duration_ms, error_message, executed_by, created_at
-			FROM migration_runs WHERE migration_id = $1 AND created_at < $2 ORDER BY created_at DESC`
-		args = append(args, cursor)
+			FROM migration_runs WHERE migration_id = $1 AND (created_at, id) < ($2::timestamptz, $3)
+			ORDER BY created_at DESC, id DESC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -196,22 +230,17 @@ func (r *MigrationRepository) ListRunsByMigrationID(ctx context.Context, migrati
 
 	var runs []*domain.MigrationRun
 	for rows.Next() {
-		run := &domain.MigrationRun{}
-		var status, direction string
-		if err := rows.Scan(&run.ID, &run.MigrationID, &run.ConnectionID, &direction, &status,
-			&run.StartedAt, &run.CompletedAt, &run.DurationMs, &run.ErrorMessage,
-			&run.ExecutedBy, &run.CreatedAt); err != nil {
+		run, err := scanRun(rows)
+		if err != nil {
 			return nil, "", 0, err
 		}
-		run.Status = domain.RunStatus(status)
-		run.Direction = domain.MigrationDirection(direction)
 		runs = append(runs, run)
 	}
 
 	var nextCursor string
 	if int32(len(runs)) > limit {
-		nextCursor = runs[len(runs)-1].CreatedAt.Format(time.RFC3339Nano)
 		runs = runs[:len(runs)-1]
+		nextCursor = pagination.Encode(runs[len(runs)-1].CreatedAt, runs[len(runs)-1].ID)
 	}
 	return runs, nextCursor, int32(len(runs)), nil
 }
@@ -221,18 +250,13 @@ func (r *MigrationRepository) GetActiveRunForConnection(ctx context.Context, con
 		`SELECT id, migration_id, connection_id, direction, status, started_at, completed_at, duration_ms, error_message, executed_by, created_at
 		 FROM migration_runs WHERE connection_id = $1 AND status IN ('pending', 'running') LIMIT 1`, connectionID)
 
-	run := &domain.MigrationRun{}
-	var status, direction string
-	if err := row.Scan(&run.ID, &run.MigrationID, &run.ConnectionID, &direction, &status,
-		&run.StartedAt, &run.CompletedAt, &run.DurationMs, &run.ErrorMessage,
-		&run.ExecutedBy, &run.CreatedAt); err != nil {
+	run, err := scanRun(row)
+	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	run.Status = domain.RunStatus(status)
-	run.Direction = domain.MigrationDirection(direction)
 	return run, nil
 }
 

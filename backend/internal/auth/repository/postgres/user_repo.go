@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/schemahub/backend/internal/auth/domain"
 	"github.com/schemahub/backend/internal/auth/repository"
@@ -82,8 +84,9 @@ func scanUser(row pgx.Row) (*domain.User, error) {
 }
 
 func pgxErrCode(err error) string {
-	if err == nil {
-		return ""
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code
 	}
-	return fmt.Sprintf("%s", err)
+	return ""
 }

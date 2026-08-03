@@ -7,6 +7,7 @@ services:
       dockerfile: docker/backend/Dockerfile
     ports:
       - "50051:50051"
+      - "9091:9091"
     environment:
       - DATABASE_URL=postgres://schemahub:schemahub@postgres:5432/schemahub?sslmode=disable
       - REDIS_URL=redis://redis:6379/0
@@ -14,6 +15,7 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
       - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-}
       - PORT=50051
+      - METRICS_PORT=9091
       - LOG_LEVEL=info
       - LOG_FORMAT=json
     depends_on:
@@ -84,11 +86,48 @@ services:
     ports:
       - "9901:9901"
       - "8080:8080"
-      - "8443:8443"
     volumes:
       - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:9901/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on:
+      - backend
+    networks:
+      - schemahub-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ../infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../infra/monitoring/grafana-dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
     networks:
       - schemahub-net
     restart: unless-stopped

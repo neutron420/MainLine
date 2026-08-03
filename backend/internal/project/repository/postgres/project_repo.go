@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 	"github.com/schemahub/backend/internal/project/domain"
 )
 
@@ -81,13 +82,17 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID, cursor str
 	args = append(args, userID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid project cursor")
+		}
 		query = `SELECT p.id, p.name, p.slug, p.description, p.visibility, p.template, p.created_by, p.created_at, p.updated_at, p.deleted_at,
 			(SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as member_count
 			FROM projects p
 			JOIN project_members pm ON p.id = pm.project_id
-			WHERE pm.user_id = $1 AND p.deleted_at IS NULL AND p.updated_at < $2
-			ORDER BY p.updated_at DESC`
-		args = append(args, cursor)
+			WHERE pm.user_id = $1 AND p.deleted_at IS NULL AND (p.updated_at, p.id) < ($2::timestamptz, $3)
+			ORDER BY p.updated_at DESC, p.id DESC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -116,8 +121,8 @@ func (r *ProjectRepository) ListByUserID(ctx context.Context, userID, cursor str
 
 	var nextCursor string
 	if int32(len(projects)) > limit {
-		nextCursor = projects[len(projects)-1].UpdatedAt.Format(time.RFC3339Nano)
 		projects = projects[:len(projects)-1]
+		nextCursor = pagination.Encode(projects[len(projects)-1].UpdatedAt, projects[len(projects)-1].ID)
 	}
 
 	return projects, nextCursor, count, nil
@@ -204,9 +209,14 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, projectID, cursor s
 	args = append(args, projectID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid member cursor")
+		}
 		query = `SELECT pm.id, pm.project_id, pm.user_id, pm.role, pm.invited_by, pm.joined_at, pm.created_at
-			FROM project_members pm WHERE pm.project_id = $1 AND pm.created_at > $2 ORDER BY pm.created_at ASC`
-		args = append(args, cursor)
+			FROM project_members pm WHERE pm.project_id = $1 AND (pm.created_at, pm.id) > ($2::timestamptz, $3)
+			ORDER BY pm.created_at ASC, pm.id ASC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -233,8 +243,8 @@ func (r *ProjectRepository) ListMembers(ctx context.Context, projectID, cursor s
 
 	var nextCursor string
 	if int32(len(members)) > limit {
-		nextCursor = members[len(members)-1].CreatedAt.Format(time.RFC3339Nano)
 		members = members[:len(members)-1]
+		nextCursor = pagination.Encode(members[len(members)-1].CreatedAt, members[len(members)-1].ID)
 	}
 
 	return members, nextCursor, count, nil

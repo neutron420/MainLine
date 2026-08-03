@@ -15,6 +15,6 @@ FROM gcr.io/distroless/base-debian12:nonroot
 
 COPY --from=builder /server /server
 
-EXPOSE 50051
+EXPOSE 50051 9091
 
 ENTRYPOINT ["/server"]

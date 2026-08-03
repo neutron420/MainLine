@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 	"github.com/schemahub/backend/internal/schema/domain"
 )
 
@@ -56,9 +57,14 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 	args = append(args, projectID)
 
 	if cursor != "" {
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid schema cursor")
+		}
 		query = `SELECT id, project_id, connection_id, schema_name, current_version_id, last_introspected_at, created_at, updated_at, deleted_at
-			FROM schemas WHERE project_id = $1 AND deleted_at IS NULL AND created_at < $2 ORDER BY created_at DESC`
-		args = append(args, cursor)
+			FROM schemas WHERE project_id = $1 AND deleted_at IS NULL AND (created_at, id) < ($2::timestamptz, $3)
+			ORDER BY created_at DESC, id DESC`
+		args = append(args, ts, id)
 	}
 
 	if limit <= 0 {
@@ -85,8 +91,8 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 
 	var nextCursor string
 	if int32(len(schemas)) > limit {
-		nextCursor = schemas[len(schemas)-1].CreatedAt.Format(time.RFC3339Nano)
 		schemas = schemas[:len(schemas)-1]
+		nextCursor = pagination.Encode(schemas[len(schemas)-1].CreatedAt, schemas[len(schemas)-1].ID)
 	}
 	return schemas, nextCursor, count, nil
 }
@@ -225,16 +231,16 @@ func (r *SchemaRepository) ListObjectsByVersionID(ctx context.Context, versionID
 	}
 
 	if cursor != "" {
-		offset := len(args) + 1
-		if objectType == "" {
-			query += fmt.Sprintf(" AND id > $2")
-		} else {
-			query += fmt.Sprintf(" AND id > $%d", offset)
+		parts, ok := pagination.DecodeTuple(cursor)
+		if !ok || len(parts) != 4 {
+			return nil, "", 0, fmt.Errorf("invalid object cursor")
 		}
-		args = append(args, cursor)
+		offset := len(args) + 1
+		query += fmt.Sprintf(" AND (object_type, object_schema, object_name, id) > ($%d::varchar, $%d::varchar, $%d::varchar, $%d::uuid)", offset, offset+1, offset+2, offset+3)
+		args = append(args, parts[0], parts[1], parts[2], parts[3])
 	}
 
-	query += " ORDER BY object_type, object_name"
+	query += " ORDER BY object_type, object_schema, object_name, id"
 
 	if limit <= 0 {
 		limit = 20
@@ -260,8 +266,9 @@ func (r *SchemaRepository) ListObjectsByVersionID(ctx context.Context, versionID
 
 	var nextCursor string
 	if int32(len(objects)) > limit {
-		nextCursor = objects[len(objects)-1].ID
 		objects = objects[:len(objects)-1]
+		last := objects[len(objects)-1]
+		nextCursor = pagination.EncodeTuple(last.ObjectType, last.ObjectSchema, last.ObjectName, last.ID)
 	}
 	return objects, nextCursor, count, nil
 }

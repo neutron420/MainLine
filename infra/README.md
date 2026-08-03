@@ -1,49 +1,76 @@
-# SchemaHub Infrastructure (Skeleton)
+# SchemaHub Infrastructure
 
-> **Status: Skeleton only.** This directory is scaffolding for post-MVP
-> provisioning. No resource is deployed yet — see `terraform/environments/*`.
+Production-grade IaC and monitoring for the SchemaHub platform.
 
 ## Layout
 
 ```
 infra/
-├── terraform/            # Terraform IaC
-│   ├── environments/     # dev / staging / production workspaces
-│   └── modules/          # database, redis, backend-service, networking
+├── terraform/            # Terraform IaC (AWS)
+│   ├── main.tf           # Root module: wires vpc + rds + redis + ecs
+│   ├── variables.tf      # Root inputs (secrets have no defaults)
+│   ├── outputs.tf        # ALB endpoint, endpoints, SSM parameter names
+│   ├── provider.tf       # AWS provider + S3 backend note (commented)
+│   ├── environments/     # dev / staging / production tfvars examples
+│   └── modules/
+│       ├── vpc/          # VPC, public/private subnets, IGW, NAT, route tables
+│       ├── rds/          # RDS PostgreSQL 16, encrypted, backups 7d, PITR
+│       ├── redis/        # ElastiCache Redis (cluster mode disabled), backups
+│       └── ecs/          # Fargate backend + ALB (h2c gRPC), SecretsManager
 └── monitoring/
-    ├── prometheus.yml    # Prometheus scrape config
+    ├── prometheus.yml    # Scrape config (targets = compose service names)
+    ├── alerts.yml        # Alert rules (backend down, gRPC error rate)
+    ├── grafana/          # Grafana provisioning (datasource + dashboard provider)
     └── grafana-dashboards/
-        └── schemahub.json # Grafana dashboard (placeholder)
+        └── schemahub.json # Full dashboard: per-service rate/latency/errors, DB pool, Redis, runtime
 ```
 
 ## What the backend exposes for monitoring
 
-- gRPC Prometheus metrics via `interceptor.MetricsInterceptor` (register a
-  prometheus registry in `cmd/server` and add the standard grpc-go metrics).
+- **`/metrics`** on port **9091** (env `METRICS_PORT`): Prometheus endpoint via
+  `promhttp`. Serves Go runtime/process metrics today; wire the standard
+  grpc-go and pgxpool collectors to populate the gRPC/pool panels.
 - Structured `slog` logs (JSON) — ship them to Loki/CloudWatch and alert on
   `level=error`.
-- Healthcheck: gRPC reflection is enabled (`/grpc.reflection.v1alpha.ServerReflection`).
+- gRPC health via reflection (`/grpc.reflection.v1alpha.ServerReflection`).
 
-## Terraform
+## Terraform (AWS)
 
-The modules in `terraform/modules/` are declared but empty. To provision:
+Modules implement: VPC with public/private subnets + NAT; RDS Postgres 16
+(encrypted, 7-day backups, deletion protection); ElastiCache Redis; Fargate
+backend behind an ALB (HTTP/2 h2c to the gRPC port, health check against
+`/metrics`).
 
-1. Fill in each module's `main.tf`/`variables.tf`/`outputs.tf`
-   (`database` → Neon/managed Postgres or RDS, `redis` → Upstash/ElastiCache,
-   `backend-service` → Railway/Fly/AWS ECS, `networking` → VPC/security groups).
-2. Copy `environments/dev/terraform.tfvars.example` → `terraform.tfvars`.
-3. `terraform init && terraform plan && terraform apply`
+Secrets policy: nothing sensitive has a default. `db_password`,
+`jwt_private_key`, `jwt_public_key`, `encryption_key` must be supplied in
+`terraform.tfvars` (never committed). Connection URLs land in SSM SecureString;
+app secrets land in SecretsManager and are referenced from the task definition
+via `valueFrom` — never in the container env.
 
-Never commit `*.tfstate` or `*.tfplan` (already gitignored).
+```bash
+cd infra/terraform
+cp environments/dev/terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars with real values
+terraform init
+terraform plan
+terraform apply
+```
 
-## Prometheus
+Never commit `*.tfstate` or `*.tfplan` (gitignored).
 
-`monitoring/prometheus.yml` is ready to scrape a locally-running backend that
-exposes metrics on `:9090/metrics` (set `METRICS_ADDR` in the backend once the
-metrics endpoint is wired).
+## Prometheus + Grafana (local compose)
 
-## Grafana
+`docker-compose.yml` includes `prometheus` (scraping `backend:9091` and
+`envoy:9901`) and `grafana` (port 3001, auto-provisioned datasource +
+dashboard):
 
-`monitoring/grafana-dashboards/schemahub.json` is a placeholder dashboard
-(Overview + Schema + Migrations + Real-time + Database rows). Import it into
-Grafana once Prometheus is up.
+```bash
+docker compose -f docker/docker-compose.yml up prometheus grafana
+# Grafana: http://localhost:3001 (admin / GRAFANA_ADMIN_PASSWORD, default admin)
+# Dashboard: SchemaHub
+```
+
+For a managed deployment, run Prometheus against the same `prometheus.yml`
+and import `schemahub.json` with the `DS_PROMETHEUS` variable pointing at it.
+The Redis panels expect a redis_exporter scrape of the ElastiCache endpoint
+(job is commented out in `prometheus.yml` until an exporter is deployed).

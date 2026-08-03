@@ -5,6 +5,7 @@ services:
       dockerfile: docker/backend/Dockerfile.dev
     ports:
       - "50051:50051"
+      - "9091:9091"
       - "2345:2345" # Delve debugger
     environment:
       - LOG_LEVEL=debug
@@ -38,7 +39,6 @@ services:
     ports:
       - "9901:9901"
       - "8080:8080"
-      - "8443:8443"
 
 volumes:
   gomod:

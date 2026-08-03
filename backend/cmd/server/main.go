@@ -6,12 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	auditDomain "github.com/schemahub/backend/internal/audit/domain"
 	auditHandler "github.com/schemahub/backend/internal/audit/handler"
 	auditRepo "github.com/schemahub/backend/internal/audit/repository/postgres"
@@ -63,6 +66,28 @@ func main() {
 
 	log := logger.New(cfg.LogLevel, cfg.LogFormat)
 	log.Info("starting schemahub backend", "port", cfg.Port)
+
+	// Metrics endpoint (Prometheus). Served on a separate HTTP port so the
+	// gRPC listener stays pure. Defaults to 9091; override with METRICS_PORT
+	// to match the Prometheus scrape target.
+	metricsPort := os.Getenv("METRICS_PORT")
+	if metricsPort == "" {
+		metricsPort = "9091"
+	}
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsSrv := &http.Server{
+		Addr:              ":" + metricsPort,
+		Handler:           metricsMux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	go func() {
+		log.Info("metrics server listening", "addr", metricsSrv.Addr)
+		if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to serve metrics", "error", err)
+			os.Exit(1)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -268,6 +293,12 @@ func main() {
 
 	log.Info("shutting down server...")
 	srv.GracefulStop()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := metricsSrv.Shutdown(shutdownCtx); err != nil {
+		log.Error("failed to stop metrics server", "error", err)
+	}
 	log.Info("server stopped")
 }
 

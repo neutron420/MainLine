@@ -1,7 +1,36 @@
 # Production environment
 # Copy to terraform.tfvars and fill in real values before applying.
-name              = "schemahub-production"
+# Never commit terraform.tfvars — it contains secrets.
+
+name       = "schemahub-prod"
+environment = "production"
+region     = "us-east-1"
+
 vpc_cidr          = "10.2.0.0/16"
-backend_image     = "ghcr.io/neutron420/mainline/backend:latest"
-jwt_private_key   = "-----BEGIN RSA PRIVATE KEY----- ..."
-jwt_public_key    = "-----BEGIN PUBLIC KEY----- ..."
+nat_gateway_count = 3 # HA: one NAT per AZ
+
+# --- Database (RDS) ---
+db_name     = "schemahub"
+db_username = "schemahub"
+# db_password = ""            # required, no default
+rds_engine_version = "16.4"
+rds_instance_class = "db.t4g.small"
+rds_multi_az       = true
+
+# --- Redis (ElastiCache) ---
+redis_engine_version              = "7.1"
+redis_node_type                   = "cache.t3.micro"
+redis_num_cache_clusters          = 2 # primary + replica, auto-failover
+redis_transit_encryption_enabled  = true
+# redis_auth_token = ""          # required when transit encryption is on
+
+# --- Backend (ECS) ---
+backend_image = "ghcr.io/schemahub/backend:stable"
+frontend_url  = "https://app.schemahub.dev"
+# jwt_private_key = "-----BEGIN RSA PRIVATE KEY----- ..."   # required, no default
+# jwt_public_key  = "-----BEGIN PUBLIC KEY----- ..."        # required, no default
+# encryption_key  = "..."                                    # required, >= 32 bytes
+backend_desired_count = 2
+backend_min_capacity  = 2
+backend_max_capacity  = 6
+# acm_certificate_arn = "arn:aws:acm:us-east-1:...:certificate/..." # HTTPS listener

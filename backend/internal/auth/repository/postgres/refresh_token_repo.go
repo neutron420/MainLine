@@ -34,7 +34,7 @@ func (r *refreshTokenRepo) Create(ctx context.Context, t *domain.RefreshToken) e
 
 func (r *refreshTokenRepo) GetByHash(ctx context.Context, rawToken string) (*domain.RefreshToken, error) {
 	row := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, token_hash, expires_at, revoked_at, created_at, created_by_ip, family
+		`SELECT id, user_id, token_hash, expires_at, revoked_at, created_at, created_by_ip::text, family
 		 FROM refresh_tokens WHERE token_hash = $1`, hashToken(rawToken))
 	t := &domain.RefreshToken{}
 	err := row.Scan(&t.ID, &t.UserID, &t.TokenHash, &t.ExpiresAt,
@@ -59,7 +59,7 @@ func (r *refreshTokenRepo) RevokeFamily(ctx context.Context, family string) erro
 
 func (r *refreshTokenRepo) GetActiveByUserID(ctx context.Context, userID string) ([]*domain.RefreshToken, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, token_hash, expires_at, revoked_at, created_at, created_by_ip, family
+		`SELECT id, user_id, token_hash, expires_at, revoked_at, created_at, created_by_ip::text, family
 		 FROM refresh_tokens
 		 WHERE user_id=$1 AND revoked_at IS NULL AND expires_at > now()
 		 ORDER BY created_at DESC`, userID)

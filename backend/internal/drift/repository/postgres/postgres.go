@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/schemahub/backend/internal/drift/domain"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 )
 
 type DriftRepository struct {
@@ -19,14 +20,15 @@ func NewDriftRepository(pool *pgxpool.Pool) *DriftRepository {
 }
 
 func (r *DriftRepository) Insert(ctx context.Context, event *domain.DriftEvent) error {
-	_, err := r.pool.Exec(ctx, `
+	err := r.pool.QueryRow(ctx, `
 		INSERT INTO drift_events (connection_id, schema_id, expected_version_id, drift_type, object_type, object_name, expected_definition, actual_definition, diff_summary, severity, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id`,
 		event.ConnectionID, nullIfEmpty(event.SchemaID), nullIfEmpty(event.ExpectedVersionID),
 		string(event.DriftType), event.ObjectType, event.ObjectName,
 		nullIfEmpty(event.ExpectedDefinition), nullIfEmpty(event.ActualDefinition),
 		nullIfEmpty(event.DiffSummary), string(event.Severity), string(event.Status),
-	)
+	).Scan(&event.ID)
 	if err != nil {
 		return fmt.Errorf("inserting drift event: %w", err)
 	}
@@ -68,9 +70,13 @@ func (r *DriftRepository) List(ctx context.Context, filter *domain.DriftFilter, 
 		argIdx++
 	}
 	if cursor != "" {
-		where += fmt.Sprintf(" AND detected_at < (SELECT detected_at FROM drift_events WHERE id = $%d)", argIdx)
-		args = append(args, cursor)
-		argIdx++
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid drift cursor")
+		}
+		where += fmt.Sprintf(" AND (detected_at, id) < ($%d::timestamptz, $%d::uuid)", argIdx, argIdx+1)
+		args = append(args, ts, id)
+		argIdx += 2
 	}
 
 	args = append(args, limit+1)
@@ -97,7 +103,7 @@ func (r *DriftRepository) List(ctx context.Context, filter *domain.DriftFilter, 
 	var nextCursor string
 	if len(events) > int(limit) {
 		events = events[:limit]
-		nextCursor = events[len(events)-1].ID
+		nextCursor = pagination.Encode(events[len(events)-1].DetectedAt, events[len(events)-1].ID)
 	}
 
 	var total int32

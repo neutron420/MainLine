@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/schemahub/backend/internal/audit/domain"
 	eventDomain "github.com/schemahub/backend/internal/event/domain"
+	"github.com/schemahub/backend/internal/pkg/pagination"
 )
 
 type AuditRepository struct {
@@ -44,7 +45,7 @@ func (r *AuditRepository) Insert(ctx context.Context, entry *domain.AuditEntry) 
 
 func (r *AuditRepository) GetByID(ctx context.Context, id string) (*domain.AuditEntry, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address, user_agent, trace_id, created_at
+		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address::text, user_agent, trace_id, created_at
 		FROM audit_logs WHERE id = $1`, id)
 
 	return scanEntry(row)
@@ -86,14 +87,18 @@ func (r *AuditRepository) List(ctx context.Context, filter *domain.AuditFilter, 
 		argIdx++
 	}
 	if cursor != "" {
-		where += fmt.Sprintf(" AND created_at < (SELECT created_at FROM audit_logs WHERE id = $%d)", argIdx)
-		args = append(args, cursor)
-		argIdx++
+		ts, id, ok := pagination.Decode(cursor)
+		if !ok {
+			return nil, "", 0, fmt.Errorf("invalid audit cursor")
+		}
+		where += fmt.Sprintf(" AND (created_at, id) < ($%d::timestamptz, $%d::uuid)", argIdx, argIdx+1)
+		args = append(args, ts, id)
+		argIdx += 2
 	}
 
 	args = append(args, limit+1)
 	query := fmt.Sprintf(`
-		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address, user_agent, trace_id, created_at
+		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address::text, user_agent, trace_id, created_at
 		FROM audit_logs %s ORDER BY created_at DESC LIMIT $%d`, where, argIdx)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -114,7 +119,7 @@ func (r *AuditRepository) List(ctx context.Context, filter *domain.AuditFilter, 
 	var nextCursor string
 	if len(entries) > int(limit) {
 		entries = entries[:limit]
-		nextCursor = entries[len(entries)-1].ID
+		nextCursor = pagination.Encode(entries[len(entries)-1].CreatedAt, entries[len(entries)-1].ID)
 	}
 
 	var total int32
@@ -128,7 +133,7 @@ func (r *AuditRepository) List(ctx context.Context, filter *domain.AuditFilter, 
 }
 
 func (r *AuditRepository) ListAfterID(ctx context.Context, afterID string, eventType string, limit int) ([]*domain.AuditEntry, error) {
-	where := "WHERE created_at > (SELECT created_at FROM audit_logs WHERE id = $1)"
+	where := "WHERE (created_at, id) > ((SELECT created_at FROM audit_logs WHERE id = $1), $1)"
 	args := []interface{}{afterID}
 	argIdx := 2
 
@@ -140,8 +145,8 @@ func (r *AuditRepository) ListAfterID(ctx context.Context, afterID string, event
 
 	args = append(args, limit)
 	query := fmt.Sprintf(`
-		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address, user_agent, trace_id, created_at
-		FROM audit_logs %s ORDER BY created_at ASC LIMIT $%d`, where, argIdx)
+		SELECT id, event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address::text, user_agent, trace_id, created_at
+		FROM audit_logs %s ORDER BY created_at ASC, id ASC LIMIT $%d`, where, argIdx)
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -189,7 +194,7 @@ func (r *AuditRepository) InsertEvent(ctx context.Context, evt *eventDomain.Sche
 }
 
 func (r *AuditRepository) ListEventsAfter(ctx context.Context, afterID string, projectIDs []string, eventTypes []eventDomain.EventType, limit int) ([]*eventDomain.SchemaEvent, error) {
-	where := "WHERE created_at > (SELECT created_at FROM audit_logs WHERE id = $1)"
+	where := "WHERE (created_at, id) > ((SELECT created_at FROM audit_logs WHERE id = $1), $1)"
 	args := []interface{}{afterID}
 	argIdx := 2
 
@@ -371,3 +376,4 @@ func nullIfEmpty(s string) *string {
 	}
 	return &s
 }
+

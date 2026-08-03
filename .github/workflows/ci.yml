@@ -65,6 +65,22 @@ jobs:
     name: Backend build, vet, test, coverage
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TEST_DATABASE_URL: postgres://postgres:test@localhost:5455/schemahub_test
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: schemahub_test
+        ports:
+          - 5455:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -88,13 +104,17 @@ jobs:
       - name: Coverage gate
         working-directory: backend
         run: |
-          go test ./internal/... ./pkg/... -coverprofile=coverage.out
+          go test ./internal/... ./pkg/... -coverprofile=coverage-unit.out
+          go test ./internal/integration/... -coverpkg=github.com/schemahub/backend/internal/... -coverprofile=coverage-integration.out
+          head -n 1 coverage-unit.out > coverage.out
+          tail -n +2 coverage-unit.out >> coverage.out
+          tail -n +2 coverage-integration.out >> coverage.out
           total=$(go tool cover -func=coverage.out | grep 'total:' | awk '{print $NF}' | tr -d '%')
           echo "Total coverage: $total%"
-          if awk "BEGIN { exit !($total >= 25) }"; then
-            echo "✅ Coverage gate passed ($total% >= 25%)"
+          if awk "BEGIN { exit !($total >= 50) }"; then
+            echo "✅ Coverage gate passed ($total% >= 50%)"
           else
-            echo "❌ Coverage gate failed ($total% < 25%)"
+            echo "❌ Coverage gate failed ($total% < 50%)"
             exit 1
           fi
 

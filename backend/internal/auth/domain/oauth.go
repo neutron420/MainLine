@@ -83,6 +83,13 @@ type tokenResponse struct {
 	IDToken      string `json:"id_token,omitempty"`
 }
 
+// oauthHTTPClient is a package-level seam so tests can point OAuth exchanges
+// at an httptest server. Production uses http.DefaultClient.
+var oauthHTTPClient = http.DefaultClient
+
+// slackUserInfoURL is overridable in tests.
+var slackUserInfoURL = "https://slack.com/api/openid.connect.userInfo"
+
 func getOAuthConfigs(cfg *OAuthProviderConfig) map[string]OAuthConfig {
 	return map[string]OAuthConfig{
 		"google": cfg.Google,
@@ -327,7 +334,7 @@ func exchangeCode(cfg OAuthConfig, code, codeVerifier string) (*tokenResponse, e
 		data.Set("code_verifier", codeVerifier)
 	}
 
-	resp, err := http.PostForm(cfg.TokenURL, data)
+	resp, err := oauthHTTPClient.PostForm(cfg.TokenURL, data)
 	if err != nil {
 		return nil, fmt.Errorf("token request failed: %w", err)
 	}
@@ -410,10 +417,10 @@ func fetchSlackUserInfo(accessToken string) (string, string, bool, string, strin
 		Error string        `json:"error,omitempty"`
 	}
 
-	req, _ := http.NewRequest("GET", "https://slack.com/api/openid.connect.userInfo", nil)
+	req, _ := http.NewRequest("GET", slackUserInfoURL, nil)
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
 		return "", "", false, "", "", fmt.Errorf("slack userinfo request: %w", err)
 	}
@@ -440,7 +447,7 @@ func doGet[T any](url, accessToken string) (T, error) {
 		req.Header.Set("User-Agent", "SchemaHub")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := oauthHTTPClient.Do(req)
 	if err != nil {
 		return zero, fmt.Errorf("request to %s: %w", url, err)
 	}

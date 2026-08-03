@@ -1,4 +1,10 @@
 # SchemaHub monitoring scrape config (prometheus.yml)
+#
+# Targets match the docker/docker-compose.yml service names on the
+# `schemahub-net` bridge network. The backend exposes Prometheus metrics on
+# port 9091 (METRICS_PORT) at /metrics; Envoy exposes them on the admin
+# interface at /stats/prometheus.
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -10,6 +16,30 @@ scrape_configs:
   - job_name: "schemahub-backend"
     metrics_path: /metrics
     static_configs:
-      - targets: ["host.docker.internal:9090"]
+      - targets: ["backend:9091"]
         labels:
           service: "schemahub-backend"
+
+  - job_name: "envoy"
+    metrics_path: /stats/prometheus
+    static_configs:
+      - targets: ["envoy:9901"]
+        labels:
+          service: "schemahub-envoy"
+
+  - job_name: "prometheus"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["prometheus:9090"]
+        labels:
+          service: "prometheus"
+
+  # Redis exporter (redis_exporter container or ElastiCache exporter) is not
+  # part of the compose stack; add it when a managed Redis is deployed and
+  # re-enable this job. Metric naming follows the redis_exporter conventions
+  # referenced by the SchemaHub Grafana dashboard.
+  # - job_name: "schemahub-redis"
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]
+  #       labels:
+  #         service: "schemahub-redis"
