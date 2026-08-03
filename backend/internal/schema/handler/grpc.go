@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -197,4 +196,3 @@ func toDiffObjects(in []domain.DiffObject) []*schemav1.DiffObject {
 	return out
 }
 
-var _ = json.Marshal

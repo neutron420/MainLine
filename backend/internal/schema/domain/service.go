@@ -5,11 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/schemahub/backend/pkg/encryption"
 )
 
 type SchemaService struct {
@@ -323,7 +318,3 @@ func (s *SchemaService) GetDiagram(ctx context.Context, versionID string, includ
 	return diagram, nil
 }
 
-var _ = uuid.NewString
-var _ = pgxpool.Pool{}
-var _ = encryption.Encrypt
-var _ = time.Now

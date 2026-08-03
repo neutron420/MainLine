@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/schemahub/backend/internal/pkg/errors"
 )
 
 type AuditLogger interface {
@@ -257,5 +256,3 @@ func matchesEventType(filter []EventType, evt EventType) bool {
 	}
 	return false
 }
-
-var _ = errors.New

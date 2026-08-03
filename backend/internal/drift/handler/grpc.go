@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/schemahub/backend/internal/drift/domain"
@@ -122,4 +121,3 @@ func toProtoEvent(e *domain.DriftEvent) *driftv1.DriftEvent {
 	return pe
 }
 
-var _ = fmt.Sprintf

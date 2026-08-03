@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -273,4 +272,3 @@ func (r *SchemaRepository) ListObjectsByVersionID(ctx context.Context, versionID
 	return objects, nextCursor, count, nil
 }
 
-var _ = json.RawMessage{}

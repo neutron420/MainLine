@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -109,5 +108,3 @@ func toProtoEvent(e *domain.SchemaEvent) *eventv1.SchemaEvent {
 	}
 	return pe
 }
-
-var _ = fmt.Sprintf
