@@ -185,12 +185,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     actor_email VARCHAR(320),
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(50) NOT NULL,
-    resource_id UUID NOT NULL,
+    resource_id UUID,
     resource_changes JSONB,
     metadata JSONB,
     ip_address INET,
     user_agent TEXT,
-    trace_id UUID NOT NULL,
+    trace_id UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
