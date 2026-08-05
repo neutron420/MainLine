@@ -197,41 +197,15 @@ export default function ConnectionsPage() {
   };
 
   return (
-    <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/projects/${projectId}`}>
-                  {project?.name ?? "Project"}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Connections</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
+    <div className="flex flex-1 flex-col gap-6 p-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" asChild>
               <a href={`/projects/${projectId}`}>
                 <ArrowLeft className="size-4" />
                 Back
               </a>
             </Button>
-            <NotificationsPopover />
           </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-6 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold">Database Connections</h1>
@@ -444,8 +418,6 @@ export default function ConnectionsPage() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </SidebarInset>
 
       <Dialog open={testResult !== null} onOpenChange={(o) => { if (!o) setTestResult(null); }}>
         <DialogContent className="sm:max-w-sm">
@@ -504,6 +476,6 @@ export default function ConnectionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SidebarProvider>
+    </div>
   );
 }

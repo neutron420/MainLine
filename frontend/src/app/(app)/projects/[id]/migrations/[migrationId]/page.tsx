@@ -95,15 +95,10 @@ export default function MigrationDetailPage() {
 
   if (isLoading) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+                <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <GitBranch className="size-12 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">Loading migration...</p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
@@ -140,19 +135,8 @@ export default function MigrationDetailPage() {
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href={`/projects/${projectId}`}>Project</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>{migration.version}</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
+        <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
@@ -162,10 +146,7 @@ export default function MigrationDetailPage() {
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
-            <NotificationsPopover />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-4">

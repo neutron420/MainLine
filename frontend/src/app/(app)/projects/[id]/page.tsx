@@ -123,6 +123,8 @@ export default function ProjectDetailPage() {
   const { events, connected } = useEventStream({ projectIds: [id], maxEvents: 8 });
   const [search, setSearch] = useState("");
 
+  const memberList = Array.isArray(members) ? members : [];
+
   const filteredSchemas = (schemas ?? []).filter((s) => {
     if (search === "") return true;
     const haystack = `${s.schemaName} ${s.connectionId}`.toLowerCase();
@@ -131,15 +133,10 @@ export default function ProjectDetailPage() {
 
   if (isLoading) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+                <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <Database className="size-12 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">Loading project...</p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
@@ -167,17 +164,8 @@ export default function ProjectDetailPage() {
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>{project.name}</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
+        <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
@@ -187,10 +175,7 @@ export default function ProjectDetailPage() {
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
-            <NotificationsPopover />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Project header */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
@@ -270,7 +255,7 @@ export default function ProjectDetailPage() {
                     <CardTitle className="text-sm font-medium">Members</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-semibold">{members?.length ?? project.memberCount}</p>
+                    <p className="text-2xl font-semibold">{memberList.length || project.memberCount}</p>
                     <p className="text-xs text-muted-foreground mt-1">collaborators</p>
                   </CardContent>
                 </Card>
@@ -298,11 +283,11 @@ export default function ProjectDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {!members || members.length === 0 ? (
+                    {memberList.length === 0 ? (
                       <p className="text-muted-foreground text-sm py-4">No members yet. Invite your team to collaborate.</p>
                     ) : (
                       <div className="space-y-3">
-                        {members.map((member) => (
+                        {memberList.map((member) => (
                           <div key={member.userId || member.email} className="flex items-center gap-3">
                             <Avatar className="size-8">
                               <AvatarFallback className="text-xs">{initialsOf(member.email || member.userId)}</AvatarFallback>

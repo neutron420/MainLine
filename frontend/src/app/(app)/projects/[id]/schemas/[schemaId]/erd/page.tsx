@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, KeyRound, Link2, Table2 } from "lucide-react";
@@ -22,21 +22,7 @@ import "@xyflow/react/dist/style.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { NotificationsPopover } from "@/components/notifications-popover";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useSchema, useSchemaDiagram } from "@/lib/api/hooks/use-schemas";
 import type { DiagramNodeData, ColumnInfo } from "@/lib/gen/schema/v1/schema_messages_pb";
 
@@ -46,7 +32,7 @@ type TableNodeData = {
   objectType: string;
 };
 
-function TableNode({ data }: NodeProps<Node<{ table: TableNodeData }>>) {
+const TableNode = React.memo(function TableNode({ data }: NodeProps<Node<{ table: TableNodeData }>>) {
   const table = data.table;
   return (
     <div className="w-64 rounded-lg border border-border bg-card shadow-md">
@@ -87,7 +73,7 @@ function TableNode({ data }: NodeProps<Node<{ table: TableNodeData }>>) {
       />
     </div>
   );
-}
+});
 
 export default function ErdPage() {
   const params = useParams();
@@ -134,15 +120,10 @@ export default function ErdPage() {
 
   if (isLoading) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+                <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
             <Table2 className="size-12 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">Loading diagram...</p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
@@ -168,23 +149,9 @@ export default function ErdPage() {
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href={`/projects/${projectId}`}>Project</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>ERD · {schema.schemaName}</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
-            <NotificationsPopover />
-          </div>
-        </header>
         <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-3">
+          </div>
           {/* Header */}
           <div className="flex items-start gap-4">
             <Link href={`/projects/${projectId}/schemas/${schemaId}`}>
@@ -224,6 +191,7 @@ export default function ErdPage() {
                 fitViewOptions={{ padding: 0.3 }}
                 minZoom={0.4}
                 maxZoom={1.5}
+                onlyRenderVisibleElements={true}
                 proOptions={{ hideAttribution: true }}
               >
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1} />

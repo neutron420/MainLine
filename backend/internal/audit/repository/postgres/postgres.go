@@ -228,19 +228,23 @@ func (r *AuditRepository) ListEventsAfter(ctx context.Context, afterID string, p
 	var events []*eventDomain.SchemaEvent
 	for rows.Next() {
 		var (
-			id, eventType, action, resourceType, resourceID string
-			createdAt                                       time.Time
-			actorID, actorEmail                             *string
-			metadata                                        []byte
+			id, eventType, action, resourceType string
+			createdAt                           time.Time
+			actorID, actorEmail, resourceID     *string
+			metadata                            []byte
 		)
 		if err := rows.Scan(&id, &eventType, &actorID, &actorEmail, &action, &resourceType, &resourceID, &metadata, &createdAt); err != nil {
 			return nil, fmt.Errorf("scanning event: %w", err)
+		}
+		resID := ""
+		if resourceID != nil {
+			resID = *resourceID
 		}
 		evt := &eventDomain.SchemaEvent{
 			ID:        id,
 			Type:      eventDomain.EventType(eventType),
 			Timestamp: createdAt,
-			Resource:  &eventDomain.EventResource{Type: resourceType, ID: resourceID},
+			Resource:  &eventDomain.EventResource{Type: resourceType, ID: resID},
 		}
 		if actorID != nil {
 			evt.Actor = &eventDomain.EventActor{ID: *actorID}
@@ -326,10 +330,11 @@ func scanEntry(row interface {
 	Scan(dest ...interface{}) error
 }) (*domain.AuditEntry, error) {
 	var (
-		id, eventType, action, resourceType, resourceID, traceID string
-		createdAt                                                time.Time
-		actorID, actorEmail, ipAddr, userAgent                   *string
-		resourceChanges, metadata                                []byte
+		id, eventType, action, resourceType    string
+		createdAt                              time.Time
+		actorID, actorEmail, ipAddr, userAgent *string
+		resourceID, traceID                    *string
+		resourceChanges, metadata              []byte
 	)
 	if err := row.Scan(&id, &eventType, &actorID, &actorEmail, &action, &resourceType, &resourceID, &resourceChanges, &metadata, &ipAddr, &userAgent, &traceID, &createdAt); err != nil {
 		if err == pgx.ErrNoRows {
@@ -343,11 +348,15 @@ func scanEntry(row interface {
 		EventType:    eventType,
 		Action:       action,
 		ResourceType: resourceType,
-		ResourceID:   resourceID,
-		TraceID:      traceID,
 		CreatedAt:    createdAt,
 	}
 
+	if resourceID != nil {
+		entry.ResourceID = *resourceID
+	}
+	if traceID != nil {
+		entry.TraceID = *traceID
+	}
 	if actorID != nil {
 		entry.ActorID = *actorID
 	}

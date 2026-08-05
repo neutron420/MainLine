@@ -78,10 +78,7 @@ export default function CreateProjectPage() {
 
   if (createdId) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
             <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
               <CheckCircle2 className="size-7 text-emerald-500" />
             </div>
@@ -90,27 +87,14 @@ export default function CreateProjectPage() {
               Redirecting to your project…
             </p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
   return (
-    <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <Tooltip delay={0}>
-            <SidebarTrigger className="-ml-1 size-9" />
-            <Tooltip.Content>
-              <p>Toggle sidebar</p>
-            </Tooltip.Content>
-          </Tooltip>
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <div className="flex items-center gap-2 ml-auto">
-            <NotificationsPopover />
+    <div className="flex flex-1 flex-col gap-6 p-6">
+      <div className="flex flex-wrap items-center gap-3">
           </div>
-        </header>
+
         <div className="flex flex-1 flex-col gap-6 p-6 max-w-2xl w-full mx-auto">
           <div className="flex items-start gap-4">
             <Button variant="ghost" size="icon" className="size-10 shrink-0 mt-0.5" onClick={() => router.push("/projects")}>
@@ -230,7 +214,6 @@ export default function CreateProjectPage() {
             </Button>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
   );
 }

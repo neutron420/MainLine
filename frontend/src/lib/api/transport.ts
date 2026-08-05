@@ -116,8 +116,34 @@ const authInterceptor: Interceptor = (next) => async (req) => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightRequests = new Map<string, Promise<any>>();
+
+/**
+ * Deduplicates in-flight identical unary RPC queries to eliminate redundant
+ * network roundtrips when multiple components mount concurrently.
+ */
+const deduplicationInterceptor: Interceptor = (next) => async (req) => {
+  if (req.stream) {
+    return next(req);
+  }
+
+  const key = `${req.service.typeName}/${req.method.name}:${JSON.stringify(req.message)}`;
+  const existing = inFlightRequests.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = next(req).finally(() => {
+    inFlightRequests.delete(key);
+  });
+
+  inFlightRequests.set(key, promise);
+  return promise;
+};
+
 export const transport = createGrpcWebTransport({
   baseUrl: API_BASE_URL,
   useBinaryFormat: true,
-  interceptors: [authInterceptor],
+  interceptors: [deduplicationInterceptor, authInterceptor],
 });

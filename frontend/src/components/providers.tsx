@@ -12,9 +12,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            staleTime: 60_000,
+            gcTime: 1000 * 60 * 5,
             refetchOnWindowFocus: false,
-            retry: 1,
+            refetchOnReconnect: "always",
+            retry: (failureCount) => {
+              // Do not retry on 4xx/Unauthenticated errors
+              if (failureCount >= 2) return false;
+              return true;
+            },
           },
           mutations: {
             retry: 0,

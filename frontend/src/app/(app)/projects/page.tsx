@@ -115,18 +115,8 @@ export default function ProjectsPage() {
   };
 
   return (
-    <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbPage>Projects</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
+            <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
@@ -136,10 +126,7 @@ export default function ProjectsPage() {
                 className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
               />
             </div>
-            <NotificationsPopover />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Header + New button */}
           <div className="flex items-center justify-between">
             <div>
@@ -357,7 +344,5 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
   );
 }

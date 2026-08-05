@@ -50,6 +50,8 @@ const eslintConfig = [
       "no-console": "warn",
       "import/order": "off",
       "jsx-a11y/label-has-associated-control": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "no-unused-vars": "off",
     },
   },
 ];

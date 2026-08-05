@@ -74,10 +74,7 @@ export default function CreateMigrationPage() {
 
   if (createdId) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
             <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
               <CheckCircle2 className="size-7 text-emerald-500" />
             </div>
@@ -94,8 +91,6 @@ export default function CreateMigrationPage() {
               </Link>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
@@ -103,23 +98,9 @@ export default function CreateMigrationPage() {
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1 size-9" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href={`/projects/${projectId}`}>Project</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>New Migration</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
-            <NotificationsPopover />
-          </div>
-        </header>
         <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-3">
+          </div>
           {/* Header */}
           <div className="flex items-start gap-4">
             <Link href={`/projects/${projectId}`}>

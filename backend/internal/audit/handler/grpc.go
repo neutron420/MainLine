@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/schemahub/backend/internal/audit/domain"
@@ -30,6 +31,7 @@ func (h *AuditHandler) ListAuditEntries(ctx context.Context, req *auditv1.ListAu
 
 	entries, next, total, err := h.svc.List(ctx, filter, req.Cursor, req.PageSize)
 	if err != nil {
+		slog.Error("list_audit_entries failed", "cursor", req.Cursor, "error", err)
 		return nil, errors.ToGRPC(err)
 	}
 
