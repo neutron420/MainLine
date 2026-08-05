@@ -179,11 +179,13 @@ export function useGetOAuthUrl() {
       provider: string;
       redirectTo?: string;
       linking?: boolean;
+      codeChallenge?: string;
     }): Promise<string> => {
       const res = await authClient.getOAuthURL({
         provider: input.provider,
         redirectTo: input.redirectTo ?? "",
         linking: input.linking ?? false,
+        codeChallenge: input.codeChallenge ?? "",
       });
       return res.authUrl;
     },
