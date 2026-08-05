@@ -266,6 +266,7 @@ func (h *ProjectHandler) CreateConnection(ctx context.Context, req *projectv1.Cr
 
 	created, err := h.connSvc.Create(ctx, c, req.Password)
 	if err != nil {
+		slog.Error("create_connection failed", "project", req.ProjectId, "name", req.Name, "error", err)
 		return nil, mapConnectionError(err)
 	}
 	return &projectv1.CreateConnectionResponse{Connection: toProtoConn(created)}, nil

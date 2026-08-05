@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -171,7 +172,7 @@ func main() {
 	connRepo := projectRepo.NewConnectionRepository(db)
 	projSvc := projectDomain.NewProjectService(projRepo, &projectUserLookup{userRepo: userRepo})
 	projSvc.SetMailer(appMailer)
-	connSvc := projectDomain.NewConnectionService(connRepo, []byte(cfg.EncryptionKey))
+	connSvc := projectDomain.NewConnectionService(connRepo, encryptionKeyBytes(cfg.EncryptionKey))
 	projH := projectHandler.NewProjectHandler(projSvc, connSvc)
 
 	// ── Schema Service ──
@@ -180,7 +181,17 @@ func main() {
 	schemaSvc := schemaDomain.NewSchemaService(schemaRepoInstance).WithCache(schemaCache)
 
 	schemaDomain.SetConnector(func(ctx context.Context, connStr string) (schemaDomain.DBPool, error) {
-		pool, err := pgxpool.New(ctx, connStr)
+		poolConfig, err := pgxpool.ParseConfig(connStr)
+		if err != nil {
+			return nil, fmt.Errorf("parsing target database config: %w", err)
+		}
+		// Serverless poolers (e.g. Neon) drop long-lived idle connections;
+		// short lifetimes force fresh connections and avoid mid-query EOFs.
+		poolConfig.MaxConnLifetime = 60 * time.Second
+		poolConfig.MaxConnIdleTime = 30 * time.Second
+		poolConfig.HealthCheckPeriod = 20 * time.Second
+		poolConfig.MaxConns = 4
+		pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 		if err != nil {
 			return nil, fmt.Errorf("connecting to target database: %w", err)
 		}
@@ -191,7 +202,19 @@ func main() {
 		return connSvc.GetConnectionString(ctx, connID)
 	}
 
-	schemaH := schemaHandler.NewSchemaHandler(schemaSvc, connStringResolver)
+	connInfoResolver := func(ctx context.Context, connID string) (string, string, error) {
+		conn, err := connSvc.GetByID(ctx, connID)
+		if err != nil {
+			return "", "", err
+		}
+		connStr, err := connSvc.GetConnectionString(ctx, connID)
+		if err != nil {
+			return "", "", err
+		}
+		return connStr, conn.ProjectID, nil
+	}
+
+	schemaH := schemaHandler.NewSchemaHandler(schemaSvc, connInfoResolver)
 
 	// ── Migration Service ──
 	migRepo := migrationRepo.NewMigrationRepository(db)
@@ -210,8 +233,8 @@ func main() {
 	// ── Drift Service ──
 	driftRepoInstance := driftRepo.NewDriftRepository(db)
 	driftComparator := &schemaDriftComparator{
-		svc:        schemaSvc,
-		connString: connStringResolver,
+		svc:      schemaSvc,
+		connInfo: connInfoResolver,
 	}
 	driftSvc := driftDomain.NewDriftService(driftRepoInstance, driftComparator)
 	driftH := driftHandler.NewDriftHandler(driftSvc, connStringResolver)
@@ -221,7 +244,7 @@ func main() {
 	workerRunner.Add(worker.NewConnectionHealthWorker(connRepo, []byte(cfg.EncryptionKey)))
 	workerRunner.Add(worker.NewAuditPartitionWorker(db))
 	workerRunner.Add(worker.NewHardDeleteWorker(db))
-	oauthRefreshWorker := worker.NewOAuthRefreshWorker(oauthRepo, userRepo, []byte(cfg.EncryptionKey))
+	oauthRefreshWorker := worker.NewOAuthRefreshWorker(oauthRepo, userRepo, encryptionKeyBytes(cfg.EncryptionKey))
 	oauthRefreshWorker.SetClientSecret("google", cfg.GoogleClientSecret)
 	oauthRefreshWorker.SetClientSecret("github", cfg.GitHubClientSecret)
 	oauthRefreshWorker.SetClientSecret("slack", cfg.SlackClientSecret)
@@ -258,6 +281,7 @@ func main() {
 			middleware.CORSInterceptor([]string{cfg.FrontendURL}),
 			interceptor.AuthInterceptor(jwtManager),
 			interceptor.RBACInterceptor(rbacCheck),
+			interceptor.AuditInterceptor(auditSvc.Insert, log.Error),
 			interceptor.RateLimitInterceptor(rdb, cfg.RateLimit),
 			rateLimiter.UnaryServerInterceptor(),
 			interceptor.IdempotencyInterceptor(rdb),
@@ -323,10 +347,17 @@ func (l *projectUserLookup) GetByEmail(ctx context.Context, email string) (strin
 	return u.ID, nil
 }
 
+// encryptionKeyBytes derives a fixed-size AES key (32 bytes) from the
+// master key string via SHA-256, so any secret length is supported.
+func encryptionKeyBytes(masterKey string) []byte {
+	sum := sha256.Sum256([]byte(masterKey))
+	return sum[:]
+}
+
 // schemaDriftComparator implements driftDomain.SchemaComparator using the schema service.
 type schemaDriftComparator struct {
-	svc        *schemaDomain.SchemaService
-	connString func(ctx context.Context, connID string) (string, error)
+	svc       *schemaDomain.SchemaService
+	connInfo  func(ctx context.Context, connID string) (connStr string, projectID string, err error)
 }
 
 func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, connStr, connectionID string, schemaNames []string) ([]*driftDomain.DriftEvent, error) {
@@ -343,7 +374,11 @@ func (c *schemaDriftComparator) CompareLiveWithVersion(ctx context.Context, conn
 	}
 
 	// Re-introspect live DB (passing the real connection ID).
-	schema, version, err := c.svc.Introspect(ctx, connStr, connectionID, schemaNames, "")
+	_, projectID, err := c.connInfo(ctx, connectionID)
+	if err != nil {
+		return nil, fmt.Errorf("resolving connection: %w", err)
+	}
+	schema, version, err := c.svc.Introspect(ctx, connStr, connectionID, projectID, schemaNames, "")
 	if err != nil {
 		return nil, fmt.Errorf("introspecting live schema: %w", err)
 	}

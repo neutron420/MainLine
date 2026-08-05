@@ -32,10 +32,10 @@ func (r *AuditRepository) Insert(ctx context.Context, entry *domain.AuditEntry) 
 		INSERT INTO audit_logs (event_type, actor_id, actor_email, action, resource_type, resource_id, resource_changes, metadata, ip_address, user_agent, trace_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		entry.EventType, nullIfEmpty(entry.ActorID), nullIfEmpty(entry.ActorEmail),
-		entry.Action, entry.ResourceType, entry.ResourceID,
+		entry.Action, entry.ResourceType, nullIfEmpty(entry.ResourceID),
 		changesJSON, metaJSON,
 		nullIfEmpty(entry.IPAddress), nullIfEmpty(entry.UserAgent),
-		entry.TraceID,
+		nullIfEmpty(entry.TraceID),
 	)
 	if err != nil {
 		return fmt.Errorf("inserting audit entry: %w", err)

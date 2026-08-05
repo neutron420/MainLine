@@ -9,7 +9,6 @@ message Schema {
   string connection_id = 3;
   string schema_name = 4;
   string current_version_id = 5;
-  string last_introspected_at = 6;
   string created_at = 7;
   string updated_at = 8;
 }

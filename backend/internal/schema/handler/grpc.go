@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/schemahub/backend/internal/pkg/errors"
@@ -15,24 +16,25 @@ import (
 
 type SchemaHandler struct {
 	schemav1.UnimplementedSchemaServiceServer
-	svc        *domain.SchemaService
-	connString func(ctx context.Context, connID string) (string, error)
+	svc       *domain.SchemaService
+	connInfo  func(ctx context.Context, connID string) (connStr string, projectID string, err error)
 }
 
-func NewSchemaHandler(svc *domain.SchemaService, connString func(ctx context.Context, connID string) (string, error)) *SchemaHandler {
-	return &SchemaHandler{svc: svc, connString: connString}
+func NewSchemaHandler(svc *domain.SchemaService, connInfo func(ctx context.Context, connID string) (connStr string, projectID string, err error)) *SchemaHandler {
+	return &SchemaHandler{svc: svc, connInfo: connInfo}
 }
 
 func (h *SchemaHandler) IntrospectSchema(ctx context.Context, req *schemav1.IntrospectSchemaRequest) (*schemav1.IntrospectSchemaResponse, error) {
 	userID, _ := interceptor.UserIDFromContext(ctx)
 
-	connStr, err := h.connString(ctx, req.ConnectionId)
+	connStr, projectID, err := h.connInfo(ctx, req.ConnectionId)
 	if err != nil {
 		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("cannot connect: %v", err))
 	}
 
-	schema, version, err := h.svc.Introspect(ctx, connStr, req.ConnectionId, req.SchemaNames, userID)
+	schema, version, err := h.svc.Introspect(ctx, connStr, req.ConnectionId, projectID, req.SchemaNames, userID)
 	if err != nil {
+		slog.Error("introspect_schema failed", "conn", req.ConnectionId, "schemas", req.SchemaNames, "error", err)
 		return nil, errors.ToGRPC(err)
 	}
 	return &schemav1.IntrospectSchemaResponse{
@@ -141,9 +143,6 @@ func toProtoSchema(s *domain.Schema) *schemav1.Schema {
 	}
 	if s.CurrentVersionID != nil {
 		ps.CurrentVersionId = *s.CurrentVersionID
-	}
-	if s.LastIntrospectedAt != nil {
-		ps.LastIntrospectedAt = s.LastIntrospectedAt.Format(time.RFC3339)
 	}
 	return ps
 }

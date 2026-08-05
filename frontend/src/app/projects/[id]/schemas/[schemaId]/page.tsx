@@ -119,7 +119,7 @@ export default function SchemaDetailPage() {
     { title: "Tables", value: tables.length, icon: Table2 },
     { title: "Objects", value: totalObjects, icon: Columns3 },
     { title: "Version", value: schema.currentVersionId?.slice(0, 8) || "—", icon: Hash },
-    { title: "Last Introspected", value: relativeTime(schema.lastIntrospectedAt), icon: Link2 },
+    { title: "Last Updated", value: relativeTime(schema.updatedAt), icon: Link2 },
   ];
 
   return (

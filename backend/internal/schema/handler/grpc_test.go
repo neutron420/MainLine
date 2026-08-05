@@ -105,10 +105,10 @@ func testSchemaHandler(t *testing.T, repo *fakeSchemaRepo) *SchemaHandler {
 	return NewSchemaHandler(svc, nil)
 }
 
-func testSchemaHandlerWithConn(t *testing.T, repo *fakeSchemaRepo, connString func(context.Context, string) (string, error)) *SchemaHandler {
+func testSchemaHandlerWithConn(t *testing.T, repo *fakeSchemaRepo, connInfo func(context.Context, string) (string, string, error)) *SchemaHandler {
 	t.Helper()
 	svc := domain.NewSchemaService(repo)
-	return NewSchemaHandler(svc, connString)
+	return NewSchemaHandler(svc, connInfo)
 }
 
 func failConnector(ctx context.Context, connStr string) (domain.DBPool, error) {
@@ -288,8 +288,8 @@ func TestSchemaHandler_IntrospectSchema(t *testing.T) {
 	defer domain.SetConnector(failConnector)
 
 	repo := newFakeSchemaRepo()
-	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, error) {
-		return "postgres://fake", nil
+	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, string, error) {
+		return "postgres://fake", "proj_1", nil
 	})
 	ctx := context.WithValue(context.Background(), interceptor.UserIDKey, "user_1")
 
@@ -320,8 +320,8 @@ func TestSchemaHandler_IntrospectSchemaConnStringError(t *testing.T) {
 	t.Parallel()
 
 	repo := newFakeSchemaRepo()
-	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, error) {
-		return "", fmt.Errorf("connection not found")
+	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, string, error) {
+		return "", "", fmt.Errorf("connection not found")
 	})
 
 	_, err := h.IntrospectSchema(context.Background(), &schemav1.IntrospectSchemaRequest{ConnectionId: "conn_1"})
@@ -337,8 +337,8 @@ func TestSchemaHandler_IntrospectSchemaIntrospectionError(t *testing.T) {
 	defer domain.SetConnector(failConnector)
 
 	repo := newFakeSchemaRepo()
-	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, error) {
-		return "postgres://fake", nil
+	h := testSchemaHandlerWithConn(t, repo, func(ctx context.Context, connID string) (string, string, error) {
+		return "postgres://fake", "proj_1", nil
 	})
 
 	_, err := h.IntrospectSchema(context.Background(), &schemav1.IntrospectSchemaRequest{ConnectionId: "conn_1"})

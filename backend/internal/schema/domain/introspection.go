@@ -66,6 +66,28 @@ func NewIntrospectionService() *IntrospectionService {
 }
 
 func (s *IntrospectionService) Introspect(ctx context.Context, connStr string, schemaNames []string) (json.RawMessage, error) {
+	data, err := s.introspectOnce(ctx, connStr, schemaNames)
+	if err != nil && isTransientConnError(err) {
+		// Serverless poolers drop long-lived connections; one retry with a
+		// fresh pool usually succeeds.
+		data, err = s.introspectOnce(ctx, connStr, schemaNames)
+	}
+	return data, err
+}
+
+func isTransientConnError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "unexpected EOF") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "server closed the connection")
+}
+
+func (s *IntrospectionService) introspectOnce(ctx context.Context, connStr string, schemaNames []string) (json.RawMessage, error) {
 	pool, err := connectToDB(ctx, connStr)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to database: %w", err)

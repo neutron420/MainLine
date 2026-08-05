@@ -378,8 +378,8 @@ export default function SchemasPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Connection {selectedSchema.connectionId.slice(0, 8)} · last introspected{" "}
-                    {selectedSchema.lastIntrospectedAt
-                      ? new Date(selectedSchema.lastIntrospectedAt).toLocaleString()
+                    {selectedSchema.updatedAt
+                      ? new Date(selectedSchema.updatedAt).toLocaleString()
                       : "—"}
                   </p>
                   {introspect.isSuccess && (

@@ -9,15 +9,14 @@ import (
 )
 
 type Schema struct {
-	ID                 string
-	ProjectID          string
-	ConnectionID       string
-	SchemaName         string
-	CurrentVersionID   *string
-	LastIntrospectedAt *time.Time
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
-	DeletedAt          *time.Time
+	ID               string
+	ProjectID        string
+	ConnectionID     string
+	SchemaName       string
+	CurrentVersionID *string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
 }
 
 type SchemaVersion struct {

@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
+RUN npm install --platform=linux --libc=musl @next/swc-linux-x64-musl@15.5.22 --no-save || true
 
 EXPOSE 3000
 

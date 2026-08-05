@@ -379,7 +379,7 @@ export default function ProjectDetailPage() {
                           <TableHead className="w-[30%]">Schema</TableHead>
                           <TableHead>Connection</TableHead>
                           <TableHead>Version</TableHead>
-                          <TableHead className="text-right">Last Introspected</TableHead>
+                          <TableHead className="text-right">Last Updated</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -407,7 +407,7 @@ export default function ProjectDetailPage() {
                               </Link>
                             </TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground">
-                              {relativeTime(schema.lastIntrospectedAt)}
+                              {relativeTime(schema.updatedAt)}
                             </TableCell>
                           </TableRow>
                         ))}

@@ -27,7 +27,7 @@ func (s *SchemaService) WithCache(cache *SchemaCache) *SchemaService {
 	return s
 }
 
-func (s *SchemaService) Introspect(ctx context.Context, connStr, connID string, schemaNames []string, userID string) (*Schema, *SchemaVersion, error) {
+func (s *SchemaService) Introspect(ctx context.Context, connStr, connID, projectID string, schemaNames []string, userID string) (*Schema, *SchemaVersion, error) {
 	meta, err := s.introspect.Introspect(ctx, connStr, schemaNames)
 	if err != nil {
 		return nil, nil, fmt.Errorf("introspecting: %w", err)
@@ -41,7 +41,7 @@ func (s *SchemaService) Introspect(ctx context.Context, connStr, connID string, 
 	schema, err := s.repo.GetByConnectionAndSchema(ctx, connID, schemaName)
 	if err != nil {
 		schema = &Schema{
-			ProjectID:    "",
+			ProjectID:    projectID,
 			ConnectionID: connID,
 			SchemaName:   schemaName,
 		}
@@ -89,6 +89,7 @@ func (s *SchemaService) Introspect(ctx context.Context, connStr, connID string, 
 	if err := s.repo.UpdateCurrentVersion(ctx, schema.ID, version.ID); err != nil {
 		return nil, nil, fmt.Errorf("updating current version: %w", err)
 	}
+	schema.CurrentVersionID = &version.ID
 
 	var objects []*SchemaObject
 	for _, tbl := range metadata.Tables {

@@ -35,11 +35,11 @@ func (r *SchemaRepository) Create(ctx context.Context, s *domain.Schema) error {
 
 func (r *SchemaRepository) GetByID(ctx context.Context, id string) (*domain.Schema, error) {
 	row := r.db.QueryRow(ctx,
-		`SELECT id, project_id, connection_id, schema_name, current_version_id, last_introspected_at, created_at, updated_at, deleted_at
+		`SELECT id, project_id, connection_id, schema_name, current_version_id, created_at, updated_at, deleted_at
 		 FROM schemas WHERE id = $1 AND deleted_at IS NULL`, id)
 
 	s := &domain.Schema{}
-	if err := row.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.LastIntrospectedAt, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
+	if err := row.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("schema not found")
 		}
@@ -49,7 +49,7 @@ func (r *SchemaRepository) GetByID(ctx context.Context, id string) (*domain.Sche
 }
 
 func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, cursor string, limit int32) ([]*domain.Schema, string, int32, error) {
-	query := `SELECT id, project_id, connection_id, schema_name, current_version_id, last_introspected_at, created_at, updated_at, deleted_at
+	query := `SELECT id, project_id, connection_id, schema_name, current_version_id, created_at, updated_at, deleted_at
 		FROM schemas WHERE project_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`
 
 	var args []interface{}
@@ -60,7 +60,7 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 		if !ok {
 			return nil, "", 0, fmt.Errorf("invalid schema cursor")
 		}
-		query = `SELECT id, project_id, connection_id, schema_name, current_version_id, last_introspected_at, created_at, updated_at, deleted_at
+		query = `SELECT id, project_id, connection_id, schema_name, current_version_id, created_at, updated_at, deleted_at
 			FROM schemas WHERE project_id = $1 AND deleted_at IS NULL AND (created_at, id) < ($2::timestamptz, $3)
 			ORDER BY created_at DESC, id DESC`
 		args = append(args, ts, id)
@@ -81,7 +81,7 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 	count := int32(0)
 	for rows.Next() {
 		s := &domain.Schema{}
-		if err := rows.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.LastIntrospectedAt, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
 			return nil, "", 0, err
 		}
 		schemas = append(schemas, s)
@@ -98,11 +98,11 @@ func (r *SchemaRepository) ListByProjectID(ctx context.Context, projectID, curso
 
 func (r *SchemaRepository) GetByConnectionAndSchema(ctx context.Context, connID, schemaName string) (*domain.Schema, error) {
 	row := r.db.QueryRow(ctx,
-		`SELECT id, project_id, connection_id, schema_name, current_version_id, last_introspected_at, created_at, updated_at, deleted_at
+		`SELECT id, project_id, connection_id, schema_name, current_version_id, created_at, updated_at, deleted_at
 		 FROM schemas WHERE connection_id = $1 AND schema_name = $2 AND deleted_at IS NULL`, connID, schemaName)
 
 	s := &domain.Schema{}
-	if err := row.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.LastIntrospectedAt, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
+	if err := row.Scan(&s.ID, &s.ProjectID, &s.ConnectionID, &s.SchemaName, &s.CurrentVersionID, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("schema not found")
 		}
@@ -114,7 +114,7 @@ func (r *SchemaRepository) GetByConnectionAndSchema(ctx context.Context, connID,
 func (r *SchemaRepository) UpdateCurrentVersion(ctx context.Context, schemaID, versionID string) error {
 	now := time.Now()
 	_, err := r.db.Exec(ctx,
-		`UPDATE schemas SET current_version_id = $1, last_introspected_at = $2, updated_at = $2 WHERE id = $3`,
+		`UPDATE schemas SET current_version_id = $1, updated_at = $2 WHERE id = $3`,
 		versionID, now, schemaID)
 	return err
 }
