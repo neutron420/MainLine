@@ -29,7 +29,7 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
                       path: /dev/stdout
                       log_format:
-                        text_format: "[%START_TIME%] \"%REQ(:METHOD)% %REQ(:PATH)%\" %RESPONSE_CODE% %RESPONSE_DURATION%ms grpc_status=%RESPONSE(grpc-status):% grpc_service=%REQ(grpc-service):- grpc_method=%REQ(grpc-method):-\n"
+                        text_format: "[%START_TIME%] \"%REQ(:METHOD)% %REQ(:PATH)%\" %RESPONSE_CODE% %RESPONSE_DURATION%ms"
                 route_config:
                   name: local_route
                   virtual_hosts:
@@ -53,8 +53,6 @@ static_resources:
                             retry_policy:
                               retry_on: "reset, connect-failure, resource-exhausted, unavailable, retriable-status-codes"
                               num_retries: 2
-                              retry_host_predicate:
-                                - name: envoy.retry_host_predicates.previous_hosts
                               host_selection_retry_max_attempts: 3
                               retriable_status_codes:
                                 - 14
