@@ -586,8 +586,8 @@ func TestProjectHandler_AddMemberInvalidRole(t *testing.T) {
 	_, err := h.AddMember(ctx, &projectv1.AddMemberRequest{
 		ProjectId: "proj_1", UserId: "user_2", Role: "bogus",
 	})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("AddMember() error code = %v, want Internal (%v)", status.Code(err), err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("AddMember() error code = %v, want InvalidArgument (%v)", status.Code(err), err)
 	}
 }
 
@@ -668,8 +668,8 @@ func TestProjectHandler_UpdateMemberRoleInvalidRole(t *testing.T) {
 	_, err := h.UpdateMemberRole(ctx, &projectv1.UpdateMemberRoleRequest{
 		ProjectId: "proj_1", UserId: "user_2", Role: "bogus",
 	})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("UpdateMemberRole() error code = %v, want Internal (%v)", status.Code(err), err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("UpdateMemberRole() error code = %v, want InvalidArgument (%v)", status.Code(err), err)
 	}
 }
 

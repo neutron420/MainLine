@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -287,7 +288,8 @@ func (s *ProjectService) InviteMember(ctx context.Context, projectID, email, rol
 			return inv.ID, fmt.Errorf("loading project for invite email: %w", err)
 		}
 		if err := s.mailer.SendInvitationEmail(ctx, email, proj.Name, token); err != nil {
-			return inv.ID, fmt.Errorf("sending invitation email: %w", err)
+			slog.Warn("invitation created but email delivery failed",
+				"email", email, "project", projectID, "error", err)
 		}
 	}
 	return inv.ID, nil

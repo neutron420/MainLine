@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/schemahub/backend/internal/pkg/errors"
@@ -142,6 +143,10 @@ func (h *ProjectHandler) InviteMember(ctx context.Context, req *projectv1.Invite
 
 	invitationID, err := h.svc.InviteMember(ctx, req.ProjectId, req.Email, req.Role, userID)
 	if err != nil {
+		if _, ok := err.(domain.ErrAlreadyMember); ok {
+			return nil, mapProjectError(err)
+		}
+		slog.Error("invite_member failed", "project", req.ProjectId, "email", req.Email, "error", err)
 		return nil, mapProjectError(err)
 	}
 
@@ -214,6 +219,8 @@ func mapProjectError(err error) error {
 		return status.Error(codes.FailedPrecondition, e.Error())
 	case domain.ErrAlreadyMember:
 		return status.Error(codes.AlreadyExists, e.Error())
+	case domain.ErrInvalidRole:
+		return status.Error(codes.InvalidArgument, e.Error())
 	}
 
 	if err.Error() == "permission denied" {

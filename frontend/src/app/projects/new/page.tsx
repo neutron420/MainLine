@@ -206,7 +206,7 @@ export default function CreateProjectPage() {
                   <p className="text-sm font-medium">Neon integration</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Create a branch or connect to an existing database</p>
                 </div>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Connected</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">Available</Badge>
               </div>
             </CardContent>
           </Card>

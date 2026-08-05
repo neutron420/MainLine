@@ -28,7 +28,8 @@ type Mailer struct {
 	port        int
 	user        string
 	pass        string
-	from        string
+	fromAddr    string
+	fromHeader  string
 	frontendURL string
 	log         *slog.Logger
 }
@@ -38,8 +39,9 @@ func New(cfg Config) *Mailer {
 	if from == "" {
 		from = "no-reply@schemahub.dev"
 	}
+	header := from
 	if cfg.FromName != "" {
-		from = fmt.Sprintf("%s <%s>", cfg.FromName, from)
+		header = fmt.Sprintf("%s <%s>", cfg.FromName, from)
 	}
 	if cfg.SMTPPort == 0 {
 		cfg.SMTPPort = 587
@@ -49,7 +51,8 @@ func New(cfg Config) *Mailer {
 		port:        cfg.SMTPPort,
 		user:        cfg.Username,
 		pass:        cfg.Password,
-		from:        from,
+		fromAddr:    from,
+		fromHeader:  header,
 		frontendURL: strings.TrimSuffix(cfg.FrontendURL, "/"),
 		log:         cfg.Log,
 	}
@@ -111,7 +114,7 @@ func (m *Mailer) send(ctx context.Context, to, subject, text, html string) error
 	}
 
 	msg := strings.Join([]string{
-		"From: " + m.from,
+		"From: " + m.fromHeader,
 		"To: " + to,
 		"Subject: " + subject,
 		"MIME-Version: 1.0",
@@ -125,7 +128,7 @@ func (m *Mailer) send(ctx context.Context, to, subject, text, html string) error
 	if m.user != "" {
 		auth = smtp.PlainAuth("", m.user, m.pass, m.host)
 	}
-	if err := smtp.SendMail(addr, auth, m.from, []string{to}, []byte(msg)); err != nil {
+	if err := smtp.SendMail(addr, auth, m.fromAddr, []string{to}, []byte(msg)); err != nil {
 		return fmt.Errorf("sending email to %s: %w", to, err)
 	}
 	return nil

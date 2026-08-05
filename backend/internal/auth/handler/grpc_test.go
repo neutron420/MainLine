@@ -842,8 +842,8 @@ func TestAuthHandler_HandleOAuthCallbackStateMismatch(t *testing.T) {
 	_, err = h.HandleOAuthCallback(context.Background(), &authv1.HandleOAuthCallbackRequest{
 		Provider: "google", Code: "code", State: state, CodeVerifier: "verifier_b",
 	})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("HandleOAuthCallback() error code = %v, want Internal (%v)", status.Code(err), err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("HandleOAuthCallback() error code = %v, want InvalidArgument (%v)", status.Code(err), err)
 	}
 }
 

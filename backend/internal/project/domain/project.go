@@ -154,6 +154,12 @@ func ValidateVisibility(v string) (ProjectVisibility, error) {
 	}
 }
 
+type ErrInvalidRole struct{ Role string }
+
+func (e ErrInvalidRole) Error() string {
+	return fmt.Sprintf("invalid role: %s (must be owner, admin, member, or viewer)", e.Role)
+}
+
 func ValidateRole(v string) (ProjectRole, error) {
 	switch v {
 	case "owner":
@@ -165,6 +171,6 @@ func ValidateRole(v string) (ProjectRole, error) {
 	case "viewer":
 		return RoleViewer, nil
 	default:
-		return "", fmt.Errorf("invalid role: %s (must be owner, admin, member, or viewer)", v)
+		return "", ErrInvalidRole{Role: v}
 	}
 }

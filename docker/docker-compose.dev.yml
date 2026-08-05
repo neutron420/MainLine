@@ -10,7 +10,6 @@ services:
     env_file:
       - ../.env
     environment:
-      - DATABASE_URL=postgres://schemahub:schemahub@postgres:5432/schemahub?sslmode=disable
       - REDIS_URL=redis://redis:6379/0
       - LOG_LEVEL=debug
       - LOG_FORMAT=text

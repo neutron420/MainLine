@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useQueries } from "@tanstack/react-query"
 import { Database, FolderKanban, LayoutDashboard, Settings, Users, CheckCircle2, AlertCircle, Bell } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -21,53 +22,89 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useProjects, useMembers } from "@/lib/api/hooks/use-projects"
+import { useSchemas } from "@/lib/api/hooks/use-schemas"
+import { useAuditEntries } from "@/lib/api/hooks/use-audit"
 
-const data = {
-  navMain: [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-    { title: "Projects", url: "/projects", icon: FolderKanban },
-    { title: "Schemas", url: "/schemas", icon: Database },
-    { title: "Team", url: "/team", icon: Users },
-    { title: "Settings", url: "/settings", icon: Settings },
-  ],
-  projectsList: [
-    { name: "User Service Schema", updated: "2 hours ago", status: "active" as const },
-    { name: "Payment DB Migration", updated: "5 hours ago", status: "inProgress" as const },
-    { name: "Analytics Warehouse", updated: "1 day ago", status: "active" as const },
-    { name: "Legacy CRM Schema", updated: "3 days ago", status: "onHold" as const },
-  ],
-  projectStats: {
-    total: 12,
-    active: 7,
-    migrations: 47,
-    drift: 1,
-  },
-  schemas: [
-    { name: "users", tables: 12, lastUpdated: "2h ago" },
-    { name: "payments", tables: 8, lastUpdated: "5h ago" },
-    { name: "analytics", tables: 24, lastUpdated: "1d ago" },
-    { name: "inventory", tables: 15, lastUpdated: "3d ago" },
-  ],
-  teamMembers: [
-    { name: "Alice", initials: "AL", role: "Lead Developer" },
-    { name: "Bob", initials: "BO", role: "Developer" },
-    { name: "Charlie", initials: "CH", role: "Developer" },
-    { name: "Diana", initials: "DI", role: "Data Engineer" },
-  ],
-  recentActivity: [
-    { action: "Migration v1.2 deployed", project: "User Service", time: "2h ago", icon: CheckCircle2, color: "text-green-500" },
-    { action: "Schema drift detected", project: "Analytics", time: "5h ago", icon: AlertCircle, color: "text-amber-500" },
-    { action: "New project created", project: "Search Index", time: "2d ago", icon: FolderKanban, color: "text-blue-500" },
-  ],
+const navMain = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Projects", url: "/projects", icon: FolderKanban },
+  { title: "Schemas", url: "/schemas", icon: Database },
+  { title: "Team", url: "/team", icon: Users },
+  { title: "Settings", url: "/settings", icon: Settings },
+]
+
+function relativeTime(iso: string | undefined): string {
+  if (!iso) return "just now"
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return "just now"
+  const mins = Math.floor((Date.now() - then) / 60_000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
+function initialsOf(name: string): string {
+  return name
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "?"
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { user } = useAuth()
   const [activeItem, setActiveItem] = React.useState(
-    data.navMain.find((item) => pathname.startsWith(item.url)) || data.navMain[0]
+    navMain.find((item) => pathname.startsWith(item.url)) || navMain[0]
   )
   useSidebar()
+
+  const { data: projects = [] } = useProjects()
+  const firstProjectId = projects[0]?.id
+
+  const { data: schemas = [] } = useSchemas(firstProjectId)
+  const { data: members = [] } = useMembers(firstProjectId)
+
+  const projectQueries = useQueries({
+    queries: projects.map((p) => ({
+      queryKey: ["projects", p.id, "members"],
+      queryFn: async () => {
+        const res = await (await import("@/lib/api/clients")).projectClient.listMembers({
+          projectId: p.id,
+        })
+        return res.members.length
+      },
+      enabled: Boolean(p.id),
+    })),
+  })
+  const connectionQueries = useQueries({
+    queries: projects.map((p) => ({
+      queryKey: ["projects", p.id, "connections"],
+      queryFn: async () => {
+        const res = await (await import("@/lib/api/clients")).projectClient.listConnections({
+          projectId: p.id,
+        })
+        return res.connections.length
+      },
+      enabled: Boolean(p.id),
+    })),
+  })
+
+  const totalMembers = projectQueries.reduce((sum, q) => sum + (q.data ?? 0), 0)
+  const totalConnections = connectionQueries.reduce((sum, q) => sum + (q.data ?? 0), 0)
+  const { data: auditEntries = [] } = useAuditEntries({})
+
+  const activityItems = auditEntries.slice(0, 4).map((entry) => ({
+    action: entry.action || entry.eventType || "Event",
+    project: entry.resourceType ? `${entry.resourceType} ${entry.resourceId || ""}`.trim() : "",
+    time: relativeTime(entry.createdAt),
+    icon: entry.eventType?.toLowerCase().includes("drift") ? AlertCircle : CheckCircle2,
+    color: entry.eventType?.toLowerCase().includes("drift") ? "text-amber-500" : "text-green-500",
+  }))
 
   return (
     <Sidebar
@@ -100,7 +137,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroup>
             <SidebarGroupContent className="px-1.5 md:px-0">
               <SidebarMenu>
-                {data.navMain.map((item) => (
+                {navMain.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       tooltip={{ children: item.title, hidden: false }}
@@ -147,13 +184,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Recent Activity
                 </div>
-                {data.recentActivity.map((item) => (
-                  <div key={item.action} className="flex items-start gap-3 border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
+                {activityItems.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">No activity yet.</p>
+                )}
+                {activityItems.map((item) => (
+                  <div key={item.action + item.time} className="flex items-start gap-3 border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
                     <item.icon className={`size-4 mt-0.5 shrink-0 ${item.color}`} />
                     <div className="min-w-0">
                       <div className="font-medium truncate">{item.action}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <span>{item.project}</span>
+                        {item.project && <span>{item.project}</span>}
                         <span>{item.time}</span>
                       </div>
                     </div>
@@ -164,16 +204,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid grid-cols-2 gap-3 p-4">
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">12</p>
+                    <p className="text-lg font-semibold">{projects.length}</p>
                     <p className="text-xs text-muted-foreground">Projects</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">47</p>
-                    <p className="text-xs text-muted-foreground">Migrations</p>
+                    <p className="text-lg font-semibold">{totalConnections}</p>
+                    <p className="text-xs text-muted-foreground">Connections</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">24</p>
+                    <p className="text-lg font-semibold">{totalMembers}</p>
                     <p className="text-xs text-muted-foreground">Members</p>
+                  </div>
+                  <div className="rounded-lg bg-sidebar-accent/50 p-3">
+                    <p className="text-lg font-semibold">{schemas.length}</p>
+                    <p className="text-xs text-muted-foreground">Schemas</p>
                   </div>
                 </div>
               </SidebarGroupContent>
@@ -189,36 +233,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid grid-cols-2 gap-3 p-4">
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{data.projectStats.total}</p>
+                    <p className="text-lg font-semibold">{projects.length}</p>
                     <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{data.projectStats.active}</p>
-                    <p className="text-xs text-muted-foreground">Active</p>
+                    <p className="text-lg font-semibold">{totalMembers}</p>
+                    <p className="text-xs text-muted-foreground">Members</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{data.projectStats.migrations}</p>
-                    <p className="text-xs text-muted-foreground">Migrations</p>
+                    <p className="text-lg font-semibold">{totalConnections}</p>
+                    <p className="text-xs text-muted-foreground">Connections</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{data.projectStats.drift}</p>
-                    <p className="text-xs text-amber-500">Drift Events</p>
+                    <p className="text-lg font-semibold">{schemas.length}</p>
+                    <p className="text-xs text-muted-foreground">Schemas</p>
                   </div>
                 </div>
                 <div className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider border-t">
                   Recent Projects
                 </div>
-                {data.projectsList.map((project) => (
+                {projects.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">No projects yet. Create one!</p>
+                )}
+                {projects.slice(0, 5).map((project) => (
                   <Link
-                    key={project.name}
-                    href="/projects"
+                    key={project.id}
+                    href={`/projects/${project.id}`}
                     prefetch
                     className="flex flex-col gap-1 border-b p-4 text-sm leading-tight last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
                     <div className="font-medium">{project.name}</div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className={`inline-block size-1.5 rounded-full ${project.status === "active" ? "bg-green-500" : project.status === "inProgress" ? "bg-yellow-500" : "bg-red-500"}`} />
-                      <span>{project.updated}</span>
+                      <span className="inline-block size-1.5 rounded-full bg-green-500" />
+                      <span>{relativeTime(project.createdAt)}</span>
                     </div>
                   </Link>
                 ))}
@@ -233,16 +280,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   All Schemas
                 </div>
-                {data.schemas.map((schema) => (
-                  <div key={schema.name} className="flex items-center justify-between border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
+                {schemas.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                    {firstProjectId ? "No schemas yet." : "No projects yet."}
+                  </p>
+                )}
+                {schemas.map((schema) => (
+                  <div key={schema.schemaName} className="flex items-center justify-between border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
                     <div className="flex items-center gap-3">
                       <Database className="size-4 text-muted-foreground" />
                       <div>
-                        <div className="font-medium">{schema.name}</div>
-                        <div className="text-xs text-muted-foreground">{schema.tables} tables</div>
+                      <div className="font-medium">{schema.schemaName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {schema.currentVersionId ? `version ${schema.currentVersionId.slice(0, 8)}` : "no version"}
+                      </div>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{schema.lastUpdated}</span>
+                    <span className="text-xs text-muted-foreground">{relativeTime(schema.updatedAt)}</span>
                   </div>
                 ))}
               </SidebarGroupContent>
@@ -256,14 +310,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Team Members
                 </div>
-                {data.teamMembers.map((member) => (
-                  <div key={member.name} className="flex items-center gap-3 border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
+                {members.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">No team members yet.</p>
+                )}
+                {members.map((member) => (
+                  <div key={member.userId} className="flex items-center gap-3 border-b p-4 text-sm last:border-b-0 hover:bg-sidebar-accent">
                     <Avatar className="size-8">
-                      <AvatarFallback className="text-xs">{member.initials}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{initialsOf(member.displayName || member.email)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{member.name}</div>
-                      <div className="text-xs text-muted-foreground">{member.role}</div>
+                      <div className="font-medium truncate">{member.displayName || member.email}</div>
+                      <div className="text-xs text-muted-foreground capitalize">{member.role}</div>
                     </div>
                   </div>
                 ))}
@@ -275,22 +332,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {activeItem?.title === "Settings" && (
             <SidebarGroup className="px-0">
               <SidebarGroupContent>
-                <a href="#" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent">
+                <Link href="/settings" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent" prefetch>
                   <Settings className="size-4 text-muted-foreground" />
                   <span>Profile Settings</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent">
+                </Link>
+                <Link href="/settings/connections" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent" prefetch>
                   <Database className="size-4 text-muted-foreground" />
                   <span>Database Connections</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent">
+                </Link>
+                <Link href="/team" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent" prefetch>
                   <Users className="size-4 text-muted-foreground" />
                   <span>Team Management</span>
-                </a>
-                <a href="#" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent">
+                </Link>
+                <Link href="/settings" className="flex items-center gap-3 border-b p-4 text-sm hover:bg-sidebar-accent" prefetch>
                   <Bell className="size-4 text-muted-foreground" />
                   <span>Notifications</span>
-                </a>
+                </Link>
               </SidebarGroupContent>
             </SidebarGroup>
           )}
@@ -299,4 +356,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-
