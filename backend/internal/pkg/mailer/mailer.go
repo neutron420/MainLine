@@ -80,6 +80,20 @@ func (m *Mailer) SendPasswordResetEmail(ctx context.Context, to, token string) e
 	return m.send(ctx, to, subject, text, html)
 }
 
+func (m *Mailer) SendInvitationEmail(ctx context.Context, to, projectName, token string) error {
+	link := fmt.Sprintf("%s/invite/accept?token=%s", m.frontendURL, url.QueryEscape(token))
+	subject := fmt.Sprintf("You've been invited to join %s on SchemaHub", projectName)
+	text := fmt.Sprintf(
+		"Someone invited you to join the project \"%s\" on SchemaHub.\n\nAccept the invitation here:\n%s\n\nThis link expires in 7 days. If you don't have an account yet, you'll be able to create one in one click.",
+		projectName, link,
+	)
+	html := fmt.Sprintf(
+		`<p>Someone invited you to join the project <strong>%s</strong> on SchemaHub.</p><p><a href="%s">Accept invitation</a></p><p>Or paste this link: %s</p><p>This link expires in 7 days.</p>`,
+		projectName, link, link,
+	)
+	return m.send(ctx, to, subject, text, html)
+}
+
 func (m *Mailer) send(ctx context.Context, to, subject, text, html string) error {
 	if !m.Enabled() {
 		if m.log != nil {

@@ -1,15 +1,49 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Search, Plus, Database, Globe, Server, User, Shield, Clock, PlugZap, Trash2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Database,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Trash2,
+  XCircle,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
@@ -25,57 +59,142 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotificationsPopover } from "@/components/notifications-popover";
+import { useProject } from "@/lib/api/hooks/use-projects";
 import {
   useConnections,
-  useTestConnection,
+  useCreateConnection,
   useDeleteConnection,
+  useTestConnection,
+  type Connection,
 } from "@/lib/api/hooks/use-connections";
 import { getApiErrorMessage } from "@/lib/api/errors";
+import type { TestConnectionResponse } from "@/lib/gen/project/v1/project_messages_pb";
 
-function relativeTime(iso: string | undefined): string {
-  if (!iso) return "Never";
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "Never";
-  const mins = Math.floor((Date.now() - then) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+function StatusBadge({ connection }: { connection: Connection }) {
+  const status = connection.connectionStatus;
+  if (status === "connected") {
+    return (
+      <Badge variant="outline" className="gap-1 border-green-500/40 bg-green-500/10 text-green-600">
+        <CheckCircle2 className="size-3" />
+        Connected
+      </Badge>
+    );
+  }
+  if (status === "error") {
+    return (
+      <Badge variant="outline" className="gap-1 border-red-500/40 bg-red-500/10 text-red-600">
+        <XCircle className="size-3" />
+        Error
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="gap-1 text-muted-foreground">
+      <Clock className="size-3" />
+      Not tested
+    </Badge>
+  );
 }
 
-function sslLabel(sslMode: string): string {
-  switch (sslMode.toLowerCase()) {
-    case "required":
-      return "SSL required";
-    case "prefer":
-      return "SSL preferred";
-    case "disabled":
-    case "disable":
-    case "":
-      return "SSL disabled";
-    default:
-      return `SSL ${sslMode}`;
-  }
+function formatDate(value: string | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function ConnectionsPage() {
-  const params = useParams();
-  const projectId = params.id as string;
+  const params = useParams<{ id: string }>();
+  const projectId = params.id;
 
-  const { data: connections, isLoading, error } = useConnections(projectId);
-  const testConnection = useTestConnection();
-  const deleteConnection = useDeleteConnection(projectId);
+  const { data: project } = useProject(projectId);
+  const { data: connections = [], isLoading } = useConnections(projectId);
+  const createConn = useCreateConnection();
+  const deleteConn = useDeleteConnection(projectId);
+  const testConn = useTestConnection();
 
-  const [search, setSearch] = useState("");
-  const filteredConnections = (connections ?? []).filter((c) => {
-    if (search === "") return true;
-    const haystack = `${c.name} ${c.databaseName} ${c.host} ${c.connectionStatus}`.toLowerCase();
-    return haystack.includes(search.toLowerCase());
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    host: "",
+    port: "5432",
+    databaseName: "",
+    username: "",
+    password: "",
+    sslMode: "disable",
   });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{
+    conn: Connection;
+    res: TestConnectionResponse | null;
+    error: string | null;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Connection | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const connected = (connections ?? []).filter((c) => c.connectionStatus === "connected").length;
-  const withError = (connections ?? []).filter((c) => c.connectionStatus === "error").length;
+  const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    setFormError(null);
+  };
+
+  const handleAdd = async () => {
+    setFormError(null);
+    if (!form.name.trim() || !form.host.trim() || !form.databaseName.trim() || !form.username.trim()) {
+      setFormError("Name, host, database and username are required.");
+      return;
+    }
+    const port = Number.parseInt(form.port, 10);
+    if (Number.isNaN(port) || port < 1 || port > 65535) {
+      setFormError("Port must be a valid number (1-65535).");
+      return;
+    }
+    try {
+      await createConn.mutateAsync({
+        projectId,
+        name: form.name.trim(),
+        host: form.host.trim(),
+        port,
+        databaseName: form.databaseName.trim(),
+        username: form.username.trim(),
+        password: form.password,
+        sslMode: form.sslMode,
+      });
+      setAddOpen(false);
+      setForm({ name: "", host: "", port: "5432", databaseName: "", username: "", password: "", sslMode: "disable" });
+    } catch (err) {
+      setFormError(getApiErrorMessage(err));
+    }
+  };
+
+  const handleTest = async (connection: Connection) => {
+    setTestingId(connection.id);
+    setTestResult(null);
+    try {
+      const res = await testConn.mutateAsync({ projectId, connectionId: connection.id });
+      setTestResult({ conn: connection, res, error: null });
+    } catch (err) {
+      setTestResult({ conn: connection, res: null, error: getApiErrorMessage(err) });
+    } finally {
+      setTestingId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    try {
+      await deleteConn.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err));
+    }
+  };
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
@@ -86,204 +205,305 @@ export default function ConnectionsPage() {
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-5" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="/projects">Projects</BreadcrumbLink></BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/projects">Projects</BreadcrumbLink>
+              </BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href={`/projects/${projectId}`}>SchemaHub</BreadcrumbLink></BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/projects/${projectId}`}>
+                  {project?.name ?? "Project"}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
               <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>Connections</BreadcrumbPage></BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Connections</BreadcrumbPage>
+              </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search connections..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-[180px] lg:w-[220px] h-9 pl-8 text-sm"
-              />
-            </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href={`/projects/${projectId}`}>
+                <ArrowLeft className="size-4" />
+                Back
+              </a>
+            </Button>
             <NotificationsPopover />
           </div>
         </header>
+
         <div className="flex flex-1 flex-col gap-6 p-6">
-          {/* Header */}
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-4">
-              <Link href={`/projects/${projectId}`}>
-                <Button variant="ghost" size="icon" className="size-10 shrink-0 mt-0.5">
-                  <ArrowLeft className="size-4" />
-                </Button>
-              </Link>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl font-semibold tracking-tight">Connections</h1>
-                  <Badge variant="outline" className="text-[11px]">{(connections ?? []).length} linked</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {isLoading ? "Loading connections..." : error ? (
-                    <span className="text-red-500">{getApiErrorMessage(error)}</span>
-                  ) : (
-                    <>
-                      {connected} connected · {withError > 0 && <span className="text-red-500 font-medium">{withError} failing · </span>}
-                      PostgreSQL databases linked to this project
-                    </>
-                  )}
-                </p>
-              </div>
-              <Link href={`/projects/${projectId}/connections/new`}>
-                <Button className="h-10 gap-2 shrink-0">
-                  <Plus className="size-4" />
-                  New Connection
-                </Button>
-              </Link>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold">Database Connections</h1>
+              <p className="text-sm text-muted-foreground">
+                Connect your PostgreSQL database to this project for schema management.
+              </p>
             </div>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="size-4" />
+                  Add Connection
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Database Connection</DialogTitle>
+                  <DialogDescription>
+                    Enter your PostgreSQL connection details. Passwords are encrypted at rest.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="conn-name">Name</Label>
+                    <Input
+                      id="conn-name"
+                      placeholder="e.g. Production Neon DB"
+                      value={form.name}
+                      onChange={update("name")}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2 grid gap-2">
+                      <Label htmlFor="conn-host">Host</Label>
+                      <Input
+                        id="conn-host"
+                        placeholder="ep-xxx.us-east-1.aws.neon.tech"
+                        value={form.host}
+                        onChange={update("host")}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="conn-port">Port</Label>
+                      <Input id="conn-port" inputMode="numeric" value={form.port} onChange={update("port")} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="conn-db">Database</Label>
+                      <Input
+                        id="conn-db"
+                        placeholder="neondb"
+                        value={form.databaseName}
+                        onChange={update("databaseName")}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="conn-user">Username</Label>
+                      <Input
+                        id="conn-user"
+                        placeholder="neondb_owner"
+                        value={form.username}
+                        onChange={update("username")}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label htmlFor="conn-pass">Password</Label>
+                      <Input
+                        id="conn-pass"
+                        type="password"
+                        placeholder="••••••••"
+                        value={form.password}
+                        onChange={update("password")}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="conn-ssl">SSL Mode</Label>
+                      <Select value={form.sslMode} onValueChange={(v) => setForm((p) => ({ ...p, sslMode: v }))}>
+                        <SelectTrigger id="conn-ssl">
+                          <SelectValue placeholder="Select SSL mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="disable">disable</SelectItem>
+                          <SelectItem value="require">require</SelectItem>
+                          <SelectItem value="verify-ca">verify-ca</SelectItem>
+                          <SelectItem value="verify-full">verify-full</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAdd} disabled={createConn.isPending}>
+                    {createConn.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Add Connection
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          {/* Connection cards */}
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading connections...</p>
-          ) : !connections || connections.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center">
-                <Database className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  No connections yet. Link a PostgreSQL database to start tracking schemas.
-                </p>
-                <Link href={`/projects/${projectId}/connections/new`} className="inline-block mt-4">
-                  <Button variant="outline" className="gap-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Connections</CardTitle>
+              <CardDescription>
+                {isLoading
+                  ? "Loading connections…"
+                  : connections.length === 0
+                    ? "No connections yet — add your first database above."
+                    : `${connections.length} connection${connections.length > 1 ? "s" : ""}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading…
+                </div>
+              ) : connections.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                  <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                    <Database className="size-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">No connections yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Add a PostgreSQL connection to start managing schemas.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => setAddOpen(true)}>
                     <Plus className="size-4" />
                     Add Connection
                   </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : filteredConnections.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center">
-                <Database className="size-10 text-muted-foreground/40 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  No connections match your search.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {filteredConnections.map((conn) => (
-                <Card key={conn.id}>
-                  <CardHeader className="border-0 pb-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                          <Database className="size-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{conn.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">{conn.databaseName}</p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={conn.connectionStatus === "connected" ? "default" : conn.connectionStatus === "error" ? "destructive" : "secondary"}
-                        className="text-[10px] px-1.5 py-0 gap-1"
-                      >
-                        <span
-                          className={`size-1.5 rounded-full ${
-                            conn.connectionStatus === "connected"
-                              ? "bg-green-500"
-                              : conn.connectionStatus === "error"
-                                ? "bg-red-500"
-                                : "bg-muted-foreground/50"
-                          }`}
-                        />
-                        {conn.connectionStatus}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground min-w-0">
-                        <Globe className="size-4 shrink-0" />
-                        <span className="truncate font-mono text-xs">{conn.host}:{conn.port}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Server className="size-4 shrink-0" />
-                        <span className="truncate font-mono text-xs">{conn.databaseName}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <User className="size-4 shrink-0" />
-                        <span className="truncate font-mono text-xs">{conn.username}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Shield className="size-4 shrink-0" />
-                        <span className="text-xs">{sslLabel(conn.sslMode)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <PlugZap className="size-4 shrink-0" />
-                        <span className="text-xs">Last test {relativeTime(conn.lastConnectedAt)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="size-4 shrink-0" />
-                        <span className="text-xs">Created {relativeTime(conn.createdAt)}</span>
-                      </div>
-                    </div>
-                    {testConnection.isPending && testConnection.variables?.connectionId === conn.id && (
-                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="size-3.5 animate-spin" />
-                        Testing connection...
-                      </div>
-                    )}
-                    {testConnection.data && testConnection.variables?.connectionId === conn.id && (
-                      <div className={`mt-3 flex items-center gap-2 text-xs ${testConnection.data.success ? "text-green-500" : "text-red-500"}`}>
-                        {testConnection.data.success ? <CheckCircle2 className="size-3.5" /> : <XCircle className="size-3.5" />}
-                        {testConnection.data.success
-                          ? `Connected · ${testConnection.data.serverVersion || testConnection.data.databaseName} · ${testConnection.data.latencyMs}ms`
-                          : testConnection.data.error || "Connection failed"}
-                      </div>
-                    )}
-                    {testConnection.isError && testConnection.variables?.connectionId === conn.id && (
-                      <div className="mt-3 flex items-center gap-2 text-xs text-red-500">
-                        <XCircle className="size-3.5" />
-                        {getApiErrorMessage(testConnection.error)}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3 mt-4 pt-4 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs gap-1.5"
-                        disabled={testConnection.isPending}
-                        onClick={() => testConnection.mutate({ projectId, connectionId: conn.id })}
-                      >
-                        <PlugZap className="size-3" />
-                        Test
-                      </Button>
-                      <Link href={`/projects/${projectId}/schemas`}>
-                        <Button variant="outline" size="sm" className="h-8 text-xs">
-                          Sync Schema
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs text-muted-foreground gap-1.5 ml-auto"
-                        disabled={deleteConnection.isPending}
-                        onClick={() => {
-                          if (confirm(`Delete connection "${conn.name}"?`)) {
-                            deleteConnection.mutate(conn.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="size-3" />
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Endpoint</TableHead>
+                      <TableHead>Database</TableHead>
+                      <TableHead>SSL</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Connected</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {connections.map((connection) => (
+                      <TableRow key={connection.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2 font-medium">
+                            <Database className="size-4 text-muted-foreground" />
+                            {connection.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {connection.host}:{connection.port}
+                        </TableCell>
+                        <TableCell className="text-sm">{connection.databaseName}</TableCell>
+                        <TableCell>
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                            {connection.sslMode || "disable"}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge connection={connection} />
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(connection.lastConnectedAt)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTest(connection)}
+                              disabled={testingId === connection.id}
+                            >
+                              {testingId === connection.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="size-4" />
+                              )}
+                              Test
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-600"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setDeleteTarget(connection);
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </SidebarInset>
+
+      <Dialog open={testResult !== null} onOpenChange={(o) => { if (!o) setTestResult(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {testResult?.res?.success ? "Connection Successful" : "Connection Failed"}
+            </DialogTitle>
+            <DialogDescription>
+              {testResult?.conn.name} ({testResult?.conn.host}:{testResult?.conn.port})
+            </DialogDescription>
+          </DialogHeader>
+          {testResult?.res?.success ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle2 className="size-4" />
+                Connected successfully
+              </div>
+              <div className="flex justify-between border-t pt-2 text-muted-foreground">
+                <span>Latency</span>
+                <span className="font-medium text-foreground">{testResult.res.latencyMs} ms</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Server</span>
+                <span className="font-medium text-foreground">{testResult.res.serverVersion || "—"}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 text-sm text-red-600">
+              <XCircle className="mt-0.5 size-4 shrink-0" />
+              {testResult?.res?.error || "Could not connect to the database."}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setTestResult(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete connection?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove "{deleteTarget?.name}". This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? <p className="text-sm text-red-600">{deleteError}</p> : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteConn.isPending}>
+              {deleteConn.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

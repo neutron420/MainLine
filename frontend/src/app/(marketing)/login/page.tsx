@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,8 +29,8 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const Login = () => {
-  const router = useRouter();
+const LoginContent = () => {  const router = useRouter();
+  const searchParams = useSearchParams();
   const loginMutation = useLogin();
   const [error, setError] = useState<string | null>(null);
   const [remember, setRemember] = useState(true);
@@ -48,7 +48,8 @@ const Login = () => {
     setError(null);
     try {
       await loginMutation.mutateAsync({ ...values, remember });
-      router.push("/dashboard");
+      const redirect = searchParams.get("redirect");
+      router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
     } catch (err) {
       setError(getApiErrorMessage(err));
     }
@@ -184,4 +185,10 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  );
+}

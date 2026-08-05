@@ -129,6 +129,39 @@ export function useAddMember(projectId: string) {
   });
 }
 
+export function useInviteMember(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { email: string; role: string }) => {
+      const res = await projectClient.inviteMember({
+        projectId,
+        email: input.email,
+        role: input.role,
+      });
+      return res.invitationId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+    },
+  });
+}
+
+export function useAcceptInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const res = await projectClient.acceptInvitation({ token });
+      return { projectId: res.projectId, projectName: res.projectName };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
 export function useUpdateMemberRole(projectId: string) {
   const queryClient = useQueryClient();
 

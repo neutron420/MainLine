@@ -270,3 +270,46 @@ func (r *ProjectRepository) ListMemberUsers(ctx context.Context, projectID strin
 	}
 	return members, nil
 }
+
+func (r *ProjectRepository) CreateInvitation(ctx context.Context, inv *domain.ProjectInvitation) error {
+	inv.ID = uuid.NewString()
+	inv.CreatedAt = time.Now()
+	_, err := r.db.Exec(ctx,
+		`INSERT INTO project_invitations (id, project_id, email, role, token, status, invited_by, expires_at, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 ON CONFLICT (project_id, email) DO UPDATE
+		 SET token = EXCLUDED.token, role = EXCLUDED.role, status = 'pending',
+		     invited_by = EXCLUDED.invited_by, expires_at = EXCLUDED.expires_at, accepted_at = NULL`,
+		inv.ID, inv.ProjectID, inv.Email, string(inv.Role), inv.Token, string(inv.Status), inv.InvitedBy, inv.ExpiresAt, inv.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("inserting invitation: %w", err)
+	}
+	return nil
+}
+
+func (r *ProjectRepository) GetInvitationByToken(ctx context.Context, token string) (*domain.ProjectInvitation, error) {
+	row := r.db.QueryRow(ctx,
+		`SELECT id, project_id, email, role, token, status, invited_by, expires_at, created_at, accepted_at
+		 FROM project_invitations WHERE token = $1`, token,
+	)
+	inv := &domain.ProjectInvitation{}
+	if err := row.Scan(&inv.ID, &inv.ProjectID, &inv.Email, &inv.Role, &inv.Token, &inv.Status, &inv.InvitedBy, &inv.ExpiresAt, &inv.CreatedAt, &inv.AcceptedAt); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("invitation not found")
+		}
+		return nil, fmt.Errorf("scanning invitation: %w", err)
+	}
+	return inv, nil
+}
+
+func (r *ProjectRepository) MarkInvitationAccepted(ctx context.Context, id, projectID, userID string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE project_invitations SET status = 'accepted', accepted_at = now()
+		 WHERE id = $1 AND project_id = $2`, id, projectID,
+	)
+	if err != nil {
+		return fmt.Errorf("marking invitation accepted: %w", err)
+	}
+	return nil
+}

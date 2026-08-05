@@ -15,6 +15,8 @@ service ProjectService {
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
   rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
   rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc InviteMember(InviteMemberRequest) returns (InviteMemberResponse);
+  rpc AcceptInvitation(AcceptInvitationRequest) returns (AcceptInvitationResponse);
 
   rpc CreateConnection(CreateConnectionRequest) returns (CreateConnectionResponse);
   rpc GetConnection(GetConnectionRequest) returns (GetConnectionResponse);

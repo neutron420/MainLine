@@ -10,6 +10,7 @@ type fakeProjRepo struct {
 	project Project
 	member  *ProjectMember
 	added   *ProjectMember
+	inv     *ProjectInvitation
 }
 
 func (f *fakeProjRepo) Create(ctx context.Context, p *Project) error {
@@ -66,6 +67,22 @@ func (f *fakeProjRepo) ListMembers(ctx context.Context, projectID, cursor string
 
 func (f *fakeProjRepo) ListMemberUsers(ctx context.Context, projectID string) ([]*ProjectMember, error) {
 	return []*ProjectMember{}, nil
+}
+
+func (f *fakeProjRepo) CreateInvitation(ctx context.Context, inv *ProjectInvitation) error {
+	f.inv = inv
+	return nil
+}
+
+func (f *fakeProjRepo) GetInvitationByToken(ctx context.Context, token string) (*ProjectInvitation, error) {
+	if f.inv == nil || f.inv.Token != token {
+		return nil, errors.New("invitation not found")
+	}
+	return f.inv, nil
+}
+
+func (f *fakeProjRepo) MarkInvitationAccepted(ctx context.Context, id, projectID, userID string) error {
+	return nil
 }
 
 type fakeUserLookup struct {

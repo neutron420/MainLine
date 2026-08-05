@@ -25,10 +25,14 @@ func hashToken(token string) string {
 }
 
 func (r *refreshTokenRepo) Create(ctx context.Context, t *domain.RefreshToken) error {
+	var createdByIP any = t.CreatedByIP
+	if t.CreatedByIP == "" {
+		createdByIP = nil
+	}
 	_, err := r.pool.Exec(ctx,
 		`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_by_ip, family)
 		 VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)`,
-		t.UserID, t.TokenHash, t.ExpiresAt, t.CreatedByIP, t.Family)
+		t.UserID, t.TokenHash, t.ExpiresAt, createdByIP, t.Family)
 	return err
 }
 

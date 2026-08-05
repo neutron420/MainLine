@@ -137,6 +137,18 @@ func (f *fakeProjRepo) ListMemberUsers(ctx context.Context, projectID string) ([
 	return out, nil
 }
 
+func (f *fakeProjRepo) CreateInvitation(ctx context.Context, inv *domain.ProjectInvitation) error {
+	return nil
+}
+
+func (f *fakeProjRepo) GetInvitationByToken(ctx context.Context, token string) (*domain.ProjectInvitation, error) {
+	return nil, errors.New("invitation not found")
+}
+
+func (f *fakeProjRepo) MarkInvitationAccepted(ctx context.Context, id, projectID, userID string) error {
+	return nil
+}
+
 type fakeUserLookup struct {
 	ids   map[string]string
 	valid bool

@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import {
   BadgeCheck,
   Bell,
@@ -12,7 +13,9 @@ import {
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
 } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/api/auth-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,12 +42,19 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const { logout } = useAuth()
   const initials = user.name
     .split(" ")
     .map((word) => word[0])
     .join("")
     .slice(0, 2)
     .toUpperCase()
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
+  }
 
   return (
     <SidebarMenu>
@@ -56,6 +66,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground md:h-8 md:p-0"
             >
               <Avatar className="h-8 w-8 rounded-lg">
+                {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -105,7 +116,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

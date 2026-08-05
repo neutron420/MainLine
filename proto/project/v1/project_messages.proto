@@ -80,6 +80,36 @@ message AddMemberRequest {
 
 message AddMemberResponse {}
 
+message InviteMemberRequest {
+  string project_id = 1;
+  string email = 2;
+  string role = 3;
+}
+
+message InviteMemberResponse {
+  string invitation_id = 1;
+}
+
+message AcceptInvitationRequest {
+  string token = 1;
+}
+
+message AcceptInvitationResponse {
+  string project_id = 1;
+  string project_name = 2;
+}
+
+message ProjectInvitation {
+  string id = 1;
+  string project_id = 2;
+  string project_name = 3;
+  string email = 4;
+  string role = 5;
+  string status = 6;
+  string expires_at = 7;
+  string created_at = 8;
+}
+
 message RemoveMemberRequest {
   string project_id = 1;
   string user_id = 2;

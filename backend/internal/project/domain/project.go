@@ -48,6 +48,27 @@ type ProjectMember struct {
 	CreatedAt time.Time
 }
 
+type InvitationStatus string
+
+const (
+	InvitationPending  InvitationStatus = "pending"
+	InvitationAccepted InvitationStatus = "accepted"
+	InvitationRevoked  InvitationStatus = "revoked"
+)
+
+type ProjectInvitation struct {
+	ID        string
+	ProjectID string
+	Email     string
+	Role      ProjectRole
+	Token     string
+	Status    InvitationStatus
+	InvitedBy string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	AcceptedAt *time.Time
+}
+
 type ProjectRepository interface {
 	Create(ctx context.Context, p *Project) error
 	GetByID(ctx context.Context, id string) (*Project, error)
@@ -62,6 +83,10 @@ type ProjectRepository interface {
 	GetMember(ctx context.Context, projectID, userID string) (*ProjectMember, error)
 	ListMembers(ctx context.Context, projectID, cursor string, limit int32) ([]*ProjectMember, string, int32, error)
 	ListMemberUsers(ctx context.Context, projectID string) ([]*ProjectMember, error)
+
+	CreateInvitation(ctx context.Context, inv *ProjectInvitation) error
+	GetInvitationByToken(ctx context.Context, token string) (*ProjectInvitation, error)
+	MarkInvitationAccepted(ctx context.Context, id, projectID, userID string) error
 }
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9-]+$`)

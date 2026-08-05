@@ -28,6 +28,8 @@ const (
 	ProjectService_RemoveMember_FullMethodName     = "/schemahub.project.v1.ProjectService/RemoveMember"
 	ProjectService_UpdateMemberRole_FullMethodName = "/schemahub.project.v1.ProjectService/UpdateMemberRole"
 	ProjectService_ListMembers_FullMethodName      = "/schemahub.project.v1.ProjectService/ListMembers"
+	ProjectService_InviteMember_FullMethodName     = "/schemahub.project.v1.ProjectService/InviteMember"
+	ProjectService_AcceptInvitation_FullMethodName = "/schemahub.project.v1.ProjectService/AcceptInvitation"
 	ProjectService_CreateConnection_FullMethodName = "/schemahub.project.v1.ProjectService/CreateConnection"
 	ProjectService_GetConnection_FullMethodName    = "/schemahub.project.v1.ProjectService/GetConnection"
 	ProjectService_ListConnections_FullMethodName  = "/schemahub.project.v1.ProjectService/ListConnections"
@@ -49,6 +51,8 @@ type ProjectServiceClient interface {
 	RemoveMember(ctx context.Context, in *RemoveMemberRequest, opts ...grpc.CallOption) (*RemoveMemberResponse, error)
 	UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error)
 	ListMembers(ctx context.Context, in *ListMembersRequest, opts ...grpc.CallOption) (*ListMembersResponse, error)
+	InviteMember(ctx context.Context, in *InviteMemberRequest, opts ...grpc.CallOption) (*InviteMemberResponse, error)
+	AcceptInvitation(ctx context.Context, in *AcceptInvitationRequest, opts ...grpc.CallOption) (*AcceptInvitationResponse, error)
 	CreateConnection(ctx context.Context, in *CreateConnectionRequest, opts ...grpc.CallOption) (*CreateConnectionResponse, error)
 	GetConnection(ctx context.Context, in *GetConnectionRequest, opts ...grpc.CallOption) (*GetConnectionResponse, error)
 	ListConnections(ctx context.Context, in *ListConnectionsRequest, opts ...grpc.CallOption) (*ListConnectionsResponse, error)
@@ -155,6 +159,26 @@ func (c *projectServiceClient) ListMembers(ctx context.Context, in *ListMembersR
 	return out, nil
 }
 
+func (c *projectServiceClient) InviteMember(ctx context.Context, in *InviteMemberRequest, opts ...grpc.CallOption) (*InviteMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InviteMemberResponse)
+	err := c.cc.Invoke(ctx, ProjectService_InviteMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *projectServiceClient) AcceptInvitation(ctx context.Context, in *AcceptInvitationRequest, opts ...grpc.CallOption) (*AcceptInvitationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcceptInvitationResponse)
+	err := c.cc.Invoke(ctx, ProjectService_AcceptInvitation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *projectServiceClient) CreateConnection(ctx context.Context, in *CreateConnectionRequest, opts ...grpc.CallOption) (*CreateConnectionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateConnectionResponse)
@@ -228,6 +252,8 @@ type ProjectServiceServer interface {
 	RemoveMember(context.Context, *RemoveMemberRequest) (*RemoveMemberResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	ListMembers(context.Context, *ListMembersRequest) (*ListMembersResponse, error)
+	InviteMember(context.Context, *InviteMemberRequest) (*InviteMemberResponse, error)
+	AcceptInvitation(context.Context, *AcceptInvitationRequest) (*AcceptInvitationResponse, error)
 	CreateConnection(context.Context, *CreateConnectionRequest) (*CreateConnectionResponse, error)
 	GetConnection(context.Context, *GetConnectionRequest) (*GetConnectionResponse, error)
 	ListConnections(context.Context, *ListConnectionsRequest) (*ListConnectionsResponse, error)
@@ -270,6 +296,12 @@ func (UnimplementedProjectServiceServer) UpdateMemberRole(context.Context, *Upda
 }
 func (UnimplementedProjectServiceServer) ListMembers(context.Context, *ListMembersRequest) (*ListMembersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMembers not implemented")
+}
+func (UnimplementedProjectServiceServer) InviteMember(context.Context, *InviteMemberRequest) (*InviteMemberResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InviteMember not implemented")
+}
+func (UnimplementedProjectServiceServer) AcceptInvitation(context.Context, *AcceptInvitationRequest) (*AcceptInvitationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AcceptInvitation not implemented")
 }
 func (UnimplementedProjectServiceServer) CreateConnection(context.Context, *CreateConnectionRequest) (*CreateConnectionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateConnection not implemented")
@@ -472,6 +504,42 @@ func _ProjectService_ListMembers_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectService_InviteMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).InviteMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectService_InviteMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).InviteMember(ctx, req.(*InviteMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProjectService_AcceptInvitation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptInvitationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).AcceptInvitation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectService_AcceptInvitation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).AcceptInvitation(ctx, req.(*AcceptInvitationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ProjectService_CreateConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateConnectionRequest)
 	if err := dec(in); err != nil {
@@ -622,6 +690,14 @@ var ProjectService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMembers",
 			Handler:    _ProjectService_ListMembers_Handler,
+		},
+		{
+			MethodName: "InviteMember",
+			Handler:    _ProjectService_InviteMember_Handler,
+		},
+		{
+			MethodName: "AcceptInvitation",
+			Handler:    _ProjectService_AcceptInvitation_Handler,
 		},
 		{
 			MethodName: "CreateConnection",

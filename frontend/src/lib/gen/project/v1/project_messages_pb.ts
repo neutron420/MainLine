@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file project/v1/project_messages.proto.
  */
 export const file_project_v1_project_messages: GenFile = /*@__PURE__*/
-  fileDesc("CiFwcm9qZWN0L3YxL3Byb2plY3RfbWVzc2FnZXMucHJvdG8SFHNjaGVtYWh1Yi5wcm9qZWN0LnYxIr4BCgdQcm9qZWN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgp2aXNpYmlsaXR5GAUgASgJEhQKDG1lbWJlcl9jb3VudBgGIAEoBRISCgpjcmVhdGVkX2J5GAcgASgJEhIKCmNyZWF0ZWRfYXQYCCABKAkSEgoKdXBkYXRlZF9hdBgJIAEoCRIQCgh0ZW1wbGF0ZRgKIAEoCSJmCg1Qcm9qZWN0TWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEgwKBHJvbGUYBCABKAkSEQoJam9pbmVkX2F0GAUgASgJIl8KFENyZWF0ZVByb2plY3RSZXF1ZXN0EgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEgoKdmlzaWJpbGl0eRgDIAEoCRIQCgh0ZW1wbGF0ZRgEIAEoCSJHChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USLgoHcHJvamVjdBgBIAEoCzIdLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLlByb2plY3QiHwoRR2V0UHJvamVjdFJlcXVlc3QSCgoCaWQYASABKAkiRAoSR2V0UHJvamVjdFJlc3BvbnNlEi4KB3Byb2plY3QYASABKAsyHS5zY2hlbWFodWIucHJvamVjdC52MS5Qcm9qZWN0IjgKE0xpc3RQcm9qZWN0c1JlcXVlc3QSDgoGY3Vyc29yGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSJxChRMaXN0UHJvamVjdHNSZXNwb25zZRIvCghwcm9qZWN0cxgBIAMoCzIdLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLlByb2plY3QSEwoLbmV4dF9jdXJzb3IYAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiWQoUVXBkYXRlUHJvamVjdFJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRISCgp2aXNpYmlsaXR5GAQgASgJIkcKFVVwZGF0ZVByb2plY3RSZXNwb25zZRIuCgdwcm9qZWN0GAEgASgLMh0uc2NoZW1haHViLnByb2plY3QudjEuUHJvamVjdCIiChREZWxldGVQcm9qZWN0UmVxdWVzdBIKCgJpZBgBIAEoCSIXChVEZWxldGVQcm9qZWN0UmVzcG9uc2UiVAoQQWRkTWVtYmVyUmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDAoEcm9sZRgDIAEoCRINCgVlbWFpbBgEIAEoCSITChFBZGRNZW1iZXJSZXNwb25zZSI6ChNSZW1vdmVNZW1iZXJSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCSIWChRSZW1vdmVNZW1iZXJSZXNwb25zZSJMChdVcGRhdGVNZW1iZXJSb2xlUmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDAoEcm9sZRgDIAEoCSIaChhVcGRhdGVNZW1iZXJSb2xlUmVzcG9uc2UiSwoSTGlzdE1lbWJlcnNSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJ1ChNMaXN0TWVtYmVyc1Jlc3BvbnNlEjQKB21lbWJlcnMYASADKAsyIy5zY2hlbWFodWIucHJvamVjdC52MS5Qcm9qZWN0TWVtYmVyEhMKC25leHRfY3Vyc29yGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIoMCCgpDb25uZWN0aW9uEgoKAmlkGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRob3N0GAQgASgJEgwKBHBvcnQYBSABKAUSFQoNZGF0YWJhc2VfbmFtZRgGIAEoCRIQCgh1c2VybmFtZRgHIAEoCRIQCghzc2xfbW9kZRgIIAEoCRIZChFjb25uZWN0aW9uX3N0YXR1cxgJIAEoCRIZChFsYXN0X2Nvbm5lY3RlZF9hdBgKIAEoCRISCgpjcmVhdGVkX2J5GAsgASgJEhIKCmNyZWF0ZWRfYXQYDCABKAkSEgoKdXBkYXRlZF9hdBgNIAEoCSKkAQoXQ3JlYXRlQ29ubmVjdGlvblJlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGhvc3QYAyABKAkSDAoEcG9ydBgEIAEoBRIVCg1kYXRhYmFzZV9uYW1lGAUgASgJEhAKCHVzZXJuYW1lGAYgASgJEhAKCHBhc3N3b3JkGAcgASgJEhAKCHNzbF9tb2RlGAggASgJIlAKGENyZWF0ZUNvbm5lY3Rpb25SZXNwb25zZRI0Cgpjb25uZWN0aW9uGAEgASgLMiAuc2NoZW1haHViLnByb2plY3QudjEuQ29ubmVjdGlvbiIiChRHZXRDb25uZWN0aW9uUmVxdWVzdBIKCgJpZBgBIAEoCSJNChVHZXRDb25uZWN0aW9uUmVzcG9uc2USNAoKY29ubmVjdGlvbhgBIAEoCzIgLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLkNvbm5lY3Rpb24iTwoWTGlzdENvbm5lY3Rpb25zUmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEg4KBmN1cnNvchgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUiegoXTGlzdENvbm5lY3Rpb25zUmVzcG9uc2USNQoLY29ubmVjdGlvbnMYASADKAsyIC5zY2hlbWFodWIucHJvamVjdC52MS5Db25uZWN0aW9uEhMKC25leHRfY3Vyc29yGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIpwBChdVcGRhdGVDb25uZWN0aW9uUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGhvc3QYAyABKAkSDAoEcG9ydBgEIAEoBRIVCg1kYXRhYmFzZV9uYW1lGAUgASgJEhAKCHVzZXJuYW1lGAYgASgJEhAKCHBhc3N3b3JkGAcgASgJEhAKCHNzbF9tb2RlGAggASgJIlAKGFVwZGF0ZUNvbm5lY3Rpb25SZXNwb25zZRI0Cgpjb25uZWN0aW9uGAEgASgLMiAuc2NoZW1haHViLnByb2plY3QudjEuQ29ubmVjdGlvbiIlChdEZWxldGVDb25uZWN0aW9uUmVxdWVzdBIKCgJpZBgBIAEoCSIaChhEZWxldGVDb25uZWN0aW9uUmVzcG9uc2UiLgoVVGVzdENvbm5lY3Rpb25SZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkiewoWVGVzdENvbm5lY3Rpb25SZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEhIKCmxhdGVuY3lfbXMYAiABKAUSFgoOc2VydmVyX3ZlcnNpb24YAyABKAkSFQoNZGF0YWJhc2VfbmFtZRgEIAEoCRINCgVlcnJvchgFIAEoCUI5WjdnaXRodWIuY29tL3NjaGVtYWh1Yi9iYWNrZW5kL3Byb3RvL3Byb2plY3QvdjE7cHJvamVjdHYxYgZwcm90bzM");
+  fileDesc("CiFwcm9qZWN0L3YxL3Byb2plY3RfbWVzc2FnZXMucHJvdG8SFHNjaGVtYWh1Yi5wcm9qZWN0LnYxIr4BCgdQcm9qZWN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEc2x1ZxgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgp2aXNpYmlsaXR5GAUgASgJEhQKDG1lbWJlcl9jb3VudBgGIAEoBRISCgpjcmVhdGVkX2J5GAcgASgJEhIKCmNyZWF0ZWRfYXQYCCABKAkSEgoKdXBkYXRlZF9hdBgJIAEoCRIQCgh0ZW1wbGF0ZRgKIAEoCSJmCg1Qcm9qZWN0TWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSFAoMZGlzcGxheV9uYW1lGAMgASgJEgwKBHJvbGUYBCABKAkSEQoJam9pbmVkX2F0GAUgASgJIl8KFENyZWF0ZVByb2plY3RSZXF1ZXN0EgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEgoKdmlzaWJpbGl0eRgDIAEoCRIQCgh0ZW1wbGF0ZRgEIAEoCSJHChVDcmVhdGVQcm9qZWN0UmVzcG9uc2USLgoHcHJvamVjdBgBIAEoCzIdLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLlByb2plY3QiHwoRR2V0UHJvamVjdFJlcXVlc3QSCgoCaWQYASABKAkiRAoSR2V0UHJvamVjdFJlc3BvbnNlEi4KB3Byb2plY3QYASABKAsyHS5zY2hlbWFodWIucHJvamVjdC52MS5Qcm9qZWN0IjgKE0xpc3RQcm9qZWN0c1JlcXVlc3QSDgoGY3Vyc29yGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSJxChRMaXN0UHJvamVjdHNSZXNwb25zZRIvCghwcm9qZWN0cxgBIAMoCzIdLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLlByb2plY3QSEwoLbmV4dF9jdXJzb3IYAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiWQoUVXBkYXRlUHJvamVjdFJlcXVlc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRISCgp2aXNpYmlsaXR5GAQgASgJIkcKFVVwZGF0ZVByb2plY3RSZXNwb25zZRIuCgdwcm9qZWN0GAEgASgLMh0uc2NoZW1haHViLnByb2plY3QudjEuUHJvamVjdCIiChREZWxldGVQcm9qZWN0UmVxdWVzdBIKCgJpZBgBIAEoCSIXChVEZWxldGVQcm9qZWN0UmVzcG9uc2UiVAoQQWRkTWVtYmVyUmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDAoEcm9sZRgDIAEoCRINCgVlbWFpbBgEIAEoCSITChFBZGRNZW1iZXJSZXNwb25zZSJGChNJbnZpdGVNZW1iZXJSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEcm9sZRgDIAEoCSItChRJbnZpdGVNZW1iZXJSZXNwb25zZRIVCg1pbnZpdGF0aW9uX2lkGAEgASgJIigKF0FjY2VwdEludml0YXRpb25SZXF1ZXN0Eg0KBXRva2VuGAEgASgJIkQKGEFjY2VwdEludml0YXRpb25SZXNwb25zZRISCgpwcm9qZWN0X2lkGAEgASgJEhQKDHByb2plY3RfbmFtZRgCIAEoCSKeAQoRUHJvamVjdEludml0YXRpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIUCgxwcm9qZWN0X25hbWUYAyABKAkSDQoFZW1haWwYBCABKAkSDAoEcm9sZRgFIAEoCRIOCgZzdGF0dXMYBiABKAkSEgoKZXhwaXJlc19hdBgHIAEoCRISCgpjcmVhdGVkX2F0GAggASgJIjoKE1JlbW92ZU1lbWJlclJlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJIhYKFFJlbW92ZU1lbWJlclJlc3BvbnNlIkwKF1VwZGF0ZU1lbWJlclJvbGVSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIMCgRyb2xlGAMgASgJIhoKGFVwZGF0ZU1lbWJlclJvbGVSZXNwb25zZSJLChJMaXN0TWVtYmVyc1JlcXVlc3QSEgoKcHJvamVjdF9pZBgBIAEoCRIOCgZjdXJzb3IYAiABKAkSEQoJcGFnZV9zaXplGAMgASgFInUKE0xpc3RNZW1iZXJzUmVzcG9uc2USNAoHbWVtYmVycxgBIAMoCzIjLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLlByb2plY3RNZW1iZXISEwoLbmV4dF9jdXJzb3IYAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUigwIKCkNvbm5lY3Rpb24SCgoCaWQYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBGhvc3QYBCABKAkSDAoEcG9ydBgFIAEoBRIVCg1kYXRhYmFzZV9uYW1lGAYgASgJEhAKCHVzZXJuYW1lGAcgASgJEhAKCHNzbF9tb2RlGAggASgJEhkKEWNvbm5lY3Rpb25fc3RhdHVzGAkgASgJEhkKEWxhc3RfY29ubmVjdGVkX2F0GAogASgJEhIKCmNyZWF0ZWRfYnkYCyABKAkSEgoKY3JlYXRlZF9hdBgMIAEoCRISCgp1cGRhdGVkX2F0GA0gASgJIqQBChdDcmVhdGVDb25uZWN0aW9uUmVxdWVzdBISCgpwcm9qZWN0X2lkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEaG9zdBgDIAEoCRIMCgRwb3J0GAQgASgFEhUKDWRhdGFiYXNlX25hbWUYBSABKAkSEAoIdXNlcm5hbWUYBiABKAkSEAoIcGFzc3dvcmQYByABKAkSEAoIc3NsX21vZGUYCCABKAkiUAoYQ3JlYXRlQ29ubmVjdGlvblJlc3BvbnNlEjQKCmNvbm5lY3Rpb24YASABKAsyIC5zY2hlbWFodWIucHJvamVjdC52MS5Db25uZWN0aW9uIiIKFEdldENvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIk0KFUdldENvbm5lY3Rpb25SZXNwb25zZRI0Cgpjb25uZWN0aW9uGAEgASgLMiAuc2NoZW1haHViLnByb2plY3QudjEuQ29ubmVjdGlvbiJPChZMaXN0Q29ubmVjdGlvbnNSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJ6ChdMaXN0Q29ubmVjdGlvbnNSZXNwb25zZRI1Cgtjb25uZWN0aW9ucxgBIAMoCzIgLnNjaGVtYWh1Yi5wcm9qZWN0LnYxLkNvbm5lY3Rpb24SEwoLbmV4dF9jdXJzb3IYAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUinAEKF1VwZGF0ZUNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEaG9zdBgDIAEoCRIMCgRwb3J0GAQgASgFEhUKDWRhdGFiYXNlX25hbWUYBSABKAkSEAoIdXNlcm5hbWUYBiABKAkSEAoIcGFzc3dvcmQYByABKAkSEAoIc3NsX21vZGUYCCABKAkiUAoYVXBkYXRlQ29ubmVjdGlvblJlc3BvbnNlEjQKCmNvbm5lY3Rpb24YASABKAsyIC5zY2hlbWFodWIucHJvamVjdC52MS5Db25uZWN0aW9uIiUKF0RlbGV0ZUNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIhoKGERlbGV0ZUNvbm5lY3Rpb25SZXNwb25zZSIuChVUZXN0Q29ubmVjdGlvblJlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCSJ7ChZUZXN0Q29ubmVjdGlvblJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgSEgoKbGF0ZW5jeV9tcxgCIAEoBRIWCg5zZXJ2ZXJfdmVyc2lvbhgDIAEoCRIVCg1kYXRhYmFzZV9uYW1lGAQgASgJEg0KBWVycm9yGAUgASgJQjlaN2dpdGh1Yi5jb20vc2NoZW1haHViL2JhY2tlbmQvcHJvdG8vcHJvamVjdC92MTtwcm9qZWN0djFiBnByb3RvMw");
 
 /**
  * @generated from message schemahub.project.v1.Project
@@ -368,6 +368,141 @@ export const AddMemberResponseSchema: GenMessage<AddMemberResponse> = /*@__PURE_
   messageDesc(file_project_v1_project_messages, 13);
 
 /**
+ * @generated from message schemahub.project.v1.InviteMemberRequest
+ */
+export type InviteMemberRequest = Message<"schemahub.project.v1.InviteMemberRequest"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string email = 2;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string role = 3;
+   */
+  role: string;
+};
+
+/**
+ * Describes the message schemahub.project.v1.InviteMemberRequest.
+ * Use `create(InviteMemberRequestSchema)` to create a new message.
+ */
+export const InviteMemberRequestSchema: GenMessage<InviteMemberRequest> = /*@__PURE__*/
+  messageDesc(file_project_v1_project_messages, 14);
+
+/**
+ * @generated from message schemahub.project.v1.InviteMemberResponse
+ */
+export type InviteMemberResponse = Message<"schemahub.project.v1.InviteMemberResponse"> & {
+  /**
+   * @generated from field: string invitation_id = 1;
+   */
+  invitationId: string;
+};
+
+/**
+ * Describes the message schemahub.project.v1.InviteMemberResponse.
+ * Use `create(InviteMemberResponseSchema)` to create a new message.
+ */
+export const InviteMemberResponseSchema: GenMessage<InviteMemberResponse> = /*@__PURE__*/
+  messageDesc(file_project_v1_project_messages, 15);
+
+/**
+ * @generated from message schemahub.project.v1.AcceptInvitationRequest
+ */
+export type AcceptInvitationRequest = Message<"schemahub.project.v1.AcceptInvitationRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+};
+
+/**
+ * Describes the message schemahub.project.v1.AcceptInvitationRequest.
+ * Use `create(AcceptInvitationRequestSchema)` to create a new message.
+ */
+export const AcceptInvitationRequestSchema: GenMessage<AcceptInvitationRequest> = /*@__PURE__*/
+  messageDesc(file_project_v1_project_messages, 16);
+
+/**
+ * @generated from message schemahub.project.v1.AcceptInvitationResponse
+ */
+export type AcceptInvitationResponse = Message<"schemahub.project.v1.AcceptInvitationResponse"> & {
+  /**
+   * @generated from field: string project_id = 1;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string project_name = 2;
+   */
+  projectName: string;
+};
+
+/**
+ * Describes the message schemahub.project.v1.AcceptInvitationResponse.
+ * Use `create(AcceptInvitationResponseSchema)` to create a new message.
+ */
+export const AcceptInvitationResponseSchema: GenMessage<AcceptInvitationResponse> = /*@__PURE__*/
+  messageDesc(file_project_v1_project_messages, 17);
+
+/**
+ * @generated from message schemahub.project.v1.ProjectInvitation
+ */
+export type ProjectInvitation = Message<"schemahub.project.v1.ProjectInvitation"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string project_id = 2;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string project_name = 3;
+   */
+  projectName: string;
+
+  /**
+   * @generated from field: string email = 4;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string role = 5;
+   */
+  role: string;
+
+  /**
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string expires_at = 7;
+   */
+  expiresAt: string;
+
+  /**
+   * @generated from field: string created_at = 8;
+   */
+  createdAt: string;
+};
+
+/**
+ * Describes the message schemahub.project.v1.ProjectInvitation.
+ * Use `create(ProjectInvitationSchema)` to create a new message.
+ */
+export const ProjectInvitationSchema: GenMessage<ProjectInvitation> = /*@__PURE__*/
+  messageDesc(file_project_v1_project_messages, 18);
+
+/**
  * @generated from message schemahub.project.v1.RemoveMemberRequest
  */
 export type RemoveMemberRequest = Message<"schemahub.project.v1.RemoveMemberRequest"> & {
@@ -387,7 +522,7 @@ export type RemoveMemberRequest = Message<"schemahub.project.v1.RemoveMemberRequ
  * Use `create(RemoveMemberRequestSchema)` to create a new message.
  */
 export const RemoveMemberRequestSchema: GenMessage<RemoveMemberRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 14);
+  messageDesc(file_project_v1_project_messages, 19);
 
 /**
  * @generated from message schemahub.project.v1.RemoveMemberResponse
@@ -400,7 +535,7 @@ export type RemoveMemberResponse = Message<"schemahub.project.v1.RemoveMemberRes
  * Use `create(RemoveMemberResponseSchema)` to create a new message.
  */
 export const RemoveMemberResponseSchema: GenMessage<RemoveMemberResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 15);
+  messageDesc(file_project_v1_project_messages, 20);
 
 /**
  * @generated from message schemahub.project.v1.UpdateMemberRoleRequest
@@ -427,7 +562,7 @@ export type UpdateMemberRoleRequest = Message<"schemahub.project.v1.UpdateMember
  * Use `create(UpdateMemberRoleRequestSchema)` to create a new message.
  */
 export const UpdateMemberRoleRequestSchema: GenMessage<UpdateMemberRoleRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 16);
+  messageDesc(file_project_v1_project_messages, 21);
 
 /**
  * @generated from message schemahub.project.v1.UpdateMemberRoleResponse
@@ -440,7 +575,7 @@ export type UpdateMemberRoleResponse = Message<"schemahub.project.v1.UpdateMembe
  * Use `create(UpdateMemberRoleResponseSchema)` to create a new message.
  */
 export const UpdateMemberRoleResponseSchema: GenMessage<UpdateMemberRoleResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 17);
+  messageDesc(file_project_v1_project_messages, 22);
 
 /**
  * @generated from message schemahub.project.v1.ListMembersRequest
@@ -467,7 +602,7 @@ export type ListMembersRequest = Message<"schemahub.project.v1.ListMembersReques
  * Use `create(ListMembersRequestSchema)` to create a new message.
  */
 export const ListMembersRequestSchema: GenMessage<ListMembersRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 18);
+  messageDesc(file_project_v1_project_messages, 23);
 
 /**
  * @generated from message schemahub.project.v1.ListMembersResponse
@@ -494,7 +629,7 @@ export type ListMembersResponse = Message<"schemahub.project.v1.ListMembersRespo
  * Use `create(ListMembersResponseSchema)` to create a new message.
  */
 export const ListMembersResponseSchema: GenMessage<ListMembersResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 19);
+  messageDesc(file_project_v1_project_messages, 24);
 
 /**
  * @generated from message schemahub.project.v1.Connection
@@ -571,7 +706,7 @@ export type Connection = Message<"schemahub.project.v1.Connection"> & {
  * Use `create(ConnectionSchema)` to create a new message.
  */
 export const ConnectionSchema: GenMessage<Connection> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 20);
+  messageDesc(file_project_v1_project_messages, 25);
 
 /**
  * @generated from message schemahub.project.v1.CreateConnectionRequest
@@ -623,7 +758,7 @@ export type CreateConnectionRequest = Message<"schemahub.project.v1.CreateConnec
  * Use `create(CreateConnectionRequestSchema)` to create a new message.
  */
 export const CreateConnectionRequestSchema: GenMessage<CreateConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 21);
+  messageDesc(file_project_v1_project_messages, 26);
 
 /**
  * @generated from message schemahub.project.v1.CreateConnectionResponse
@@ -640,7 +775,7 @@ export type CreateConnectionResponse = Message<"schemahub.project.v1.CreateConne
  * Use `create(CreateConnectionResponseSchema)` to create a new message.
  */
 export const CreateConnectionResponseSchema: GenMessage<CreateConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 22);
+  messageDesc(file_project_v1_project_messages, 27);
 
 /**
  * @generated from message schemahub.project.v1.GetConnectionRequest
@@ -657,7 +792,7 @@ export type GetConnectionRequest = Message<"schemahub.project.v1.GetConnectionRe
  * Use `create(GetConnectionRequestSchema)` to create a new message.
  */
 export const GetConnectionRequestSchema: GenMessage<GetConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 23);
+  messageDesc(file_project_v1_project_messages, 28);
 
 /**
  * @generated from message schemahub.project.v1.GetConnectionResponse
@@ -674,7 +809,7 @@ export type GetConnectionResponse = Message<"schemahub.project.v1.GetConnectionR
  * Use `create(GetConnectionResponseSchema)` to create a new message.
  */
 export const GetConnectionResponseSchema: GenMessage<GetConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 24);
+  messageDesc(file_project_v1_project_messages, 29);
 
 /**
  * @generated from message schemahub.project.v1.ListConnectionsRequest
@@ -701,7 +836,7 @@ export type ListConnectionsRequest = Message<"schemahub.project.v1.ListConnectio
  * Use `create(ListConnectionsRequestSchema)` to create a new message.
  */
 export const ListConnectionsRequestSchema: GenMessage<ListConnectionsRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 25);
+  messageDesc(file_project_v1_project_messages, 30);
 
 /**
  * @generated from message schemahub.project.v1.ListConnectionsResponse
@@ -728,7 +863,7 @@ export type ListConnectionsResponse = Message<"schemahub.project.v1.ListConnecti
  * Use `create(ListConnectionsResponseSchema)` to create a new message.
  */
 export const ListConnectionsResponseSchema: GenMessage<ListConnectionsResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 26);
+  messageDesc(file_project_v1_project_messages, 31);
 
 /**
  * @generated from message schemahub.project.v1.UpdateConnectionRequest
@@ -780,7 +915,7 @@ export type UpdateConnectionRequest = Message<"schemahub.project.v1.UpdateConnec
  * Use `create(UpdateConnectionRequestSchema)` to create a new message.
  */
 export const UpdateConnectionRequestSchema: GenMessage<UpdateConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 27);
+  messageDesc(file_project_v1_project_messages, 32);
 
 /**
  * @generated from message schemahub.project.v1.UpdateConnectionResponse
@@ -797,7 +932,7 @@ export type UpdateConnectionResponse = Message<"schemahub.project.v1.UpdateConne
  * Use `create(UpdateConnectionResponseSchema)` to create a new message.
  */
 export const UpdateConnectionResponseSchema: GenMessage<UpdateConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 28);
+  messageDesc(file_project_v1_project_messages, 33);
 
 /**
  * @generated from message schemahub.project.v1.DeleteConnectionRequest
@@ -814,7 +949,7 @@ export type DeleteConnectionRequest = Message<"schemahub.project.v1.DeleteConnec
  * Use `create(DeleteConnectionRequestSchema)` to create a new message.
  */
 export const DeleteConnectionRequestSchema: GenMessage<DeleteConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 29);
+  messageDesc(file_project_v1_project_messages, 34);
 
 /**
  * @generated from message schemahub.project.v1.DeleteConnectionResponse
@@ -827,7 +962,7 @@ export type DeleteConnectionResponse = Message<"schemahub.project.v1.DeleteConne
  * Use `create(DeleteConnectionResponseSchema)` to create a new message.
  */
 export const DeleteConnectionResponseSchema: GenMessage<DeleteConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 30);
+  messageDesc(file_project_v1_project_messages, 35);
 
 /**
  * @generated from message schemahub.project.v1.TestConnectionRequest
@@ -844,7 +979,7 @@ export type TestConnectionRequest = Message<"schemahub.project.v1.TestConnection
  * Use `create(TestConnectionRequestSchema)` to create a new message.
  */
 export const TestConnectionRequestSchema: GenMessage<TestConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 31);
+  messageDesc(file_project_v1_project_messages, 36);
 
 /**
  * @generated from message schemahub.project.v1.TestConnectionResponse
@@ -881,5 +1016,5 @@ export type TestConnectionResponse = Message<"schemahub.project.v1.TestConnectio
  * Use `create(TestConnectionResponseSchema)` to create a new message.
  */
 export const TestConnectionResponseSchema: GenMessage<TestConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_project_v1_project_messages, 32);
+  messageDesc(file_project_v1_project_messages, 37);
 

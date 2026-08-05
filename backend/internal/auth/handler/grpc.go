@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/schemahub/backend/internal/auth/domain"
@@ -104,6 +105,7 @@ func (h *AuthHandler) GetOAuthURL(ctx context.Context, req *authv1.GetOAuthURLRe
 func (h *AuthHandler) HandleOAuthCallback(ctx context.Context, req *authv1.HandleOAuthCallbackRequest) (*authv1.HandleOAuthCallbackResponse, error) {
 	user, accessToken, refreshToken, isNew, needsLinking, err := h.svc.HandleOAuthCallback(ctx, req.Provider, req.Code, req.State, req.CodeVerifier)
 	if err != nil {
+		slog.Error("handle_oauth_callback failed", "provider", req.Provider, "error", err)
 		return nil, mapError(err)
 	}
 	return &authv1.HandleOAuthCallbackResponse{
@@ -221,6 +223,12 @@ func mapError(err error) error {
 		return grpcInvalidArgument("current password is incorrect")
 	case errors.Is(err, domain.ErrWeakPassword):
 		return grpcInvalidArgument("password must be 8+ chars with uppercase, lowercase, and digit")
+	case errors.Is(err, domain.ErrOAuthStateMismatch):
+		return grpcInvalidArgument("OAuth sign-in could not be verified. Please try again.")
+	case errors.Is(err, domain.ErrEmailNotVerified):
+		return grpcFailedPrecondition("Your email address is not verified with this provider.")
+	case errors.Is(err, domain.ErrProviderAlreadyLinked):
+		return grpcAlreadyExists("This account is already linked to another user.")
 	default:
 		return grpcInternal("internal server error")
 	}

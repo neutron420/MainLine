@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Search, Users, UserPlus, Mail, MoreHorizontal, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Users, UserPlus, Mail, MoreHorizontal, Loader2, CheckCircle2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +58,7 @@ import {
 import { NotificationsPopover } from "@/components/notifications-popover";
 import {
   useMembers,
-  useAddMember,
+  useInviteMember,
   useUpdateMemberRole,
   useRemoveMember,
 } from "@/lib/api/hooks/use-projects";
@@ -90,14 +90,15 @@ export default function ProjectMembersPage() {
   const projectId = params.id as string;
 
   const { data: members, isLoading, error } = useMembers(projectId);
-  const addMember = useAddMember(projectId);
+  const inviteMember = useInviteMember(projectId);
   const updateRole = useUpdateMemberRole(projectId);
   const removeMember = useRemoveMember(projectId);
 
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [role, setRole] = useState("developer");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("member");
   const [search, setSearch] = useState("");
+  const [inviteResult, setInviteResult] = useState<{ kind: "invited" | "added"; email: string } | null>(null);
 
   const filteredMembers = (members ?? []).filter((m) => {
     if (search === "") return true;
@@ -106,16 +107,19 @@ export default function ProjectMembersPage() {
   });
 
   const sendInvite = () => {
-    const value = userId.trim();
-    if (!value || addMember.isPending) return;
-    const isEmail = value.includes("@");
-    addMember.mutate(
-      isEmail ? { email: value, role } : { userId: value, role },
+    const value = email.trim();
+    if (!value || inviteMember.isPending) return;
+    inviteMember.mutate(
+      { email: value, role },
       {
-        onSuccess: () => {
+        onSuccess: (invitationId) => {
+          setInviteResult({
+            kind: invitationId ? "invited" : "added",
+            email: value,
+          });
           setInviteOpen(false);
-          setUserId("");
-          setRole("developer");
+          setEmail("");
+          setRole("member");
         },
       },
     );
@@ -173,28 +177,29 @@ export default function ProjectMembersPage() {
               <DialogTrigger asChild>
                 <Button className="h-10 gap-2 shrink-0">
                   <UserPlus className="size-4" />
-                  Add Member
+                  Invite Member
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add a member</DialogTitle>
+                  <DialogTitle>Invite a member</DialogTitle>
                   <DialogDescription>
-                    Invite a registered SchemaHub user by email (or user ID) and
-                    assign a role.
+                    Enter the teammate's email. If they already have a SchemaHub
+                    account they'll be added instantly; otherwise we'll email
+                    them an invitation link.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="space-y-1.5">
-                    <Label>Email or user ID</Label>
+                    <Label>Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                       <Input
                         type="email"
                         placeholder="teammate@company.com"
                         className="pl-8 font-mono"
-                        value={userId}
-                        onChange={(e) => setUserId(e.target.value)}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -206,30 +211,47 @@ export default function ProjectMembersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="developer">Developer</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
                         <SelectItem value="viewer">Viewer</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {addMember.isError && (
-                    <p className="text-sm text-red-500">{getApiErrorMessage(addMember.error)}</p>
+                  {inviteMember.isError && (
+                    <p className="text-sm text-red-500">{getApiErrorMessage(inviteMember.error)}</p>
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={sendInvite} disabled={!userId.trim() || addMember.isPending}>
-                    {addMember.isPending ? (
+                  <Button onClick={sendInvite} disabled={!email.trim() || inviteMember.isPending}>
+                    {inviteMember.isPending ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
-                        Adding…
+                        Sending…
                       </>
                     ) : (
-                      "Add Member"
+                      "Send Invite"
                     )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
+
+          {inviteResult && (
+            <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              <CheckCircle2 className="size-4 shrink-0" />
+              {inviteResult.kind === "invited" ? (
+                <span>
+                  Invitation sent to <strong>{inviteResult.email}</strong>. They'll
+                  receive an email with a link to join this project.
+                </span>
+              ) : (
+                <span>
+                  <strong>{inviteResult.email}</strong> already has a SchemaHub
+                  account and was added as a member directly.
+                </span>
+              )}
+            </div>
+          )}
 
           <Card>
             <CardHeader className="border-0 pb-0">

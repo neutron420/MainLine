@@ -153,7 +153,7 @@ func main() {
 	}
 	verifyRepo := authRepo.NewVerificationTokenRepo(db)
 	authSvc := authDomain.NewAuthService(userRepo, tokenRepo, oauthRepo, verifyRepo, jwtManager, oauthCfg)
-	authSvc.SetMailer(mailer.New(mailer.Config{
+	appMailer := mailer.New(mailer.Config{
 		SMTPHost:    cfg.SMTPHost,
 		SMTPPort:    cfg.SMTPPort,
 		Username:    cfg.SMTPUser,
@@ -162,13 +162,15 @@ func main() {
 		FromName:    cfg.SMTPFromName,
 		FrontendURL: cfg.FrontendURL,
 		Log:         log,
-	}))
+	})
+	authSvc.SetMailer(appMailer)
 	authH := authHandler.NewAuthHandler(authSvc)
 
 	// ── Project + Connection Service ──
 	projRepo := projectRepo.NewProjectRepository(db)
 	connRepo := projectRepo.NewConnectionRepository(db)
 	projSvc := projectDomain.NewProjectService(projRepo, &projectUserLookup{userRepo: userRepo})
+	projSvc.SetMailer(appMailer)
 	connSvc := projectDomain.NewConnectionService(connRepo, []byte(cfg.EncryptionKey))
 	projH := projectHandler.NewProjectHandler(projSvc, connSvc)
 

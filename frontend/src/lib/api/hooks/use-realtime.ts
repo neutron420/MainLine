@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { eventClient } from "@/lib/api/clients";
 import { isUnauthenticated } from "@/lib/api/errors";
@@ -33,6 +33,13 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
     reconnectDelayMs = 3000,
   } = options;
 
+  const projectIdsKey = projectIds.join(",");
+  const eventTypesKey = eventTypes.join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableProjectIds = useMemo(() => projectIds.slice(), [projectIdsKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableEventTypes = useMemo(() => eventTypes.slice(), [eventTypesKey]);
+
   const [events, setEvents] = useState<SchemaEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +61,8 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
       try {
         const iterable = eventClient.subscribe(
           {
-            projectIds,
-            eventTypes,
+            projectIds: stableProjectIds,
+            eventTypes: stableEventTypes,
             lastEventId: lastEventIdRef.current ?? "",
           },
           { signal },
@@ -91,7 +98,7 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
     };
 
     void openStream();
-  }, [projectIds, eventTypes, reconnectDelayMs, maxEvents]);
+  }, [stableProjectIds, stableEventTypes, reconnectDelayMs, maxEvents]);
 
   useEffect(() => {
     setEvents([]);

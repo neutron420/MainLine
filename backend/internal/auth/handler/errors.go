@@ -21,6 +21,10 @@ func grpcInvalidArgument(msg string) error {
 	return status.Error(codes.InvalidArgument, msg)
 }
 
+func grpcFailedPrecondition(msg string) error {
+	return status.Error(codes.FailedPrecondition, msg)
+}
+
 func grpcInternal(msg string) error {
 	return status.Error(codes.Internal, msg)
 }

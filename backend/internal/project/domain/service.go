@@ -2,7 +2,10 @@ package domain
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"time"
 )
 
 type ErrProjectNotFound struct{ ID string }
@@ -11,6 +14,10 @@ type ErrMemberNotFound struct{ ProjectID, UserID string }
 type ErrLastOwner struct{}
 type ErrUserNotFoundByEmail struct{ Email string }
 type ErrNoUserSpecified struct{}
+type ErrInvitationNotFound struct{ Token string }
+type ErrInvitationExpired struct{}
+type ErrInvitationAlreadyUsed struct{}
+type ErrAlreadyMember struct{ Email string }
 
 func (e ErrProjectNotFound) Error() string { return fmt.Sprintf("project %s not found", e.ID) }
 func (e ErrProjectSlugConflict) Error() string {
@@ -26,6 +33,18 @@ func (e ErrUserNotFoundByEmail) Error() string {
 func (e ErrNoUserSpecified) Error() string {
 	return "specify either user_id or email of the user to add"
 }
+func (e ErrInvitationNotFound) Error() string {
+	return fmt.Sprintf("invitation with token %s was not found", e.Token)
+}
+func (e ErrInvitationExpired) Error() string {
+	return "this invitation has expired"
+}
+func (e ErrInvitationAlreadyUsed) Error() string {
+	return "this invitation has already been used"
+}
+func (e ErrAlreadyMember) Error() string {
+	return fmt.Sprintf("user with email %s is already a member", e.Email)
+}
 
 // UserLookup resolves a registered user ID from an email address so that
 // project members can be invited by email instead of raw user IDs.
@@ -33,13 +52,33 @@ type UserLookup interface {
 	GetByEmail(ctx context.Context, email string) (string, error)
 }
 
+// InviteMailer delivers project invitation emails. It is optional: when no
+// mailer is configured, invitations are created but delivery is skipped
+// (dev mode), matching the behaviour of the auth mailer.
+type InviteMailer interface {
+	SendInvitationEmail(ctx context.Context, to, projectName, token string) error
+}
+
 type ProjectService struct {
 	projRepo ProjectRepository
 	users    UserLookup
+	mailer   InviteMailer
 }
 
 func NewProjectService(projRepo ProjectRepository, users UserLookup) *ProjectService {
 	return &ProjectService{projRepo: projRepo, users: users}
+}
+
+func (s *ProjectService) SetMailer(m InviteMailer) {
+	s.mailer = m
+}
+
+func newInvitationToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generating invitation token: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func (s *ProjectService) Create(ctx context.Context, name, description, visibilityStr, template, userID string) (*Project, error) {
@@ -186,6 +225,109 @@ func (s *ProjectService) AddMember(ctx context.Context, projectID, userID, email
 		Role:      role,
 	}
 	return s.projRepo.AddMember(ctx, member)
+}
+
+// InviteMember adds a registered user directly, or creates an email
+// invitation (with a 7-day token) for unregistered users. Returns the
+// invitation ID, or an empty string when the user was added directly.
+func (s *ProjectService) InviteMember(ctx context.Context, projectID, email, roleStr, actorID string) (string, error) {
+	m, err := s.projRepo.GetMember(ctx, projectID, actorID)
+	if err != nil || !m.Role.CanManageMembers() {
+		return "", fmt.Errorf("permission denied")
+	}
+
+	role, err := ValidateRole(roleStr)
+	if err != nil {
+		return "", err
+	}
+	if role == RoleOwner && m.Role != RoleOwner {
+		return "", fmt.Errorf("only the owner can assign the owner role")
+	}
+	if email == "" {
+		return "", ErrNoUserSpecified{}
+	}
+
+	// Registered user → add them directly, no invitation needed.
+	if userID, err := s.users.GetByEmail(ctx, email); err == nil {
+		if existing, _ := s.projRepo.GetMember(ctx, projectID, userID); existing != nil {
+			return "", ErrAlreadyMember{Email: email}
+		}
+		member := &ProjectMember{
+			ProjectID: projectID,
+			UserID:    userID,
+			Role:      role,
+			InvitedBy: &actorID,
+		}
+		if err := s.projRepo.AddMember(ctx, member); err != nil {
+			return "", fmt.Errorf("adding member: %w", err)
+		}
+		return "", nil
+	}
+
+	token, err := newInvitationToken()
+	if err != nil {
+		return "", err
+	}
+	inv := &ProjectInvitation{
+		ProjectID: projectID,
+		Email:     email,
+		Role:      role,
+		Token:     token,
+		Status:    InvitationPending,
+		InvitedBy: actorID,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	if err := s.projRepo.CreateInvitation(ctx, inv); err != nil {
+		return "", fmt.Errorf("creating invitation: %w", err)
+	}
+
+	if s.mailer != nil {
+		proj, err := s.projRepo.GetByID(ctx, projectID)
+		if err != nil {
+			return inv.ID, fmt.Errorf("loading project for invite email: %w", err)
+		}
+		if err := s.mailer.SendInvitationEmail(ctx, email, proj.Name, token); err != nil {
+			return inv.ID, fmt.Errorf("sending invitation email: %w", err)
+		}
+	}
+	return inv.ID, nil
+}
+
+// AcceptInvitation validates a token and joins the accepting user to the
+// project. It is idempotent: an already-member gets the project ID back.
+func (s *ProjectService) AcceptInvitation(ctx context.Context, token, userID string) (string, error) {
+	inv, err := s.projRepo.GetInvitationByToken(ctx, token)
+	if err != nil {
+		return "", ErrInvitationNotFound{Token: token}
+	}
+	if inv.Status != InvitationPending {
+		return "", ErrInvitationAlreadyUsed{}
+	}
+	if time.Now().After(inv.ExpiresAt) {
+		return "", ErrInvitationExpired{}
+	}
+
+	// Idempotent join: already a member → accept and return project.
+	if existing, _ := s.projRepo.GetMember(ctx, inv.ProjectID, userID); existing != nil {
+		if err := s.projRepo.MarkInvitationAccepted(ctx, inv.ID, inv.ProjectID, userID); err != nil {
+			return "", fmt.Errorf("marking invitation accepted: %w", err)
+		}
+		return inv.ProjectID, nil
+	}
+
+	member := &ProjectMember{
+		ProjectID: inv.ProjectID,
+		UserID:    userID,
+		Role:      inv.Role,
+		InvitedBy: &inv.InvitedBy,
+	}
+	if err := s.projRepo.AddMember(ctx, member); err != nil {
+		return "", fmt.Errorf("joining project: %w", err)
+	}
+	if err := s.projRepo.MarkInvitationAccepted(ctx, inv.ID, inv.ProjectID, userID); err != nil {
+		return "", fmt.Errorf("marking invitation accepted: %w", err)
+	}
+	return inv.ProjectID, nil
 }
 
 func (s *ProjectService) RemoveMember(ctx context.Context, projectID, userID, actorID string) error {

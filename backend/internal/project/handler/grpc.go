@@ -137,6 +137,32 @@ func (h *ProjectHandler) ListMembers(ctx context.Context, req *projectv1.ListMem
 	}, nil
 }
 
+func (h *ProjectHandler) InviteMember(ctx context.Context, req *projectv1.InviteMemberRequest) (*projectv1.InviteMemberResponse, error) {
+	userID := userIDFromContext(ctx)
+
+	invitationID, err := h.svc.InviteMember(ctx, req.ProjectId, req.Email, req.Role, userID)
+	if err != nil {
+		return nil, mapProjectError(err)
+	}
+
+	return &projectv1.InviteMemberResponse{InvitationId: invitationID}, nil
+}
+
+func (h *ProjectHandler) AcceptInvitation(ctx context.Context, req *projectv1.AcceptInvitationRequest) (*projectv1.AcceptInvitationResponse, error) {
+	userID := userIDFromContext(ctx)
+
+	projectID, err := h.svc.AcceptInvitation(ctx, req.Token, userID)
+	if err != nil {
+		return nil, mapProjectError(err)
+	}
+
+	resp := &projectv1.AcceptInvitationResponse{ProjectId: projectID}
+	if p, err := h.svc.GetByID(ctx, projectID); err == nil {
+		resp.ProjectName = p.Name
+	}
+	return resp, nil
+}
+
 func toProtoProject(p *domain.Project) *projectv1.Project {
 	return &projectv1.Project{
 		Id:          p.ID,
@@ -180,6 +206,14 @@ func mapProjectError(err error) error {
 		return status.Error(codes.NotFound, e.Error())
 	case domain.ErrNoUserSpecified:
 		return status.Error(codes.InvalidArgument, e.Error())
+	case domain.ErrInvitationNotFound:
+		return status.Error(codes.NotFound, e.Error())
+	case domain.ErrInvitationExpired:
+		return status.Error(codes.FailedPrecondition, e.Error())
+	case domain.ErrInvitationAlreadyUsed:
+		return status.Error(codes.FailedPrecondition, e.Error())
+	case domain.ErrAlreadyMember:
+		return status.Error(codes.AlreadyExists, e.Error())
 	}
 
 	if err.Error() == "permission denied" {

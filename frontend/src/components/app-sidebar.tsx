@@ -1,10 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
 import { Database, FolderKanban, LayoutDashboard, Settings, Users, CheckCircle2, AlertCircle, Bell } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
+import { useAuth } from "@/lib/api/auth-provider"
 import {
   Sidebar,
   SidebarContent,
@@ -20,11 +23,6 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const data = {
-  user: {
-    name: "R.K Singh",
-    email: "rk@mainline.dev",
-    avatar: "/avatars/default.jpg",
-  },
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Projects", url: "/projects", icon: FolderKanban },
@@ -64,8 +62,8 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const router = useRouter()
   const pathname = usePathname()
+  const { user } = useAuth()
   const [activeItem, setActiveItem] = React.useState(
     data.navMain.find((item) => pathname.startsWith(item.url)) || data.navMain[0]
   )
@@ -85,12 +83,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="md:h-9 md:p-0">
-                <a href="/dashboard">
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Mainline</span>
-                    <span className="truncate text-[10px] text-muted-foreground">Schema Hub</span>
-                  </div>
-                </a>
+                <Link href="/dashboard">
+                  <Image
+                    src="/logo.svg"
+                    alt="Mainline"
+                    width={94}
+                    height={18}
+                    className="dark:invert"
+                  />
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -103,15 +104,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       tooltip={{ children: item.title, hidden: false }}
-                      onClick={() => {
-                        setActiveItem(item)
-                        router.push(item.url)
-                      }}
+                      onClick={() => setActiveItem(item)}
                       isActive={pathname.startsWith(item.url)}
                       className="px-2.5 md:px-2"
+                      asChild
                     >
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <Link href={item.url} prefetch>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -120,7 +121,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <NavUser user={data.user} />
+          <NavUser
+            user={{
+              name: user?.displayName || "Guest",
+              email: user?.email || "",
+              avatar: user?.avatarUrl || "",
+            }}
+          />
         </SidebarFooter>
       </Sidebar>
 
@@ -202,10 +209,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   Recent Projects
                 </div>
                 {data.projectsList.map((project) => (
-                  <a
+                  <Link
                     key={project.name}
                     href="/projects"
-                    onClick={(e) => { e.preventDefault(); router.push("/projects"); }}
+                    prefetch
                     className="flex flex-col gap-1 border-b p-4 text-sm leading-tight last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
                     <div className="font-medium">{project.name}</div>
@@ -213,7 +220,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <span className={`inline-block size-1.5 rounded-full ${project.status === "active" ? "bg-green-500" : project.status === "inProgress" ? "bg-yellow-500" : "bg-red-500"}`} />
                       <span>{project.updated}</span>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </SidebarGroupContent>
             </SidebarGroup>
