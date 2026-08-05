@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { authClient } from "@/lib/api/clients";
 import { authStore } from "@/lib/api/auth-store";
 import { getApiErrorMessage } from "@/lib/api/errors";
+import { consumePkceVerifier } from "@/lib/api/pkce";
 
 export default function OAuthCallbackPage() {
   const params = useParams<{ provider: string }>();
@@ -24,7 +25,7 @@ export default function OAuthCallbackPage() {
     const provider = params.provider;
     const code = searchParams.get("code");
     const state = searchParams.get("state");
-    const codeVerifier = searchParams.get("code_verifier") ?? "";
+    const codeVerifier = consumePkceVerifier();
 
     if (!code || !state) {
       router.push("/login?error=invalid_oauth_response");

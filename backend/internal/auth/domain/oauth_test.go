@@ -234,7 +234,7 @@ func TestGetOAuthURLBuildsValidAuthURL(t *testing.T) {
 	t.Parallel()
 	s, _, _, m := newOAuthService(t, newOAuthConfigs("https://token.example.com"))
 
-	authURL, state, err := s.GetOAuthURL("google", "/dashboard", false)
+	authURL, state, err := s.GetOAuthURL("google", "/dashboard", false, "")
 	if err != nil {
 		t.Fatalf("GetOAuthURL: %v", err)
 	}
@@ -300,7 +300,7 @@ func TestGetOAuthURLAllProvidersLinking(t *testing.T) {
 	}
 
 	for provider, clientID := range providers {
-		authURL, state, err := s.GetOAuthURL(provider, "/settings", true)
+		authURL, state, err := s.GetOAuthURL(provider, "/settings", true, "")
 		if err != nil {
 			t.Fatalf("GetOAuthURL(%s): %v", provider, err)
 		}
@@ -334,7 +334,7 @@ func TestGetOAuthURLUnsupportedProvider(t *testing.T) {
 	t.Parallel()
 	s, _, _, _ := newOAuthService(t, newOAuthConfigs("https://token.example.com"))
 
-	_, _, err := s.GetOAuthURL("twitter", "", false)
+	_, _, err := s.GetOAuthURL("twitter", "", false, "")
 	if err == nil || !strings.Contains(err.Error(), "unsupported OAuth provider: twitter") {
 		t.Errorf("err = %v, want unsupported provider error", err)
 	}

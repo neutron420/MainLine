@@ -98,15 +98,17 @@ func getOAuthConfigs(cfg *OAuthProviderConfig) map[string]OAuthConfig {
 	}
 }
 
-func (s *AuthService) GetOAuthURL(provider, redirectTo string, linking bool) (string, string, error) {
+func (s *AuthService) GetOAuthURL(provider, redirectTo string, linking bool, codeChallenge string) (string, string, error) {
 	configs := getOAuthConfigs(s.oauthConfigs)
 	oc, ok := configs[provider]
 	if !ok {
 		return "", "", fmt.Errorf("unsupported OAuth provider: %s", provider)
 	}
 
-	codeVerifier := generateCodeVerifier()
-	codeChallenge := computeCodeChallenge(codeVerifier)
+	if codeChallenge == "" {
+		codeVerifier := generateCodeVerifier()
+		codeChallenge = computeCodeChallenge(codeVerifier)
+	}
 
 	stateID := generateID("state")
 	stateJWT, err := s.jwtManager.SignClaims(&oauthStateClaims{

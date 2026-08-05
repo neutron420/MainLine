@@ -94,7 +94,7 @@ func (h *AuthHandler) ChangePassword(ctx context.Context, req *authv1.ChangePass
 }
 
 func (h *AuthHandler) GetOAuthURL(ctx context.Context, req *authv1.GetOAuthURLRequest) (*authv1.GetOAuthURLResponse, error) {
-	AuthUrl, stateToken, err := h.svc.GetOAuthURL(req.Provider, req.RedirectTo, req.Linking)
+	AuthUrl, stateToken, err := h.svc.GetOAuthURL(req.Provider, req.RedirectTo, req.Linking, req.CodeChallenge)
 	if err != nil {
 		return nil, mapError(err)
 	}

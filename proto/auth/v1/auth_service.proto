@@ -105,6 +105,7 @@ message GetOAuthURLRequest {
   string provider = 1;
   string redirect_to = 2;
   bool linking = 3;
+  string code_challenge = 4;
 }
 
 message GetOAuthURLResponse {

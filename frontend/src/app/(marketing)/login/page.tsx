@@ -17,10 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useLogin } from "@/lib/api/hooks/use-auth";
+import { Label } from "@/components/ui/label";import { useLogin } from "@/lib/api/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { authClient } from "@/lib/api/clients";
+import { createPkcePair, storePkceVerifier } from "@/lib/api/pkce";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -56,10 +56,13 @@ const Login = () => {
 
   const startOAuth = async (provider: string) => {
     try {
+      const { verifier, challenge } = await createPkcePair();
+      storePkceVerifier(verifier);
       const res = await authClient.getOAuthURL({
         provider,
         redirectTo: `${window.location.origin}/auth/callback/${provider}`,
         linking: false,
+        codeChallenge: challenge,
       });
       window.location.href = res.authUrl;
     } catch {

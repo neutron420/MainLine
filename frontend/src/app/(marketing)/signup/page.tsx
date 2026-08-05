@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { useRegister } from "@/lib/api/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { authClient } from "@/lib/api/clients";
+import { createPkcePair, storePkceVerifier } from "@/lib/api/pkce";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Enter your name"),
@@ -59,10 +60,13 @@ const Signup = () => {
 
   const startOAuth = async (provider: string) => {
     try {
+      const { verifier, challenge } = await createPkcePair();
+      storePkceVerifier(verifier);
       const res = await authClient.getOAuthURL({
         provider,
         redirectTo: `${window.location.origin}/auth/callback/${provider}`,
         linking: false,
+        codeChallenge: challenge,
       });
       window.location.href = res.authUrl;
     } catch {
