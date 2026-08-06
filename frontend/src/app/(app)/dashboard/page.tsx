@@ -21,17 +21,17 @@ import {
 import { useState, useMemo } from "react";
 import Link from "next/link";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import {  Badge  } from "@/components/ui/badge";
+
+
+
+
+
+
+
+import {  Button  } from "@/components/ui/button";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,19 +41,19 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Input } from "@/components/ui/input";
-import { ProjectDataTable, Project } from "@/components/ui/project-data-table";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useProjects } from "@/lib/api/hooks/use-projects";
-import { useAuditEntries } from "@/lib/api/hooks/use-audit";
-import { useEventStream } from "@/lib/api/hooks/use-realtime";
-import { getApiErrorMessage } from "@/lib/api/errors";
+
+
+
+
+
+
+import {  Input  } from "@/components/ui/input";
+import {  ProjectDataTable, Project  } from "@/components/ui/project-data-table";
+
+import {  useProjects  } from "@/lib/api/hooks/use-projects";
+import {  useAuditEntries  } from "@/lib/api/hooks/use-audit";
+import {  useEventStream  } from "@/lib/api/hooks/use-realtime";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 function formatNumber(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";

@@ -5,11 +5,11 @@ import { Plus, Search, FolderKanban, MoreHorizontal, ChevronLeft, ChevronRight, 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Card, CardContent, CardHeader  } from "@/components/ui/card";
+import {  Input  } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,18 +17,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
+
+
+
+
+
+
+
+
+
+
+
+
 import {
   Dialog,
   DialogContent,
@@ -38,8 +38,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {  Label  } from "@/components/ui/label";
+import {  Textarea  } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -47,9 +47,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useProjects, useCreateProject, useDeleteProject } from "@/lib/api/hooks/use-projects";
-import { getApiErrorMessage } from "@/lib/api/errors";
+
+import {  useProjects, useCreateProject, useDeleteProject  } from "@/lib/api/hooks/use-projects";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const PER_PAGE = 8;
 

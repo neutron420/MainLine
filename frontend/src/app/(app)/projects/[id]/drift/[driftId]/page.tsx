@@ -9,22 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useDriftEvent, useResolveDriftEvent } from "@/lib/api/hooks/use-drift";
-import { getApiErrorMessage } from "@/lib/api/errors";
+
+
+
+
+
+
+
+
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+
+
+
+
+
+import {  useDriftEvent, useResolveDriftEvent  } from "@/lib/api/hooks/use-drift";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const severityConfig: Record<string, { label: string; badge: "default" | "destructive" | "secondary" | "outline" }> = {
   critical: { label: "Critical", badge: "destructive" },

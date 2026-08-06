@@ -5,28 +5,28 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Search, Zap, GitBranch, AlertTriangle, GitPullRequest, PlugZap, Rocket, Radio, CheckCheck } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useEventStream, acknowledgeEvent, useHeartbeat } from "@/lib/api/hooks/use-realtime";
-import { getApiErrorMessage } from "@/lib/api/errors";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Input  } from "@/components/ui/input";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {  useEventStream, acknowledgeEvent, useHeartbeat  } from "@/lib/api/hooks/use-realtime";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const eventIcons = {
   migration: GitBranch,

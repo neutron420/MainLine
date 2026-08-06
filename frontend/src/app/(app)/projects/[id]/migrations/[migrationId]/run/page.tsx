@@ -5,13 +5,13 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Search, Play, Loader2, CheckCircle2, AlertTriangle, GitBranch, RotateCcw, Terminal } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Input  } from "@/components/ui/input";
+import {  Card, CardContent, CardDescription, CardHeader, CardTitle  } from "@/components/ui/card";
+import {  Separator  } from "@/components/ui/separator";
+import {  Label  } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,28 +19,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { useMigration,
   useExecuteMigration,
   useRollbackMigration,
   useWatchMigration,
   useWatchRollback,
 } from "@/lib/api/hooks/use-migrations";
-import { useConnections } from "@/lib/api/hooks/use-connections";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import {  useConnections  } from "@/lib/api/hooks/use-connections";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const migrationStatusConfig: Record<
   string,

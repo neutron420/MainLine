@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: [
       "lucide-react",
-      "@heroui/react",
       "@radix-ui/react-accordion",
       "@radix-ui/react-checkbox",
       "@radix-ui/react-collapsible",

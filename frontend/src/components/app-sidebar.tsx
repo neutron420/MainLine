@@ -4,7 +4,6 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useQueries } from "@tanstack/react-query"
 import { Database, FolderKanban, LayoutDashboard, Settings, Users, CheckCircle2, AlertCircle, Bell } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -24,6 +23,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useProjects, useMembers } from "@/lib/api/hooks/use-projects"
 import { useSchemas } from "@/lib/api/hooks/use-schemas"
+import { useConnections } from "@/lib/api/hooks/use-connections"
 import { useAuditEntries } from "@/lib/api/hooks/use-audit"
 
 const navMain = [
@@ -58,9 +58,7 @@ function initialsOf(name: string): string {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { user } = useAuth()
-  const [activeItem, setActiveItem] = React.useState(
-    navMain.find((item) => pathname.startsWith(item.url)) || navMain[0]
-  )
+  const activeItem = navMain.find((item) => pathname.startsWith(item.url)) || navMain[0]
   useSidebar()
 
   const { data: projects = [] } = useProjects()
@@ -68,43 +66,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { data: schemas = [] } = useSchemas(firstProjectId)
   const { data: members = [] } = useMembers(firstProjectId)
+  const { data: connections = [] } = useConnections(firstProjectId)
 
-  const projectQueries = useQueries({
-    queries: projects.map((p) => ({
-      queryKey: ["projects", p.id, "members"],
-      queryFn: async () => {
-        const res = await (await import("@/lib/api/clients")).projectClient.listMembers({
-          projectId: p.id,
-        })
-        return res.members.length
-      },
-      enabled: Boolean(p.id),
-    })),
-  })
-  const connectionQueries = useQueries({
-    queries: projects.map((p) => ({
-      queryKey: ["projects", p.id, "connections"],
-      queryFn: async () => {
-        const res = await (await import("@/lib/api/clients")).projectClient.listConnections({
-          projectId: p.id,
-        })
-        return res.connections.length
-      },
-      enabled: Boolean(p.id),
-    })),
-  })
+  const { data: auditEntries = [] } = useAuditEntries()
 
-  const totalMembers = projectQueries.reduce((sum, q) => sum + (q.data ?? 0), 0)
-  const totalConnections = connectionQueries.reduce((sum, q) => sum + (q.data ?? 0), 0)
-  const { data: auditEntries = [] } = useAuditEntries({})
-
-  const activityItems = auditEntries.slice(0, 4).map((entry) => ({
-    action: entry.action || entry.eventType || "Event",
-    project: entry.resourceType ? `${entry.resourceType} ${entry.resourceId || ""}`.trim() : "",
-    time: relativeTime(entry.createdAt),
-    icon: entry.eventType?.toLowerCase().includes("drift") ? AlertCircle : CheckCircle2,
-    color: entry.eventType?.toLowerCase().includes("drift") ? "text-amber-500" : "text-green-500",
-  }))
+  const activityItems = React.useMemo(
+    () =>
+      auditEntries.slice(0, 4).map((entry) => ({
+        action: entry.action || entry.eventType || "Event",
+        project: entry.resourceType ? `${entry.resourceType} ${entry.resourceId || ""}`.trim() : "",
+        time: relativeTime(entry.createdAt),
+        icon: entry.eventType?.toLowerCase().includes("drift") ? AlertCircle : CheckCircle2,
+        color: entry.eventType?.toLowerCase().includes("drift") ? "text-amber-500" : "text-green-500",
+      })),
+    [auditEntries]
+  )
 
   return (
     <Sidebar
@@ -141,8 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       tooltip={{ children: item.title, hidden: false }}
-                      onClick={() => setActiveItem(item)}
-                      isActive={pathname.startsWith(item.url)}
+                                            isActive={pathname.startsWith(item.url)}
                       className="px-2.5 md:px-2"
                       asChild
                     >
@@ -208,11 +183,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <p className="text-xs text-muted-foreground">Projects</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{totalConnections}</p>
+                    <p className="text-lg font-semibold">{connections.length}</p>
                     <p className="text-xs text-muted-foreground">Connections</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{totalMembers}</p>
+                    <p className="text-lg font-semibold">{members.length}</p>
                     <p className="text-xs text-muted-foreground">Members</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
@@ -237,11 +212,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{totalMembers}</p>
+                    <p className="text-lg font-semibold">{members.length}</p>
                     <p className="text-xs text-muted-foreground">Members</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">
-                    <p className="text-lg font-semibold">{totalConnections}</p>
+                    <p className="text-lg font-semibold">{connections.length}</p>
                     <p className="text-xs text-muted-foreground">Connections</p>
                   </div>
                   <div className="rounded-lg bg-sidebar-accent/50 p-3">

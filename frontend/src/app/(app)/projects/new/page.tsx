@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, FolderGit2, Plus, Loader2, CheckCircle2 } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
+import {  Button  } from "@/components/ui/button";
+import {  Input  } from "@/components/ui/input";
+import {  Label  } from "@/components/ui/label";
+import {  Textarea  } from "@/components/ui/textarea";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -18,16 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { useCreateProject } from "@/lib/api/hooks/use-projects";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import {  Badge  } from "@/components/ui/badge";
+
+
+
+
+
+
+
+import {  useCreateProject  } from "@/lib/api/hooks/use-projects";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const templates = [
   {

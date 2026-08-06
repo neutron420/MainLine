@@ -88,6 +88,7 @@ docker compose -f docker/docker-compose.dev.yml up -d   # from repo root
 - [x] Dead field `last_introspected_at` removed end-to-end (proto → DB column → API → UI shows "Last Updated")
 - [x] Defensive fix for `members.map is not a function` — pages now `Array.isArray`-guard member lists (project detail + settings/members)
 - [x] `tsc --noEmit` clean, `npm run lint` — No ESLint warnings or errors
+- [x] **Performance pass (see `docs/FRONTEND_PERFORMANCE.md`)**: routes moved to `(app)/` route group with single shared shell (was 22 duplicated page shells); sidebar N+1 removed (was one members+connections query per project); notifications stream lazy-mounts on popover open; `useEventStream` exponential backoff + jitter; audit `pageSize` 50 + date/driftType query-key fixes; transport `defaultTimeoutMs 60s`; `@heroui/react` removed (44 pkgs); `privacy` page is now a server component (needed `src/mdx-components.tsx` for Next MDX RSC context fix); dead files removed (`app/globals.css`, `lib/hooks/use-mobile.ts`, template SVGs, scratch scripts/docs). All key routes HTTP 200 re-verified.
 
 ### Backend quality
 - [x] `go build ./...` clean, `go vet ./...` clean
@@ -101,6 +102,7 @@ docker compose -f docker/docker-compose.dev.yml up -d   # from repo root
 2. **Full compose stack must start together** — backend exits if redis is down (observed once after a host restart).
 3. **air auto-reload unreliable on Docker Desktop** — after editing Go code, always `docker compose -f docker/docker-compose.dev.yml restart backend`.
 4. **Audit entries currently log `CreateProject` with empty `resource_id`** — the interceptor prefers project id from the request, but CreateProject has no project id yet; entry still recorded correctly with actor metadata.
+5. **Next/Turbopack dev needs a container restart after import-source changes** — e.g. adding `src/mdx-components.tsx` was not hot-picked-up; `docker compose -f docker/docker-compose.dev.yml restart frontend` fixed it.
 
 ## Verified on localhost (pre-Neon, for reference)
 

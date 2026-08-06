@@ -80,7 +80,11 @@ function auditToNotification(entry: { id: string; eventType: string; action: str
 
 export function NotificationsPopover() {
   const { data: auditEntries } = useAuditEntries()
-  const { events: liveEvents, connected } = useEventStream({ maxEvents: 50 })
+  const [open, setOpen] = useState(false)
+  const { events: liveEvents, connected } = useEventStream({
+    maxEvents: 50,
+    enabled: open,
+  })
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
   const notifications = useMemo<NotificationItem[]>(() => {
@@ -106,7 +110,7 @@ export function NotificationsPopover() {
   }
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative size-11">
           <Bell className="size-5" />

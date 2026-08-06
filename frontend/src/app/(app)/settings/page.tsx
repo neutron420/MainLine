@@ -4,37 +4,38 @@ import { useEffect, useMemo, useState } from "react";
 import { User, Bell, Database, Users, Search, Save, Plug, KeyRound, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { ProjectConnectionsCard } from "@/components/project-connections-card";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Card, CardContent, CardDescription, CardHeader, CardTitle  } from "@/components/ui/card";
+import {  Input  } from "@/components/ui/input";
+import {  Label  } from "@/components/ui/label";
+import {  Separator  } from "@/components/ui/separator";
+import {  Switch  } from "@/components/ui/switch";
+import {  Tabs, TabsContent, TabsList, TabsTrigger  } from "@/components/ui/tabs";
+import {  Avatar, AvatarFallback  } from "@/components/ui/avatar";
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {  ProjectConnectionsCard  } from "@/components/project-connections-card";
 import {
   useChangePassword,
   useCurrentUser,
   useUpdateProfile,
   formatApiError,
 } from "@/lib/api/hooks/use-auth";
-import { useMembers, useProjects, type Project } from "@/lib/api/hooks/use-projects";
+import { useProjects, useMembers } from "@/lib/api/hooks/use-projects";
+import type { Project } from "@/lib/gen/project/v1/project_messages_pb";
 
 const settingsTabs = [
   { value: "profile", label: "Profile", icon: User },
@@ -111,8 +112,8 @@ function TeamRolesSummary() {
 
   return (
     <div className="flex flex-col gap-3">
-      {projects?.map((project) => (
-        <ProjectMemberStats key={project.id} project={project} />
+      {projects?.map((p) => (
+        <ProjectMemberStats key={p.id} project={p} />
       ))}
       {(!projects || projects.length === 0) && (
         <p className="text-sm text-muted-foreground">No projects yet.</p>

@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserPlus, Search, Users, UserCheck, ShieldCheck, MoreHorizontal, Hourglass } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+import {  Input  } from "@/components/ui/input";
+import {  Label  } from "@/components/ui/label";
+
 import {
   Dialog,
   DialogContent,
@@ -43,20 +43,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+
+
+
+
+
+
+
+
+
+
+import {  Avatar, AvatarFallback  } from "@/components/ui/avatar";
 import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import {
   useAddMember,
   useMembers,
@@ -272,15 +277,19 @@ export default function TeamPage() {
             </div>
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
               <DialogTrigger asChild>
-                <Tooltip delay={0}>
-                  <Button className="h-11 gap-2">
-                    <UserPlus />
-                    Add Member
-                  </Button>
-                  <Tooltip.Content>
-                    <p>Add a member to a project</p>
-                  </Tooltip.Content>
-                </Tooltip>
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button className="h-11 gap-2">
+                        <UserPlus />
+                        Add Member
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add a member to a project</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>

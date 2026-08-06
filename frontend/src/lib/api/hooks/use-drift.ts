@@ -14,7 +14,13 @@ export type DriftFilter = {
 
 export function useDriftEvents(filter: DriftFilter) {
   return useQuery({
-    queryKey: ["drift", filter.connectionId, filter.status, filter.severity],
+    queryKey: [
+      "drift",
+      filter.connectionId,
+      filter.status,
+      filter.severity,
+      filter.driftType,
+    ],
     queryFn: async () => {
       if (!filter.connectionId) throw new Error("Missing connection id");
       const res = await driftClient.listDriftEvents({
@@ -32,7 +38,7 @@ export function useDriftEvents(filter: DriftFilter) {
 
 export function useDriftEvent(eventId: string | undefined) {
   return useQuery({
-    queryKey: ["drift", eventId],
+    queryKey: ["drift", "event", eventId],
     queryFn: async () => {
       if (!eventId) throw new Error("Missing drift event id");
       const res = await driftClient.getDriftEvent({ id: eventId });
@@ -88,7 +94,7 @@ export function useResolveDriftEvent() {
     onSuccess: (event) => {
       if (event) {
         queryClient.invalidateQueries({ queryKey: ["drift", event.connectionId] });
-        queryClient.invalidateQueries({ queryKey: ["drift", event.id] });
+        queryClient.invalidateQueries({ queryKey: ["drift", "event", event.id] });
       }
     },
   });

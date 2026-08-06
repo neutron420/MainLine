@@ -6,26 +6,26 @@ import { Search, Link2, Database, Loader2 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub, FaSlack } from "react-icons/fa";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { Tooltip } from "@heroui/react";
-import { ProjectConnectionsCard } from "@/components/project-connections-card";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Input  } from "@/components/ui/input";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+import {  Separator  } from "@/components/ui/separator";
+
+
+
+
+
+
+
+import {  ProjectConnectionsCard  } from "@/components/project-connections-card";
 import {
   useGetOAuthUrl,
   useListLinkedIdentities,
   useUnlinkOAuthIdentity,
 } from "@/lib/api/hooks/use-auth";
-import { useProjects } from "@/lib/api/hooks/use-projects";
+import {  useProjects  } from "@/lib/api/hooks/use-projects";
 
 type Provider = "github" | "google" | "slack";
 

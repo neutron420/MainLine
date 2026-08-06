@@ -14,7 +14,7 @@ export type AuditFilter = {
   dateTo?: string;
 };
 
-export function useAuditEntries(filter: AuditFilter = {}) {
+export function useAuditEntries(filter: AuditFilter = {}, pageSize = 50) {
   return useQuery({
     queryKey: [
       "audit",
@@ -22,6 +22,9 @@ export function useAuditEntries(filter: AuditFilter = {}) {
       filter.actorId,
       filter.resourceType,
       filter.resourceId,
+      filter.dateFrom,
+      filter.dateTo,
+      pageSize,
     ],
     queryFn: async () => {
       const res = await auditClient.listAuditEntries({
@@ -31,6 +34,7 @@ export function useAuditEntries(filter: AuditFilter = {}) {
         resourceId: filter.resourceId ?? "",
         dateFrom: filter.dateFrom ?? "",
         dateTo: filter.dateTo ?? "",
+        pageSize,
       });
       return res.entries;
     },

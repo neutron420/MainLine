@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { eventClient } from "@/lib/api/clients";
 import { isUnauthenticated } from "@/lib/api/errors";
-import type { SchemaEvent } from "@/lib/gen/event/v1/event_messages_pb";export type EventStreamOptions = {
+import type { SchemaEvent } from "@/lib/gen/event/v1/event_messages_pb";
+
+export type EventStreamOptions = {
   projectIds?: string[];
   eventTypes?: string[];
   maxEvents?: number;
   reconnectDelayMs?: number;
+  enabled?: boolean;
 };
 
 export type EventStreamState = {
@@ -31,6 +34,7 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
     eventTypes = [],
     maxEvents = DEFAULT_MAX_EVENTS,
     reconnectDelayMs = 3000,
+    enabled = true,
   } = options;
 
   const projectIdsKey = projectIds.join(",");
@@ -46,12 +50,25 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
   const lastEventIdRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptRef = useRef(0);
 
   const stop = useCallback(() => {
     if (retryRef.current) clearTimeout(retryRef.current);
     abortRef.current?.abort();
     setConnected(false);
   }, []);
+
+  const nextDelay = useCallback(
+    () => {
+      const attempt = Math.min(attemptRef.current, 6);
+      const base = reconnectDelayMs * 2 ** attempt;
+      const capped = Math.min(base, 30_000);
+      const jitter = capped * (0.5 + Math.random() * 0.5);
+      attemptRef.current += 1;
+      return Math.round(jitter);
+    },
+    [reconnectDelayMs],
+  );
 
   const connect = useCallback(() => {
     abortRef.current = new AbortController();
@@ -70,6 +87,7 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
 
         for await (const event of iterable) {
           if (signal.aborted) return;
+          attemptRef.current = 0;
           setError(null);
           setConnected(true);
           lastEventIdRef.current = event.id;
@@ -80,10 +98,8 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
         }
         // stream ended without abort → schedule reconnect
         if (!signal.aborted) {
-          retryRef.current = setTimeout(() => {
-            setConnected(false);
-            connect();
-          }, reconnectDelayMs);
+          setConnected(false);
+          retryRef.current = setTimeout(connect, nextDelay());
         }
       } catch (err) {
         if (signal.aborted) return;
@@ -93,19 +109,21 @@ export function useEventStream(options: EventStreamOptions = {}): EventStreamSta
           return;
         }
         setConnected(false);
-        retryRef.current = setTimeout(connect, reconnectDelayMs);
+        retryRef.current = setTimeout(connect, nextDelay());
       }
     };
 
     void openStream();
-  }, [stableProjectIds, stableEventTypes, reconnectDelayMs, maxEvents]);
+  }, [stableProjectIds, stableEventTypes, maxEvents, nextDelay]);
 
   useEffect(() => {
+    if (!enabled) return;
     setEvents([]);
     lastEventIdRef.current = null;
+    attemptRef.current = 0;
     connect();
     return stop;
-  }, [connect, stop]);
+  }, [connect, stop, enabled]);
 
   return {
     events,

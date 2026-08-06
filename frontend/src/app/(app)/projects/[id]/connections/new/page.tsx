@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Loader2, CheckCircle2, XCircle, PlugZap, Database } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
+import {  Button  } from "@/components/ui/button";
+import {  Input  } from "@/components/ui/input";
+import {  Label  } from "@/components/ui/label";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -18,22 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useCreateConnection } from "@/lib/api/hooks/use-connections";
-import { getApiErrorMessage } from "@/lib/api/errors";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import {  useCreateConnection  } from "@/lib/api/hooks/use-connections";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 export default function CreateConnectionPage() {
   const params = useParams();

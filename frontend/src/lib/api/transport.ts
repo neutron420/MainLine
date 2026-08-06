@@ -145,5 +145,6 @@ const deduplicationInterceptor: Interceptor = (next) => async (req) => {
 export const transport = createGrpcWebTransport({
   baseUrl: API_BASE_URL,
   useBinaryFormat: true,
+  defaultTimeoutMs: 60_000,
   interceptors: [deduplicationInterceptor, authInterceptor],
 });

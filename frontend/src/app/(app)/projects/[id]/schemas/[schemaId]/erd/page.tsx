@@ -4,25 +4,11 @@ import React, { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, KeyRound, Link2, Table2 } from "lucide-react";
-import {
-  ReactFlow,
-  Background,
-  BackgroundVariant,
-  Controls,
-  MiniMap,
-  Handle,
-  Position,
-  MarkerType,
-  type Node,
-  type Edge,
-  type NodeProps,
-} from "@xyflow/react";
+import { ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Handle, Position, MarkerType, type Node, type Edge, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useSchema, useSchemaDiagram } from "@/lib/api/hooks/use-schemas";
 import type { DiagramNodeData, ColumnInfo } from "@/lib/gen/schema/v1/schema_messages_pb";
 
@@ -129,10 +115,7 @@ export default function ErdPage() {
 
   if (!schema) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-        <AppSidebar />
-        <SidebarInset>
-          <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
             <Table2 className="size-12 text-muted-foreground/40" />
             <h2 className="text-xl font-semibold">Schema not found</h2>
             <p className="text-sm text-muted-foreground">The schema you are looking for does not exist.</p>
@@ -140,18 +123,11 @@ export default function ErdPage() {
               <Button variant="outline">Back to Project</Button>
             </Link>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
     );
   }
 
   return (
-    <SidebarProvider style={{ "--sidebar-width": "350px" } as React.CSSProperties}>
-      <AppSidebar />
-      <SidebarInset>
-        <div className="flex flex-1 flex-col gap-6 p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          </div>
+    <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Header */}
           <div className="flex items-start gap-4">
             <Link href={`/projects/${projectId}/schemas/${schemaId}`}>
@@ -211,7 +187,5 @@ export default function ErdPage() {
             </div>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
   );
 }

@@ -7,14 +7,14 @@ import {
   Loader2, RefreshCw,
 } from "lucide-react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import {  Badge  } from "@/components/ui/badge";
+import {  Button  } from "@/components/ui/button";
+import {  Card, CardContent, CardHeader, CardTitle  } from "@/components/ui/card";
+import {  Input  } from "@/components/ui/input";
+import {  Label  } from "@/components/ui/label";
+import {  Separator  } from "@/components/ui/separator";
+import {  Tabs, TabsContent, TabsList, TabsTrigger  } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -39,23 +39,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useProjects } from "@/lib/api/hooks/use-projects";
-import { useSchemas, useSchemaDiagram, useIntrospectSchema } from "@/lib/api/hooks/use-schemas";
-import { useConnections } from "@/lib/api/hooks/use-connections";
+
+
+
+
+
+
+
+
+
+
+
+
+import {  useProjects  } from "@/lib/api/hooks/use-projects";
+import {  useSchemas, useSchemaDiagram, useIntrospectSchema  } from "@/lib/api/hooks/use-schemas";
+import {  useConnections  } from "@/lib/api/hooks/use-connections";
 import type { ColumnInfo } from "@/lib/gen/schema/v1/schema_messages_pb";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);

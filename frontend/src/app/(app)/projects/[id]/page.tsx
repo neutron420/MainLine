@@ -27,21 +27,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
+
+
+
+
+
+
+
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+
+
+
+
+import {  Tabs, TabsContent, TabsList, TabsTrigger  } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -50,14 +50,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { NotificationsPopover } from "@/components/notifications-popover";
-import { useProject, useMembers } from "@/lib/api/hooks/use-projects";
-import { useSchemas } from "@/lib/api/hooks/use-schemas";
-import { useMigrations } from "@/lib/api/hooks/use-migrations";
-import { useAuditEntries } from "@/lib/api/hooks/use-audit";
-import { useEventStream } from "@/lib/api/hooks/use-realtime";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import {  Avatar, AvatarFallback  } from "@/components/ui/avatar";
+
+import {  useProject, useMembers  } from "@/lib/api/hooks/use-projects";
+import {  useSchemas  } from "@/lib/api/hooks/use-schemas";
+import {  useMigrations  } from "@/lib/api/hooks/use-migrations";
+import {  useAuditEntries  } from "@/lib/api/hooks/use-audit";
+import {  useEventStream  } from "@/lib/api/hooks/use-realtime";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const tabs = [
   { value: "overview", label: "Overview" },

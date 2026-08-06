@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
 import {
   Select,
   SelectContent,
@@ -17,26 +17,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationsPopover } from "@/components/notifications-popover";
+
+
+
+
+
+
+
+
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+
+
+
+
+
 import {
   useSchema,
   useSchemaVersions,
   useCompareSchemas,
 } from "@/lib/api/hooks/use-schemas";
-import { getApiErrorMessage } from "@/lib/api/errors";
+import {  getApiErrorMessage  } from "@/lib/api/errors";
 
 const diffConfig: Record<string, { label: string; badge: "default" | "destructive" | "secondary"; icon: typeof Plus }> = {
   added: { label: "Added", badge: "default", icon: Plus },
